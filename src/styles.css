@@ -1,3 +1,148 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer utilities {
+  /* Liquid Glass Core Utilities - Light Mode */
+  .liquid-glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.8) 0%,
+      rgba(255, 255, 255, 0.6) 100%
+    );
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-top: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 
+      0 12px 35px -5px rgba(31, 38, 135, 0.08),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02);
+  }
+
+  /* Liquid Glass Core Utilities - Dark Mode (Rich Apple/Vision Pro Depth) */
+  .dark .liquid-glass {
+    background: linear-gradient(
+      135deg,
+      rgba(26, 36, 56, 0.65) 0%,
+      rgba(13, 20, 36, 0.78) 100%
+    );
+    backdrop-filter: blur(24px) saturate(200%) brightness(115%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%) brightness(115%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+      0 20px 50px -10px rgba(0, 0, 0, 0.65),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -1px 2px 0 rgba(0, 0, 0, 0.4),
+      0 0 25px -4px rgba(16, 185, 129, 0.12);
+  }
+
+  /* Liquid Glass Card - Light Mode */
+  .liquid-glass-card {
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .liquid-glass-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(16, 185, 129, 0.45);
+    box-shadow: 
+      0 16px 45px -8px rgba(16, 185, 129, 0.16),
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  /* Liquid Glass Card - Dark Mode (Intense Specular Edge & Neon Aura) */
+  .dark .liquid-glass-card {
+    background: linear-gradient(
+      140deg,
+      rgba(30, 42, 66, 0.55) 0%,
+      rgba(12, 18, 33, 0.72) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-top: 1px solid rgba(255, 255, 255, 0.26);
+    box-shadow: 
+      0 12px 35px -5px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .dark .liquid-glass-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(52, 211, 153, 0.55);
+    border-top-color: rgba(110, 231, 183, 0.8);
+    box-shadow: 
+      0 22px 50px -10px rgba(0, 0, 0, 0.75),
+      0 0 30px -2px rgba(16, 185, 129, 0.28),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.38);
+  }
+
+  /* Liquid Glass Input - Light Mode */
+  .liquid-glass-input {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(203, 213, 225, 0.9);
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  }
+
+  .liquid-glass-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Liquid Glass Input - Dark Mode (Specular Rim & Inner Cavity) */
+  .dark .liquid-glass-input {
+    background: rgba(10, 15, 28, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 2px 6px 0 rgba(0, 0, 0, 0.5);
+  }
+
+  .dark .liquid-glass-input:focus {
+    border-color: rgba(52, 211, 153, 0.7);
+    box-shadow: 
+      0 0 0 2px rgba(16, 185, 129, 0.3),
+      inset 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Ambient Fluid Blobs Animation */
+@keyframes float-blob-slow {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(45px, -65px) scale(1.18) rotate(45deg);
+  }
+  66% {
+    transform: translate(-35px, 35px) scale(0.88) rotate(-30deg);
+  }
+}
+
+@keyframes float-blob-reverse {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(-55px, 50px) scale(1.22) rotate(-40deg);
+  }
+  66% {
+    transform: translate(40px, -45px) scale(0.82) rotate(35deg);
+  }
+}
+
+.animate-blob-1 {
+  animation: float-blob-slow 20s ease-in-out infinite;
+}
+
+.animate-blob-2 {
+  animation: float-blob-reverse 24s ease-in-out infinite;
+}
+
+/* Desvanecimiento y ocultamiento dinámico de la barra flotante al abrir el modal */
+body.privacy-modal-active app-navbar header {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
