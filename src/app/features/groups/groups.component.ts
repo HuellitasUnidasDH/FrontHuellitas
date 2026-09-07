@@ -216,55 +216,60 @@ import { Pet } from '../../core/models/pet.model';
       @if (showCreateModal()) {
         <div
           (click)="closeCreateModal()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           >
-            <div class="flex items-center justify-between">
+            <!-- Header Pinned -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>✨</span> Crear Nueva Familia
               </h3>
               <button
                 type="button"
                 (click)="closeCreateModal()"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()" class="space-y-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Nombre de la Familia o Hogar *
-                </label>
-                <input
-                  type="text"
-                  formControlName="name"
-                  placeholder="Ej. Familia Ramírez, Hogar Peludo..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
-                />
+            <form [formGroup]="createForm" (ngSubmit)="onSubmitCreate()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Nombre de la Familia o Hogar *
+                  </label>
+                  <input
+                    type="text"
+                    formControlName="name"
+                    placeholder="Ej. Familia Ramírez, Hogar Peludo..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Descripción (Opcional)
+                  </label>
+                  <textarea
+                    formControlName="description"
+                    rows="3"
+                    placeholder="Unas palabras sobre este hogar o grupo..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  ></textarea>
+                </div>
               </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Descripción (Opcional)
-                </label>
-                <textarea
-                  formControlName="description"
-                  rows="2"
-                  placeholder="Unas palabras sobre este hogar o grupo..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                ></textarea>
-              </div>
-
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
+              <!-- Pinned Footer -->
+              <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
                 <button
                   type="button"
                   (click)="closeCreateModal()"
-                  class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
+                  class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -286,44 +291,49 @@ import { Pet } from '../../core/models/pet.model';
       @if (showJoinModal()) {
         <div
           (click)="closeJoinModal()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 text-center my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-center"
           >
-            <div class="flex items-center justify-between text-left">
+            <!-- Header Pinned -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900 text-left">
               <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>🔑</span> Unirse a una Familia
               </h3>
               <button
                 type="button"
                 (click)="closeJoinModal()"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 text-left">
-              Ingresa el código de invitación que te compartió el creador de la familia para tener acceso a las mascotas compartidas.
-            </p>
+            <form [formGroup]="joinForm" (ngSubmit)="onSubmitJoin()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain text-left">
+                <p class="text-xs text-slate-400">
+                  Ingresa el código de invitación que te compartió el creador de la familia para tener acceso a las mascotas compartidas.
+                </p>
 
-            <form [formGroup]="joinForm" (ngSubmit)="onSubmitJoin()" class="space-y-4 pt-2">
-              <div>
-                <input
-                  type="text"
-                  formControlName="inviteCode"
-                  placeholder="FAM-1234"
-                  class="w-full px-4 py-3 rounded-2xl liquid-glass-input text-center text-xl font-black tracking-widest uppercase text-emerald-600 dark:text-emerald-400 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono"
-                />
+                <div>
+                  <input
+                    type="text"
+                    formControlName="inviteCode"
+                    placeholder="FAM-1234"
+                    class="w-full px-4 py-3 rounded-2xl liquid-glass-input text-center text-xl font-black tracking-widest uppercase text-emerald-400 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
               </div>
 
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
+              <!-- Pinned Footer -->
+              <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
                 <button
                   type="button"
                   (click)="closeJoinModal()"
-                  class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
+                  class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -345,53 +355,68 @@ import { Pet } from '../../core/models/pet.model';
       @if (showAssignModal() && selectedGroupForAssign()) {
         <div
           (click)="closeAssignPetModal()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           >
-            <div class="flex items-center justify-between">
+            <!-- Header Pinned -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <h3 class="text-base font-black text-slate-900 dark:text-white">
                 Vincular a "{{ selectedGroupForAssign()!.name }}"
               </h3>
               <button
                 type="button"
                 (click)="closeAssignPetModal()"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              Selecciona una de tus mascotas para compartirla con los miembros de este grupo:
-            </p>
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 overscroll-contain">
+              <p class="text-xs text-slate-400">
+                Selecciona una de tus mascotas para compartirla con los miembros de este grupo:
+              </p>
 
-            <div class="space-y-2 max-h-60 overflow-y-auto overscroll-contain">
-              @for (pet of myAvailablePets(); track pet.id) {
-                <div class="p-3 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-2.5">
-                    <span class="text-lg">🐾</span>
-                    <div>
-                      <span class="text-xs font-bold text-slate-900 dark:text-white block">{{ pet.name }}</span>
-                      <span class="text-[10px] text-slate-400">{{ pet.species }}</span>
+              <div class="space-y-2">
+                @for (pet of myAvailablePets(); track pet.id) {
+                  <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700/80 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                      <span class="text-lg">🐾</span>
+                      <div>
+                        <span class="text-xs font-bold text-white block">{{ pet.name }}</span>
+                        <span class="text-[10px] text-slate-400">{{ pet.species }}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    (click)="assignPetToGroup(pet.id)"
-                    class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[11px] hover:bg-emerald-400 transition-colors cursor-pointer"
-                  >
-                    Vincular
-                  </button>
-                </div>
-              } @empty {
-                <p class="text-xs text-slate-400 italic py-4 text-center">
-                  Todas tus mascotas ya están vinculadas o no tienes mascotas registradas.
-                </p>
-              }
+                    <button
+                      type="button"
+                      (click)="assignPetToGroup(pet.id)"
+                      class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[11px] hover:bg-emerald-400 transition-colors cursor-pointer"
+                    >
+                      Vincular
+                    </button>
+                  </div>
+                } @empty {
+                  <p class="text-xs text-slate-400 italic py-6 text-center">
+                    Todas tus mascotas ya están vinculadas o no tienes mascotas registradas.
+                  </p>
+                }
+              </div>
+            </div>
+
+            <!-- Pinned Footer -->
+            <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end shrink-0 bg-slate-900/95">
+              <button
+                type="button"
+                (click)="closeAssignPetModal()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
@@ -401,15 +426,16 @@ import { Pet } from '../../core/models/pet.model';
       @if (showFeedModal() && selectedGroupForFeed()) {
         <div
           (click)="closeGroupFeed()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-3xl liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 max-h-[88vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain"
+            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           >
-            <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/60 shrink-0">
+            <!-- Header Pinned -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <div>
-                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 class="text-base sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>📸</span> Muro de Recuerdos: {{ selectedGroupForFeed()!.name }}
                 </h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -420,54 +446,69 @@ import { Pet } from '../../core/models/pet.model';
               <button
                 type="button"
                 (click)="closeGroupFeed()"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            @if (isLoadingFeed()) {
-              <div class="py-16 flex justify-center">
-                <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            } @else if (feedMoments().length === 0) {
-              <div class="py-16 text-center space-y-2">
-                <span class="text-4xl">📷</span>
-                <p class="text-xs text-slate-400">Esta familia aún no tiene recuerdos fotográficos compartidos.</p>
-              </div>
-            } @else {
-              <div class="overflow-y-auto overscroll-contain pr-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                @for (moment of feedMoments(); track moment.id) {
-                  <div class="rounded-2xl overflow-hidden bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 shadow-md flex flex-col">
-                    <div class="h-48 overflow-hidden bg-slate-950 relative">
-                      <img
-                        [src]="moment.photoUrl"
-                        [alt]="moment.title"
-                        class="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
-                        🐾 {{ moment.petName }}
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 overscroll-contain">
+              @if (isLoadingFeed()) {
+                <div class="py-16 flex justify-center">
+                  <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              } @else if (feedMoments().length === 0) {
+                <div class="py-16 text-center space-y-2">
+                  <span class="text-4xl">📷</span>
+                  <p class="text-xs text-slate-400">Esta familia aún no tiene recuerdos fotográficos compartidos.</p>
+                </div>
+              } @else {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  @for (moment of feedMoments(); track moment.id) {
+                    <div class="rounded-2xl overflow-hidden bg-slate-800/80 border border-slate-700/80 shadow-md flex flex-col">
+                      <div class="h-48 overflow-hidden bg-slate-950 relative">
+                        <img
+                          [src]="moment.photoUrl"
+                          [alt]="moment.title"
+                          class="w-full h-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
+                          🐾 {{ moment.petName }}
+                        </div>
+                        <div class="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-emerald-400 font-mono">
+                          {{ moment.momentDate | slice:0:10 }}
+                        </div>
                       </div>
-                      <div class="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-emerald-400 font-mono">
-                        {{ moment.momentDate | slice:0:10 }}
-                      </div>
-                    </div>
 
-                    <div class="p-4 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 class="font-bold text-slate-900 dark:text-white text-sm">{{ moment.title }}</h4>
-                        @if (moment.description) {
-                          <p class="text-xs text-slate-600 dark:text-slate-300 mt-1.5 line-clamp-3">
-                            {{ moment.description }}
-                          </p>
-                        }
+                      <div class="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 class="font-bold text-white text-sm">{{ moment.title }}</h4>
+                          @if (moment.description) {
+                            <p class="text-xs text-slate-300 mt-1.5 line-clamp-3">
+                              {{ moment.description }}
+                            </p>
+                          }
+                        </div>
                       </div>
                     </div>
-                  </div>
-                }
-              </div>
-            }
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Pinned Footer -->
+            <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end shrink-0 bg-slate-900/95">
+              <button
+                type="button"
+                (click)="closeGroupFeed()"
+                class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -520,9 +561,11 @@ export class GroupsComponent implements OnInit, OnDestroy {
   private lockBodyScroll(locked: boolean): void {
     if (typeof document !== 'undefined') {
       if (locked) {
+        document.body.classList.add('modal-open');
         document.body.style.overflow = 'hidden';
         document.body.style.touchAction = 'none';
       } else {
+        document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
         document.body.style.touchAction = '';
       }

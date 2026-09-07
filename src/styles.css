@@ -139,10 +139,10 @@
   animation: float-blob-reverse 24s ease-in-out infinite;
 }
 
-/* Desvanecimiento y ocultamiento dinámico de la barra flotante al abrir el modal */
-body.privacy-modal-active app-navbar header {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transform: translateY(-20px) scale(0.95) !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+/* Desvanecimiento y ocultamiento dinámico de las barras de navegación al abrir cualquier modal */
+body.privacy-modal-active app-navbar header,
+body.privacy-modal-active app-navbar nav,
+body.modal-open app-navbar header,
+body.modal-open app-navbar nav {
+  display: none !important;
 }

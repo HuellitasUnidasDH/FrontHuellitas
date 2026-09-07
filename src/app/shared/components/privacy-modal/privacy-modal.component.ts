@@ -9,9 +9,9 @@ import { FormsModule } from '@angular/forms';
   template: `
     @if (isOpen) {
       <!-- Super-layer overlay (z-[999]) with full backdrop blur and dimming to completely cover everything including floating navbar -->
-      <div class="fixed inset-0 z-[999] overflow-y-auto overscroll-contain flex min-h-full items-end sm:items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-2xl transition-all duration-300 animate-fade-in">
+      <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-hidden transition-all duration-300 animate-fade-in">
         <div
-          class="w-full max-w-2xl liquid-glass rounded-3xl p-5 sm:p-8 shadow-2xl border border-white/20 dark:border-white/10 flex flex-col max-h-[88vh] transition-all my-auto overscroll-contain"
+          class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col overflow-hidden transition-all my-auto"
         >
           <!-- Header -->
           <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/80">

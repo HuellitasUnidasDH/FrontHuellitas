@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PetService } from '../../../core/services/pet.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { compressAndResizeImage } from '../../../core/utils/image-compressor.util';
 import { Pet } from '../../../core/models/pet.model';
 import { MedicalRecord } from '../../../core/models/medical-record.model';
 import { PetMoment } from '../../../core/models/pet-moment.model';
@@ -322,118 +323,129 @@ import { UserRole } from '../../../core/models/user.model';
       @if (showAddMomentModal()) {
         <div
           (click)="closeAddMomentModal()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           >
-            <div class="flex items-center justify-between flex-shrink-0">
+            <!-- Header Pinned -->
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <div>
                 <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>📸</span> Inmortalizar Recuerdo
                 </h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">La foto se guardará en tu Supabase Storage</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Optimizado automáticamente para máxima fluidez</p>
               </div>
               <button
                 type="button"
                 (click)="closeAddMomentModal()"
-                class="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-400 hover:text-slate-900 dark:hover:text-white text-base font-bold flex items-center justify-center cursor-pointer"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            <form [formGroup]="momentForm" (ngSubmit)="onSubmitMoment()" class="space-y-4 overflow-y-auto pr-1 overscroll-contain flex-1">
-              <!-- Image Dropzone / Preview -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Fotografía del Momento *
-                </label>
-
-                @if (!imagePreview()) {
-                  <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 rounded-2xl p-6 cursor-pointer bg-white/30 dark:bg-slate-900/30 transition-all">
-                    <span class="text-3xl mb-2">📷</span>
-                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Seleccionar foto desde galería o cámara</span>
-                    <span class="text-[10px] text-slate-400 mt-1">JPG, PNG, WEBP (Hasta 10 MB)</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      (change)="onFileSelected($event)"
-                      class="hidden"
-                    />
+            <form [formGroup]="momentForm" (ngSubmit)="onSubmitMoment()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <!-- Scrollable Body -->
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
+                <!-- Image Dropzone / Preview -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Fotografía del Momento *
                   </label>
-                } @else {
-                  <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
-                    <img
-                      [src]="imagePreview()"
-                      alt="Previsualización"
-                      class="w-full h-48 sm:h-52 object-contain"
-                    />
-                    <div class="absolute bottom-2 right-2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        (click)="removeSelectedFile()"
-                        class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
-                      >
-                        Cambiar Foto
-                      </button>
+
+                  @if (isCompressingImage()) {
+                    <div class="flex flex-col items-center justify-center border-2 border-emerald-500/40 rounded-2xl p-8 bg-slate-800/40 space-y-2">
+                      <div class="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                      <span class="text-xs font-bold text-emerald-400">Optimizando y escalando fotografía... ⚡</span>
+                      <span class="text-[10px] text-slate-400">Reduciendo peso para evitar congelamientos</span>
                     </div>
-                  </div>
-                }
+                  } @else if (!imagePreview()) {
+                    <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-6 cursor-pointer bg-slate-800/40 hover:bg-slate-800/60 transition-all">
+                      <span class="text-3xl mb-2">📷</span>
+                      <span class="text-xs font-bold text-slate-200">Seleccionar foto desde galería o cámara</span>
+                      <span class="text-[10px] text-slate-400 mt-1">Cualquier resolución · Optimización inteligente activa</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        (change)="onFileSelected($event)"
+                        class="hidden"
+                      />
+                    </label>
+                  } @else {
+                    <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
+                      <img
+                        [src]="imagePreview()"
+                        alt="Previsualización"
+                        class="w-full h-48 sm:h-52 object-contain"
+                      />
+                      <div class="absolute bottom-2 right-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          (click)="removeSelectedFile()"
+                          class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
+                        >
+                          Cambiar Foto
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <!-- Título -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Título del Recuerdo *
+                  </label>
+                  <input
+                    type="text"
+                    formControlName="title"
+                    placeholder="Ej. Su primer día en el parque, Cumpleaños #1..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <!-- Fecha del Recuerdo -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Fecha del Momento *
+                  </label>
+                  <input
+                    type="date"
+                    formControlName="momentDate"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <!-- Descripción / Anécdota -->
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Anécdota / Descripción (Opcional)
+                  </label>
+                  <textarea
+                    formControlName="description"
+                    rows="3"
+                    placeholder="Escribe lo que ocurrió este día para recordarlo siempre..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  ></textarea>
+                </div>
               </div>
 
-              <!-- Título -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Título del Recuerdo *
-                </label>
-                <input
-                  type="text"
-                  formControlName="title"
-                  placeholder="Ej. Su primer día en el parque, Cumpleaños #1..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <!-- Fecha del Recuerdo -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Fecha del Momento *
-                </label>
-                <input
-                  type="date"
-                  formControlName="momentDate"
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <!-- Descripción / Anécdota -->
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Anécdota / Descripción (Opcional)
-                </label>
-                <textarea
-                  formControlName="description"
-                  rows="3"
-                  placeholder="Escribe lo que ocurrió este día para recordarlo siempre..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                ></textarea>
-              </div>
-
-              <!-- Botones de Acción -->
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3 flex-shrink-0">
+              <!-- Sticky Pinned Footer -->
+              <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
                 <button
                   type="button"
                   (click)="closeAddMomentModal()"
-                  class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                  class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
 
                 <button
                   type="submit"
-                  [disabled]="momentForm.invalid || !selectedFile() || isUploadingMoment()"
+                  [disabled]="momentForm.invalid || !selectedFile() || isUploadingMoment() || isCompressingImage()"
                   class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
                   @if (isUploadingMoment()) {
@@ -453,22 +465,22 @@ import { UserRole } from '../../../core/models/user.model';
       @if (selectedMomentForLightbox()) {
         <div
           (click)="closeLightbox()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-xl p-3 sm:p-4 flex min-h-full items-center justify-center overscroll-contain animate-in fade-in duration-150"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md overflow-hidden animate-in fade-in duration-150"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="max-w-4xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative my-auto"
+            class="max-w-4xl w-full max-h-[95dvh] sm:max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col relative my-auto"
           >
-            <!-- Close Button -->
+            <!-- Close Button Pinned -->
             <button
               (click)="closeLightbox()"
-              class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-slate-950/80 text-white hover:bg-rose-500 flex items-center justify-center font-bold text-sm shadow transition-colors cursor-pointer"
+              class="absolute top-3 right-3 z-20 w-10 h-10 rounded-full bg-slate-950/80 text-white hover:bg-rose-500 flex items-center justify-center font-bold text-base shadow transition-colors cursor-pointer"
             >
               ✕
             </button>
 
             <!-- Lightbox Image -->
-            <div class="max-h-[65vh] sm:max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
+            <div class="flex-1 bg-black flex items-center justify-center overflow-hidden min-h-0">
               <img
                 [src]="selectedMomentForLightbox()!.photoUrl"
                 [alt]="selectedMomentForLightbox()!.title"
@@ -477,9 +489,9 @@ import { UserRole } from '../../../core/models/user.model';
             </div>
 
             <!-- Lightbox Info -->
-            <div class="p-5 sm:p-6 text-white space-y-2">
+            <div class="p-4 sm:p-6 bg-slate-900 border-t border-slate-800 text-white space-y-2 shrink-0">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h3 class="text-lg sm:text-xl font-black">{{ selectedMomentForLightbox()!.title }}</h3>
+                <h3 class="text-base sm:text-xl font-black">{{ selectedMomentForLightbox()!.title }}</h3>
                 <span class="self-start sm:self-auto text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   📅 {{ selectedMomentForLightbox()!.momentDate | slice:0:10 }}
                 </span>
@@ -498,99 +510,103 @@ import { UserRole } from '../../../core/models/user.model';
       @if (showAddRecordModal()) {
         <div
           (click)="closeAddRecordModal()"
-          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
           >
-            <div class="flex items-center justify-between flex-shrink-0">
+            <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <h3 class="text-lg font-bold text-slate-900 dark:text-white">Nueva Consulta Médica</h3>
               <button
                 type="button"
                 (click)="closeAddRecordModal()"
-                class="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-400 hover:text-slate-900 dark:hover:text-white text-base font-bold flex items-center justify-center cursor-pointer"
+                class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xl font-bold cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
                 ✕
               </button>
             </div>
 
-            <form [formGroup]="recordForm" (ngSubmit)="onSubmitRecord()" class="space-y-4 overflow-y-auto pr-1 overscroll-contain flex-1">
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Fecha de la Consulta *
-                </label>
-                <input
-                  type="date"
-                  formControlName="visitDate"
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
-                />
+            <form [formGroup]="recordForm" (ngSubmit)="onSubmitRecord()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Fecha de la Consulta *
+                  </label>
+                  <input
+                    type="date"
+                    formControlName="visitDate"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Motivo de Visita *
+                  </label>
+                  <input
+                    type="text"
+                    formControlName="reason"
+                    placeholder="Ej. Chequeo general, Vacuna antirrábica..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Diagnóstico *
+                  </label>
+                  <textarea
+                    formControlName="diagnosis"
+                    rows="2"
+                    placeholder="Observaciones clínicas y diagnóstico del veterinario"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Tratamiento Aplicado *
+                  </label>
+                  <textarea
+                    formControlName="treatment"
+                    rows="2"
+                    placeholder="Medicamentos inyectados, vacuna aplicada, limpieza..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Receta Médica / Prescripción (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    formControlName="prescriptions"
+                    placeholder="Ej. Amoxicilina 250mg cada 12 hrs por 7 días"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Fecha Próxima Cita (Opcional)
+                  </label>
+                  <input
+                    type="date"
+                    formControlName="nextAppointmentDate"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Motivo de Visita *
-                </label>
-                <input
-                  type="text"
-                  formControlName="reason"
-                  placeholder="Ej. Chequeo general, Vacuna antirrábica..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Diagnóstico *
-                </label>
-                <textarea
-                  formControlName="diagnosis"
-                  rows="2"
-                  placeholder="Observaciones clínicas y diagnóstico del veterinario"
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                ></textarea>
-              </div>
-
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Tratamiento Aplicado *
-                </label>
-                <textarea
-                  formControlName="treatment"
-                  rows="2"
-                  placeholder="Medicamentos inyectados, vacuna aplicada, limpieza..."
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
-                ></textarea>
-              </div>
-
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Receta Médica / Prescripción (Opcional)
-                </label>
-                <input
-                  type="text"
-                  formControlName="prescriptions"
-                  placeholder="Ej. Amoxicilina 250mg cada 12 hrs por 7 días"
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Fecha Próxima Cita (Opcional)
-                </label>
-                <input
-                  type="date"
-                  formControlName="nextAppointmentDate"
-                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3 flex-shrink-0">
+              <!-- Sticky Pinned Footer -->
+              <div class="p-4 pb-6 sm:pb-4 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0 bg-slate-900/95">
                 <button
                   type="button"
                   (click)="closeAddRecordModal()"
-                  class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                  class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -629,6 +645,7 @@ export class PetDetailComponent implements OnInit {
   showAddRecordModal = signal(false);
   showAddMomentModal = signal(false);
   isUploadingMoment = signal(false);
+  isCompressingImage = signal(false);
   selectedMomentForLightbox = signal<PetMoment | null>(null);
 
   // Moment File Upload
@@ -703,9 +720,11 @@ export class PetDetailComponent implements OnInit {
   private lockBodyScroll(locked: boolean): void {
     if (typeof document === 'undefined') return;
     if (locked) {
+      document.body.classList.add('modal-open');
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
     } else {
+      document.body.classList.remove('modal-open');
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     }
@@ -731,34 +750,45 @@ export class PetDetailComponent implements OnInit {
     this.lockBodyScroll(false);
   }
 
-  onFileSelected(event: Event): void {
+  async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
-    const file = input.files[0];
+    const rawFile = input.files[0];
 
     // Validar tipo
-    if (!file.type.startsWith('image/')) {
+    if (!rawFile.type.startsWith('image/')) {
       this.notification.error('Archivo no válido', 'Debes seleccionar una imagen (JPG, PNG, WEBP)');
       return;
     }
 
-    // Validar tamaño (10 MB)
-    if (file.size > 10 * 1024 * 1024) {
-      this.notification.error('Imagen muy grande', 'El archivo no puede superar los 10 MB');
+    // Validar tamaño inicial (máximo 25 MB antes de compresión)
+    if (rawFile.size > 25 * 1024 * 1024) {
+      this.notification.error('Imagen muy grande', 'El archivo no puede superar los 25 MB');
       return;
     }
-
-    this.selectedFile.set(file);
 
     // Liberar URL anterior para evitar fugas de memoria
     if (this.imagePreview() && this.imagePreview()!.startsWith('blob:')) {
       URL.revokeObjectURL(this.imagePreview()!);
     }
 
-    // Usar ObjectURL nativo ligero en lugar de Base64 de 15MB para evitar parpadeos en pantalla móvil
-    const objectUrl = URL.createObjectURL(file);
-    this.imagePreview.set(objectUrl);
+    this.isCompressingImage.set(true);
+
+    try {
+      // Redimensionar y comprimir instantáneamente en el cliente a max 1600px y calidad 82%
+      // Reduce fotos de 15MB a ~250KB con nitidez profesional, eliminando la saturación de GPU
+      const result = await compressAndResizeImage(rawFile, 1600, 1600, 0.82);
+      this.selectedFile.set(result.file);
+      this.imagePreview.set(result.objectUrl);
+    } catch (err) {
+      console.error('Error optimizando imagen:', err);
+      const fallbackUrl = URL.createObjectURL(rawFile);
+      this.selectedFile.set(rawFile);
+      this.imagePreview.set(fallbackUrl);
+    } finally {
+      this.isCompressingImage.set(false);
+    }
   }
 
   removeSelectedFile(): void {
