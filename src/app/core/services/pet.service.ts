@@ -7,6 +7,7 @@ import {
   MedicalRecord,
   CreateMedicalRecordPayload,
 } from '../models/medical-record.model';
+import { PetMoment } from '../models/pet-moment.model';
 import { ApiResponse } from '../models/api-response.model';
 
 @Injectable({
@@ -61,5 +62,27 @@ export class PetService {
     return this.http
       .post<ApiResponse<MedicalRecord>>(this.RECORDS_URL, payload)
       .pipe(map((res) => res.data));
+  }
+
+  // ==========================================
+  // MOMENTOS / RECUERDOS (Supabase Storage)
+  // ==========================================
+
+  getMoments(petId: string): Observable<PetMoment[]> {
+    return this.http
+      .get<ApiResponse<PetMoment[]>>(`${this.PETS_URL}/${petId}/moments`)
+      .pipe(map((res) => res.data));
+  }
+
+  addMoment(petId: string, formData: FormData): Observable<PetMoment> {
+    return this.http
+      .post<ApiResponse<PetMoment>>(`${this.PETS_URL}/${petId}/moments`, formData)
+      .pipe(map((res) => res.data));
+  }
+
+  deleteMoment(momentId: string): Observable<void> {
+    return this.http
+      .delete<ApiResponse<{ message: string }>>(`${this.PETS_URL}/moments/${momentId}`)
+      .pipe(map(() => void 0));
   }
 }
