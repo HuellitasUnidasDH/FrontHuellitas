@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PetService } from '../../../core/services/pet.service';
+import { GroupService } from '../../../core/services/group.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { PetGender } from '../../../core/models/pet.model';
+import { PetGroup } from '../../../core/models/group.model';
 
 @Component({
   selector: 'app-pet-form',
@@ -87,6 +89,33 @@ import { PetGender } from '../../../core/models/pet.model';
                   <option [value]="PetGender.FEMALE">Hembra</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <!-- Family / Group Section -->
+          <div class="pt-6 border-t border-slate-200/60 dark:border-slate-800">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+              <span>👨‍👩‍👧‍👦</span> Familia / Grupo Compartido
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Si asignas esta mascota a una familia, todos los miembros podrán verla, subir fotos y compartir recuerdos.
+            </p>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                Vincular a Familia
+              </label>
+              <select
+                formControlName="groupId"
+                class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+              >
+                <option [ngValue]="null">🔒 Mascota Individual (Sin grupo compartido)</option>
+                @for (group of availableGroups(); track group.id) {
+                  <option [ngValue]="group.id">
+                    👨‍👩‍👧‍👦 {{ group.name }} (Código: {{ group.inviteCode }})
+                  </option>
+                }
+              </select>
             </div>
           </div>
 
@@ -202,6 +231,7 @@ import { PetGender } from '../../../core/models/pet.model';
 export class PetFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private petService = inject(PetService);
+  private groupService = inject(GroupService);
   private notification = inject(NotificationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -211,12 +241,14 @@ export class PetFormComponent implements OnInit {
   isEditMode = signal(false);
   isSubmitting = signal(false);
   petId = signal<string | null>(null);
+  availableGroups = signal<PetGroup[]>([]);
 
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
     species: ['Perro', [Validators.required]],
     breed: [''],
     gender: [PetGender.MALE],
+    groupId: [null as string | null],
     birthDate: [''],
     weightKg: [null as number | null],
     color: [''],
@@ -226,12 +258,21 @@ export class PetFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadGroups();
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
       this.petId.set(id);
       this.loadPetData(id);
     }
+  }
+
+  loadGroups(): void {
+    this.groupService.getAll().subscribe({
+      next: (groups) => this.availableGroups.set(groups),
+      error: () => {},
+    });
   }
 
   loadPetData(id: string): void {
@@ -242,6 +283,7 @@ export class PetFormComponent implements OnInit {
           species: pet.species,
           breed: pet.breed || '',
           gender: pet.gender,
+          groupId: pet.groupId || null,
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
           weightKg: pet.weightKg ? Number(pet.weightKg) : null,
           color: pet.color || '',
@@ -267,6 +309,7 @@ export class PetFormComponent implements OnInit {
       species: formVal.species!,
       breed: formVal.breed || undefined,
       gender: formVal.gender || PetGender.MALE,
+      groupId: formVal.groupId || null,
       birthDate: formVal.birthDate || undefined,
       weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
       color: formVal.color || undefined,
@@ -296,3 +339,4 @@ export class PetFormComponent implements OnInit {
     }
   }
 }
+

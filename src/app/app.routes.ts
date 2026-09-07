@@ -32,6 +32,12 @@ export const routes: Routes = [
       import('./features/admin/admin.component').then((m) => m.AdminComponent),
   },
   {
+    path: 'groups',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/groups/groups.component').then((m) => m.GroupsComponent),
+  },
+  {
     path: 'pets',
     canActivate: [authGuard],
     children: [

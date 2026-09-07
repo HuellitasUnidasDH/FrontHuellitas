@@ -74,6 +74,17 @@ import { UserRole } from '../../../core/models/user.model';
                 <span>Mascotas</span>
               </a>
 
+              <!-- Familias / Grupos Tab -->
+              <a
+                routerLink="/groups"
+                routerLinkActive="active-nav-tab"
+                class="nav-tab-item group relative px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-300 flex items-center gap-2 cursor-pointer"
+              >
+                <span class="tab-indicator opacity-0 group-[.active-nav-tab]:opacity-100 absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-md shadow-emerald-500/10 border border-emerald-500/30 transition-all duration-300 -z-10"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 opacity-0 group-[.active-nav-tab]:opacity-100 animate-pulse transition-opacity"></span>
+                <span>👨‍👩‍👧‍👦 Familias</span>
+              </a>
+
               <!-- Registrar Tab -->
               <a
                 routerLink="/pets/new"
@@ -179,6 +190,14 @@ import { UserRole } from '../../../core/models/user.model';
           >
             <span>🐾</span>
             <span>Mascotas</span>
+          </a>
+          <a
+            routerLink="/groups"
+            routerLinkActive="mobile-active-tab"
+            class="group px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 transition-all flex items-center gap-1.5"
+          >
+            <span>👨‍👩‍👧</span>
+            <span>Familias</span>
           </a>
           <a
             routerLink="/pets/new"

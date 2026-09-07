@@ -50,6 +50,11 @@ import { UserRole } from '../../../core/models/user.model';
                   >
                     {{ pet()!.gender === 'FEMALE' ? 'Hembra' : 'Macho' }}
                   </span>
+                  @if (pet()!.group) {
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      👨‍👩‍👧‍👦 {{ pet()!.group.name }}
+                    </span>
+                  }
                 </div>
 
                 <p class="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">

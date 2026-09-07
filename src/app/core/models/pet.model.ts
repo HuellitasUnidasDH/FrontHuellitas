@@ -18,6 +18,8 @@ export interface Pet {
   photoUrl?: string;
   isSterilized: boolean;
   notes?: string;
+  groupId?: string | null;
+  group?: any;
   owner?: User;
   ownerId: string;
   createdAt: string;
@@ -37,6 +39,7 @@ export interface CreatePetPayload {
   isSterilized?: boolean;
   notes?: string;
   ownerId?: string;
+  groupId?: string | null;
 }
 
 export interface UpdatePetPayload extends Partial<CreatePetPayload> {}

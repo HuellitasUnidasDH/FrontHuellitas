@@ -119,6 +119,11 @@ import { Pet } from '../../../core/models/pet.model';
                         <a [routerLink]="['/pets', pet.id]">{{ pet.name }}</a>
                       </h3>
                       <p class="text-xs text-slate-500 dark:text-slate-400">{{ pet.species }} · {{ pet.breed || 'Sin raza' }}</p>
+                      @if (pet.group) {
+                        <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                          👨‍👩‍👧‍👦 {{ pet.group.name }}
+                        </span>
+                      }
                     </div>
                   </div>
 
