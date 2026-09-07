@@ -320,9 +320,15 @@ import { UserRole } from '../../../core/models/user.model';
 
       <!-- MODAL: AGREGAR NUEVO MOMENTO (Supabase Storage) -->
       @if (showAddMomentModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-            <div class="flex items-center justify-between">
+        <div
+          (click)="closeAddMomentModal()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div class="flex items-center justify-between flex-shrink-0">
               <div>
                 <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>📸</span> Inmortalizar Recuerdo
@@ -330,14 +336,15 @@ import { UserRole } from '../../../core/models/user.model';
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">La foto se guardará en tu Supabase Storage</p>
               </div>
               <button
-                (click)="showAddMomentModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+                type="button"
+                (click)="closeAddMomentModal()"
+                class="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-400 hover:text-slate-900 dark:hover:text-white text-base font-bold flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form [formGroup]="momentForm" (ngSubmit)="onSubmitMoment()" class="space-y-4">
+            <form [formGroup]="momentForm" (ngSubmit)="onSubmitMoment()" class="space-y-4 overflow-y-auto pr-1 overscroll-contain flex-1">
               <!-- Image Dropzone / Preview -->
               <div>
                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
@@ -347,8 +354,8 @@ import { UserRole } from '../../../core/models/user.model';
                 @if (!imagePreview()) {
                   <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 rounded-2xl p-6 cursor-pointer bg-white/30 dark:bg-slate-900/30 transition-all">
                     <span class="text-3xl mb-2">📷</span>
-                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Seleccionar o arrastrar foto</span>
-                    <span class="text-[10px] text-slate-400 mt-1">Formatos soportados: JPG, PNG, WEBP (Hasta 10 MB)</span>
+                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200">Seleccionar foto desde galería o cámara</span>
+                    <span class="text-[10px] text-slate-400 mt-1">JPG, PNG, WEBP (Hasta 10 MB)</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -357,17 +364,17 @@ import { UserRole } from '../../../core/models/user.model';
                     />
                   </label>
                 } @else {
-                  <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group">
+                  <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
                     <img
                       [src]="imagePreview()"
                       alt="Previsualización"
-                      class="w-full h-52 object-cover"
+                      class="w-full h-48 sm:h-52 object-contain"
                     />
-                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <div class="absolute bottom-2 right-2 flex items-center gap-2">
                       <button
                         type="button"
                         (click)="removeSelectedFile()"
-                        class="px-3 py-1.5 rounded-xl bg-rose-500 text-white text-xs font-bold shadow hover:bg-rose-600 transition-colors cursor-pointer"
+                        class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
                       >
                         Cambiar Foto
                       </button>
@@ -415,11 +422,11 @@ import { UserRole } from '../../../core/models/user.model';
               </div>
 
               <!-- Botones de Acción -->
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
+              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3 flex-shrink-0">
                 <button
                   type="button"
-                  (click)="showAddMomentModal.set(false)"
-                  class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                  (click)="closeAddMomentModal()"
+                  class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -446,39 +453,39 @@ import { UserRole } from '../../../core/models/user.model';
       @if (selectedMomentForLightbox()) {
         <div
           (click)="closeLightbox()"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/90 backdrop-blur-xl p-3 sm:p-4 flex min-h-full items-center justify-center overscroll-contain animate-in fade-in duration-150"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="max-w-4xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative"
+            class="max-w-4xl w-full bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative my-auto"
           >
             <!-- Close Button -->
             <button
               (click)="closeLightbox()"
-              class="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-slate-950/80 text-white hover:bg-rose-500 flex items-center justify-center font-bold text-sm shadow transition-colors cursor-pointer"
+              class="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-slate-950/80 text-white hover:bg-rose-500 flex items-center justify-center font-bold text-sm shadow transition-colors cursor-pointer"
             >
               ✕
             </button>
 
             <!-- Lightbox Image -->
-            <div class="max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
+            <div class="max-h-[65vh] sm:max-h-[70vh] bg-black flex items-center justify-center overflow-hidden">
               <img
                 [src]="selectedMomentForLightbox()!.photoUrl"
                 [alt]="selectedMomentForLightbox()!.title"
-                class="w-full h-full max-h-[70vh] object-contain"
+                class="w-full h-full max-h-[65vh] sm:max-h-[70vh] object-contain"
               />
             </div>
 
             <!-- Lightbox Info -->
-            <div class="p-6 text-white space-y-2">
-              <div class="flex items-center justify-between gap-4">
-                <h3 class="text-xl font-black">{{ selectedMomentForLightbox()!.title }}</h3>
-                <span class="text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <div class="p-5 sm:p-6 text-white space-y-2">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h3 class="text-lg sm:text-xl font-black">{{ selectedMomentForLightbox()!.title }}</h3>
+                <span class="self-start sm:self-auto text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   📅 {{ selectedMomentForLightbox()!.momentDate | slice:0:10 }}
                 </span>
               </div>
               @if (selectedMomentForLightbox()!.description) {
-                <p class="text-sm text-slate-300 leading-relaxed pt-1">
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed pt-1">
                   {{ selectedMomentForLightbox()!.description }}
                 </p>
               }
@@ -489,19 +496,26 @@ import { UserRole } from '../../../core/models/user.model';
 
       <!-- MODAL: NUEVA CONSULTA MÉDICA (Solo Veterinario/Admin) -->
       @if (showAddRecordModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
-          <div class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between">
+        <div
+          (click)="closeAddRecordModal()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-lg liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-4 max-h-[85vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain animate-in fade-in zoom-in-95 duration-150"
+          >
+            <div class="flex items-center justify-between flex-shrink-0">
               <h3 class="text-lg font-bold text-slate-900 dark:text-white">Nueva Consulta Médica</h3>
               <button
-                (click)="showAddRecordModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-lg font-bold cursor-pointer"
+                type="button"
+                (click)="closeAddRecordModal()"
+                class="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800/60 text-slate-400 hover:text-slate-900 dark:hover:text-white text-base font-bold flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <form [formGroup]="recordForm" (ngSubmit)="onSubmitRecord()" class="space-y-4">
+            <form [formGroup]="recordForm" (ngSubmit)="onSubmitRecord()" class="space-y-4 overflow-y-auto pr-1 overscroll-contain flex-1">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Fecha de la Consulta *
@@ -572,11 +586,11 @@ import { UserRole } from '../../../core/models/user.model';
                 />
               </div>
 
-              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
+              <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3 flex-shrink-0">
                 <button
                   type="button"
-                  (click)="showAddRecordModal.set(false)"
-                  class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                  (click)="closeAddRecordModal()"
+                  class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -584,7 +598,7 @@ import { UserRole } from '../../../core/models/user.model';
                 <button
                   type="submit"
                   [disabled]="recordForm.invalid"
-                  class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
                 >
                   Guardar Expediente
                 </button>
@@ -679,6 +693,24 @@ export class PetDetailComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.lockBodyScroll(false);
+    if (this.imagePreview() && this.imagePreview()!.startsWith('blob:')) {
+      URL.revokeObjectURL(this.imagePreview()!);
+    }
+  }
+
+  private lockBodyScroll(locked: boolean): void {
+    if (typeof document === 'undefined') return;
+    if (locked) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+  }
+
   // ==========================================
   // MOMENTOS / RECUERDOS (Supabase Storage)
   // ==========================================
@@ -691,6 +723,12 @@ export class PetDetailComponent implements OnInit {
     });
     this.removeSelectedFile();
     this.showAddMomentModal.set(true);
+    this.lockBodyScroll(true);
+  }
+
+  closeAddMomentModal(): void {
+    this.showAddMomentModal.set(false);
+    this.lockBodyScroll(false);
   }
 
   onFileSelected(event: Event): void {
@@ -713,15 +751,20 @@ export class PetDetailComponent implements OnInit {
 
     this.selectedFile.set(file);
 
-    // Crear previsualización local
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.imagePreview.set(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Liberar URL anterior para evitar fugas de memoria
+    if (this.imagePreview() && this.imagePreview()!.startsWith('blob:')) {
+      URL.revokeObjectURL(this.imagePreview()!);
+    }
+
+    // Usar ObjectURL nativo ligero en lugar de Base64 de 15MB para evitar parpadeos en pantalla móvil
+    const objectUrl = URL.createObjectURL(file);
+    this.imagePreview.set(objectUrl);
   }
 
   removeSelectedFile(): void {
+    if (this.imagePreview() && this.imagePreview()!.startsWith('blob:')) {
+      URL.revokeObjectURL(this.imagePreview()!);
+    }
     this.selectedFile.set(null);
     this.imagePreview.set(null);
   }
@@ -742,7 +785,7 @@ export class PetDetailComponent implements OnInit {
     this.petService.addMoment(this.pet()!.id, formData).subscribe({
       next: () => {
         this.notification.success('¡Momento Inmortalizado!', 'La fotografía se guardó en Supabase Storage');
-        this.showAddMomentModal.set(false);
+        this.closeAddMomentModal();
         this.isUploadingMoment.set(false);
         this.removeSelectedFile();
         this.loadMoments(this.pet()!.id);
@@ -772,15 +815,27 @@ export class PetDetailComponent implements OnInit {
 
   openLightbox(moment: PetMoment): void {
     this.selectedMomentForLightbox.set(moment);
+    this.lockBodyScroll(true);
   }
 
   closeLightbox(): void {
     this.selectedMomentForLightbox.set(null);
+    this.lockBodyScroll(false);
   }
 
   // ==========================================
   // EXPEDIENTE MÉDICO
   // ==========================================
+
+  openAddRecordModal(): void {
+    this.showAddRecordModal.set(true);
+    this.lockBodyScroll(true);
+  }
+
+  closeAddRecordModal(): void {
+    this.showAddRecordModal.set(false);
+    this.lockBodyScroll(false);
+  }
 
   onSubmitRecord(): void {
     if (this.recordForm.invalid || !this.pet()) return;
@@ -799,7 +854,7 @@ export class PetDetailComponent implements OnInit {
     this.petService.createMedicalRecord(payload).subscribe({
       next: () => {
         this.notification.success('Consulta Guardada', 'El expediente clínico fue actualizado');
-        this.showAddRecordModal.set(false);
+        this.closeAddRecordModal();
         this.recordForm.reset({
           visitDate: new Date().toISOString().substring(0, 10),
         });

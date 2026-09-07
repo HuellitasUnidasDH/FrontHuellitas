@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -28,7 +28,7 @@ import { Pet } from '../../core/models/pet.model';
 
         <div class="flex items-center gap-2.5 w-full sm:w-auto">
           <button
-            (click)="showJoinModal.set(true)"
+            (click)="openJoinModal()"
             class="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
           >
             <span>🔑</span> Código
@@ -67,7 +67,7 @@ import { Pet } from '../../core/models/pet.model';
               Crear mi Primera Familia
             </button>
             <button
-              (click)="showJoinModal.set(true)"
+              (click)="openJoinModal()"
               class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
             >
               Tengo un Código
@@ -214,15 +214,22 @@ import { Pet } from '../../core/models/pet.model';
 
       <!-- MODAL: CREAR NUEVA FAMILIA -->
       @if (showCreateModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          (click)="closeCreateModal()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+          >
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>✨</span> Crear Nueva Familia
               </h3>
               <button
-                (click)="showCreateModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+                type="button"
+                (click)="closeCreateModal()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -256,7 +263,7 @@ import { Pet } from '../../core/models/pet.model';
               <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  (click)="showCreateModal.set(false)"
+                  (click)="closeCreateModal()"
                   class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   Cancelar
@@ -277,15 +284,22 @@ import { Pet } from '../../core/models/pet.model';
 
       <!-- MODAL: UNIRSE CON CÓDIGO -->
       @if (showJoinModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 text-center">
+        <div
+          (click)="closeJoinModal()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 text-center my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+          >
             <div class="flex items-center justify-between text-left">
               <h3 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <span>🔑</span> Unirse a una Familia
               </h3>
               <button
-                (click)="showJoinModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+                type="button"
+                (click)="closeJoinModal()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -308,7 +322,7 @@ import { Pet } from '../../core/models/pet.model';
               <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  (click)="showJoinModal.set(false)"
+                  (click)="closeJoinModal()"
                   class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
                 >
                   Cancelar
@@ -329,15 +343,22 @@ import { Pet } from '../../core/models/pet.model';
 
       <!-- MODAL: VINCULAR MASCOTA A LA FAMILIA -->
       @if (showAssignModal() && selectedGroupForAssign()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div
+          (click)="closeAssignPetModal()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-md liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto overscroll-contain max-h-[85vh] sm:max-h-[90vh] overflow-y-auto"
+          >
             <div class="flex items-center justify-between">
               <h3 class="text-base font-black text-slate-900 dark:text-white">
                 Vincular a "{{ selectedGroupForAssign()!.name }}"
               </h3>
               <button
-                (click)="showAssignModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+                type="button"
+                (click)="closeAssignPetModal()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -347,7 +368,7 @@ import { Pet } from '../../core/models/pet.model';
               Selecciona una de tus mascotas para compartirla con los miembros de este grupo:
             </p>
 
-            <div class="space-y-2 max-h-60 overflow-y-auto">
+            <div class="space-y-2 max-h-60 overflow-y-auto overscroll-contain">
               @for (pet of myAvailablePets(); track pet.id) {
                 <div class="p-3 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3">
                   <div class="flex items-center gap-2.5">
@@ -359,6 +380,7 @@ import { Pet } from '../../core/models/pet.model';
                   </div>
 
                   <button
+                    type="button"
                     (click)="assignPetToGroup(pet.id)"
                     class="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-bold text-[11px] hover:bg-emerald-400 transition-colors cursor-pointer"
                   >
@@ -377,11 +399,17 @@ import { Pet } from '../../core/models/pet.model';
 
       <!-- MODAL: MURO / FEED FAMILIAR DE RECUERDOS -->
       @if (showFeedModal() && selectedGroupForFeed()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div class="w-full max-w-3xl liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/60">
+        <div
+          (click)="closeGroupFeed()"
+          class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-md p-3 sm:p-4 flex min-h-full items-end sm:items-center justify-center overscroll-contain"
+        >
+          <div
+            (click)="$event.stopPropagation()"
+            class="w-full max-w-3xl liquid-glass border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 max-h-[88vh] sm:max-h-[90vh] flex flex-col my-auto overscroll-contain"
+          >
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/60 shrink-0">
               <div>
-                <h3 class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
                   <span>📸</span> Muro de Recuerdos: {{ selectedGroupForFeed()!.name }}
                 </h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -390,8 +418,9 @@ import { Pet } from '../../core/models/pet.model';
               </div>
 
               <button
-                (click)="showFeedModal.set(false)"
-                class="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+                type="button"
+                (click)="closeGroupFeed()"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-xl font-bold cursor-pointer transition-colors"
               >
                 ✕
               </button>
@@ -407,7 +436,7 @@ import { Pet } from '../../core/models/pet.model';
                 <p class="text-xs text-slate-400">Esta familia aún no tiene recuerdos fotográficos compartidos.</p>
               </div>
             } @else {
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="overflow-y-auto overscroll-contain pr-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 @for (moment of feedMoments(); track moment.id) {
                   <div class="rounded-2xl overflow-hidden bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 shadow-md flex flex-col">
                     <div class="h-48 overflow-hidden bg-slate-950 relative">
@@ -445,7 +474,7 @@ import { Pet } from '../../core/models/pet.model';
     </div>
   `,
 })
-export class GroupsComponent implements OnInit {
+export class GroupsComponent implements OnInit, OnDestroy {
   private groupService = inject(GroupService);
   private petService = inject(PetService);
   private notification = inject(NotificationService);
@@ -484,6 +513,22 @@ export class GroupsComponent implements OnInit {
     this.loadMyPets();
   }
 
+  ngOnDestroy(): void {
+    this.lockBodyScroll(false);
+  }
+
+  private lockBodyScroll(locked: boolean): void {
+    if (typeof document !== 'undefined') {
+      if (locked) {
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+      } else {
+        document.body.style.overflow = '';
+        document.body.style.touchAction = '';
+      }
+    }
+  }
+
   loadGroups(): void {
     this.isLoading.set(true);
     this.groupService.getAll().subscribe({
@@ -517,7 +562,13 @@ export class GroupsComponent implements OnInit {
 
   openCreateModal(): void {
     this.createForm.reset({ name: '', description: '' });
+    this.lockBodyScroll(true);
     this.showCreateModal.set(true);
+  }
+
+  closeCreateModal(): void {
+    this.showCreateModal.set(false);
+    this.lockBodyScroll(false);
   }
 
   onSubmitCreate(): void {
@@ -527,13 +578,24 @@ export class GroupsComponent implements OnInit {
     this.groupService.create({ name: val.name!, description: val.description || undefined }).subscribe({
       next: (newGroup) => {
         this.notification.success('¡Familia Creada!', `Código generado: ${newGroup.inviteCode}`);
-        this.showCreateModal.set(false);
+        this.closeCreateModal();
         this.loadGroups();
       },
       error: (err) => {
         this.notification.error('Error al crear familia', err.error?.message || 'Inténtalo de nuevo');
       },
     });
+  }
+
+  openJoinModal(): void {
+    this.joinForm.reset();
+    this.lockBodyScroll(true);
+    this.showJoinModal.set(true);
+  }
+
+  closeJoinModal(): void {
+    this.showJoinModal.set(false);
+    this.lockBodyScroll(false);
   }
 
   onSubmitJoin(): void {
@@ -543,8 +605,7 @@ export class GroupsComponent implements OnInit {
     this.groupService.join({ inviteCode: code }).subscribe({
       next: (joinedGroup) => {
         this.notification.success('¡Bienvenido a la familia!', `Te has unido a ${joinedGroup.name}`);
-        this.showJoinModal.set(false);
-        this.joinForm.reset();
+        this.closeJoinModal();
         this.loadGroups();
         this.loadMyPets();
       },
@@ -556,7 +617,14 @@ export class GroupsComponent implements OnInit {
 
   openAssignPetModal(group: PetGroup): void {
     this.selectedGroupForAssign.set(group);
+    this.lockBodyScroll(true);
     this.showAssignModal.set(true);
+  }
+
+  closeAssignPetModal(): void {
+    this.showAssignModal.set(false);
+    this.selectedGroupForAssign.set(null);
+    this.lockBodyScroll(false);
   }
 
   assignPetToGroup(petId: string): void {
@@ -566,7 +634,7 @@ export class GroupsComponent implements OnInit {
     this.groupService.assignPet(group.id, petId).subscribe({
       next: () => {
         this.notification.success('Mascota Vinculada', 'Ahora todos los miembros de la familia pueden verla');
-        this.showAssignModal.set(false);
+        this.closeAssignPetModal();
         this.loadGroups();
         this.loadMyPets();
       },
@@ -578,6 +646,7 @@ export class GroupsComponent implements OnInit {
 
   openGroupFeed(group: PetGroup): void {
     this.selectedGroupForFeed.set(group);
+    this.lockBodyScroll(true);
     this.showFeedModal.set(true);
     this.isLoadingFeed.set(true);
 
@@ -588,6 +657,12 @@ export class GroupsComponent implements OnInit {
       },
       error: () => this.isLoadingFeed.set(false),
     });
+  }
+
+  closeGroupFeed(): void {
+    this.showFeedModal.set(false);
+    this.selectedGroupForFeed.set(null);
+    this.lockBodyScroll(false);
   }
 
   onLeaveGroup(group: PetGroup): void {
