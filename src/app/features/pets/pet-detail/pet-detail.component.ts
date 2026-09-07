@@ -23,9 +23,9 @@ import { UserRole } from '../../../core/models/user.model';
       } @else if (pet()) {
         <!-- Pet Profile Card (Liquid Glass) -->
         <div class="liquid-glass rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden transition-all">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="flex items-center gap-5">
-              <div class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-emerald-500/10 border-2 border-emerald-500/30 flex-shrink-0 shadow-lg">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5">
+              <div class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-emerald-500/10 border-2 border-emerald-500/30 flex-shrink-0 shadow-lg">
                 @if (pet()!.photoUrl) {
                   <img
                     [src]="pet()!.photoUrl"
@@ -39,8 +39,8 @@ import { UserRole } from '../../../core/models/user.model';
                 }
               </div>
 
-              <div>
-                <div class="flex items-center gap-3">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                     {{ pet()!.name }}
                   </h1>
@@ -62,7 +62,7 @@ import { UserRole } from '../../../core/models/user.model';
                 </p>
 
                 @if (pet()!.microchipNumber) {
-                  <div class="flex items-center gap-1.5 mt-2 text-[11px] font-mono text-slate-600 dark:text-slate-400">
+                  <div class="inline-flex items-center gap-1.5 mt-2 text-[11px] font-mono text-slate-600 dark:text-slate-400 bg-white/50 dark:bg-slate-900/50 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
                     <span class="text-emerald-500">🏷️</span> Chip: {{ pet()!.microchipNumber }}
                   </div>
                 }
@@ -70,27 +70,27 @@ import { UserRole } from '../../../core/models/user.model';
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="flex flex-wrap items-center justify-center sm:justify-start lg:justify-end gap-2.5 w-full lg:w-auto pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-800">
               <button
                 (click)="openAddMomentModal()"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-slate-950 text-xs font-bold shadow-md shadow-teal-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer flex items-center gap-1.5"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-slate-950 text-xs font-bold shadow-md shadow-teal-500/20 transition-all cursor-pointer flex items-center gap-1.5"
               >
                 <span>📸</span> + Agregar Momento
               </button>
 
               <a
                 [routerLink]="['/pets/edit', pet()!.id]"
-                class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
               >
-                Editar Mascota
+                <span>✏️</span> Editar
               </a>
 
               @if (isVetOrAdmin) {
                 <button
                   (click)="showAddRecordModal.set(true)"
-                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer"
+                  class="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  + Consulta Médica
+                  <span>🩺</span> + Consulta Médica
                 </button>
               }
             </div>
@@ -225,7 +225,7 @@ import { UserRole } from '../../../core/models/user.model';
                       <button
                         (click)="onDeleteMoment(moment, $event)"
                         title="Eliminar recuerdo"
-                        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500/80 hover:bg-rose-600 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-all shadow cursor-pointer"
+                        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500/90 hover:bg-rose-600 text-white flex items-center justify-center text-xs opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow cursor-pointer"
                       >
                         🗑️
                       </button>

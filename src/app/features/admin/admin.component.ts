@@ -35,8 +35,8 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
           </p>
         </div>
 
-        <!-- Tab Selector Pills -->
-        <div class="flex flex-wrap items-center p-1.5 rounded-2xl bg-slate-200/60 dark:bg-slate-950/60 border border-slate-300/60 dark:border-slate-800 gap-1">
+        <!-- Tab Selector Pills (Scrollable smoothly on mobile) -->
+        <div class="flex items-center overflow-x-auto p-1.5 rounded-2xl bg-slate-200/60 dark:bg-slate-950/60 border border-slate-300/60 dark:border-slate-800 gap-1 w-full lg:w-auto max-w-full">
           <!-- Monitoreo -->
           <button
             (click)="switchTab('monitoring')"
@@ -47,7 +47,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.shadow-md]="activeTab() === 'monitoring'"
             [class.text-slate-600]="activeTab() !== 'monitoring'"
             [class.dark:text-slate-400]="activeTab() !== 'monitoring'"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
             <span>📊</span>
             <span>Monitoreo</span>
@@ -63,7 +63,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.shadow-md]="activeTab() === 'audit'"
             [class.text-slate-600]="activeTab() !== 'audit'"
             [class.dark:text-slate-400]="activeTab() !== 'audit'"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
             <span>🛡️</span>
             <span>Logs y Auditoría</span>
@@ -79,7 +79,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.shadow-md]="activeTab() === 'users'"
             [class.text-slate-600]="activeTab() !== 'users'"
             [class.dark:text-slate-400]="activeTab() !== 'users'"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
             <span>👥</span>
             <span>Personas ({{ users().length }})</span>
@@ -95,7 +95,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.shadow-md]="activeTab() === 'pets'"
             [class.text-slate-600]="activeTab() !== 'pets'"
             [class.dark:text-slate-400]="activeTab() !== 'pets'"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
             <span>🐾</span>
             <span>Mascotas ({{ pets().length }})</span>
@@ -129,12 +129,12 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               </div>
             </div>
 
-            <div class="flex items-center gap-4 text-xs font-mono text-slate-700 dark:text-slate-300">
-              <div class="bg-white/40 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 text-xs font-mono text-slate-700 dark:text-slate-300 w-full md:w-auto">
+              <div class="flex-1 sm:flex-none bg-white/40 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
                 <span class="text-slate-400 text-[10px] uppercase block">Tiempo Activo:</span>
                 <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ stats()?.system?.uptime || 'Activo' }}</span>
               </div>
-              <div class="bg-white/40 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
+              <div class="flex-1 sm:flex-none bg-white/40 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-800">
                 <span class="text-slate-400 text-[10px] uppercase block">Memoria RAM:</span>
                 <span class="font-bold">{{ stats()?.system?.memory?.heapUsedMB || 0 }} MB / {{ stats()?.system?.memory?.heapTotalMB || 0 }} MB</span>
               </div>

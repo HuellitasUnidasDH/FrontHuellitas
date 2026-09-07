@@ -16,29 +16,29 @@ import { Pet } from '../../core/models/pet.model';
   template: `
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <!-- Header with Action Buttons -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-            <span>👨‍👩‍👧‍👦</span> Familias y Grupos Compartidos
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5 sm:gap-3">
+            <span>👨‍👩‍👧‍👦</span> Familias y Grupos
           </h1>
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Comparte tus mascotas y su álbum de recuerdos con tu familia o pareja mediante un código de invitación.
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             (click)="showJoinModal.set(true)"
-            class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-2"
+            class="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-300 dark:border-slate-700 transition-all cursor-pointer flex items-center gap-1.5"
           >
-            <span>🔑</span> Unirse con Código
+            <span>🔑</span> Código
           </button>
 
           <button
             (click)="openCreateModal()"
-            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer flex items-center gap-2"
+            class="flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer flex items-center gap-1.5"
           >
-            <span>✨</span> + Crear Nueva Familia
+            <span>✨</span> + Nueva Familia
           </button>
         </div>
       </div>
@@ -50,25 +50,25 @@ import { Pet } from '../../core/models/pet.model';
         </div>
       } @else if (groups().length === 0) {
         <!-- Empty State -->
-        <div class="liquid-glass rounded-3xl p-12 text-center border border-dashed border-slate-300 dark:border-slate-800 max-w-xl mx-auto space-y-4">
-          <div class="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 flex items-center justify-center text-4xl">
+        <div class="liquid-glass rounded-3xl p-8 sm:p-12 text-center border border-dashed border-slate-300 dark:border-slate-800 max-w-xl mx-auto space-y-4">
+          <div class="w-16 sm:w-20 h-16 sm:h-20 mx-auto rounded-full bg-emerald-500/10 flex items-center justify-center text-3xl sm:text-4xl">
             🏡
           </div>
-          <h2 class="text-lg font-bold text-slate-900 dark:text-white">Aún no tienes familias creadas</h2>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Aún no tienes familias creadas</h2>
           <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Crea tu grupo familiar para invitar a tus seres queridos y compartir fotos, momentos y el cuidado de sus mascotas.
           </p>
 
-          <div class="pt-2 flex justify-center gap-3">
+          <div class="pt-2 flex flex-col sm:flex-row justify-center gap-3">
             <button
               (click)="openCreateModal()"
-              class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
+              class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
             >
               Crear mi Primera Familia
             </button>
             <button
               (click)="showJoinModal.set(true)"
-              class="px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
+              class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold cursor-pointer"
             >
               Tengo un Código
             </button>
@@ -76,15 +76,15 @@ import { Pet } from '../../core/models/pet.model';
         </div>
       } @else {
         <!-- Groups Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
           @for (group of groups(); track group.id) {
-            <div class="liquid-glass rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between space-y-6">
+            <div class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-xl border border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between space-y-5 sm:space-y-6">
               <!-- Top Row -->
               <div>
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <div class="flex items-center gap-2.5">
-                      <h3 class="text-xl font-black text-slate-900 dark:text-white">{{ group.name }}</h3>
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white">{{ group.name }}</h3>
                       <span
                         class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
                         [ngClass]="group.myRole === 'OWNER' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
@@ -101,14 +101,14 @@ import { Pet } from '../../core/models/pet.model';
                   <!-- Action: View Feed -->
                   <button
                     (click)="openGroupFeed(group)"
-                    class="px-3.5 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 text-xs font-bold border border-teal-500/20 transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0"
+                    class="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 text-xs font-bold border border-teal-500/20 transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0"
                   >
                     <span>📸</span> Muro Familiar
                   </button>
                 </div>
 
                 <!-- Invite Code Box (Liquid Glass Banner) -->
-                <div class="mt-5 p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-4">
+                <div class="mt-4 sm:mt-5 p-3.5 sm:p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <span class="text-[10px] uppercase font-bold text-slate-400 block">Código de Invitación</span>
                     <span class="text-base font-black tracking-widest text-emerald-600 dark:text-emerald-400 font-mono">
@@ -118,7 +118,7 @@ import { Pet } from '../../core/models/pet.model';
 
                   <button
                     (click)="copyCode(group.inviteCode)"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                    class="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                     [ngClass]="copiedCode() === group.inviteCode ? 'bg-emerald-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'"
                   >
                     @if (copiedCode() === group.inviteCode) {
