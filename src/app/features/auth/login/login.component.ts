@@ -76,6 +76,15 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             @if (passwordField?.invalid && passwordField?.touched) {
               <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">La contraseña es requerida</p>
             }
+
+            <div class="flex justify-end pt-1">
+              <a
+                routerLink="/auth/forgot-password"
+                class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:underline transition-colors cursor-pointer"
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
           </div>
 
           <!-- Botón de Envío -->

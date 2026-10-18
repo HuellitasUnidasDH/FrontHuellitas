@@ -121,6 +121,18 @@ export class AuthService {
       );
   }
 
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http
+      .post<ApiResponse<{ message: string }>>(`${this.API_URL}/forgot-password`, { email })
+      .pipe(map((res) => res.data));
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+    return this.http
+      .post<ApiResponse<{ message: string }>>(`${this.API_URL}/reset-password`, { token, newPassword })
+      .pipe(map((res) => res.data));
+  }
+
   logout(): void {
     const token = this.getAccessToken();
     if (token) {
