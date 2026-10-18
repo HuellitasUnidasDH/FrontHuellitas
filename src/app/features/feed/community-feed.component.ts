@@ -9,7 +9,7 @@ import { AdoptionService } from '../../core/services/adoption.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
-import { LostPetReport, LostPetStatus, LostPetType } from '../../core/models/lost-pet.model';
+import { LostPetReport, LostPetStatus, LostPetType, PetSighting } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 
@@ -47,6 +47,9 @@ interface FeedPost {
   contactPhone?: string;
   rewardOffered?: boolean;
   rewardDetails?: string;
+  isInjured?: boolean;
+  reportsCount?: number;
+  sightings?: PetSighting[];
 }
 
 @Component({
@@ -378,13 +381,20 @@ interface FeedPost {
                   </div>
                 </div>
 
-                <!-- Post Kind Badge -->
-                <span
-                  class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shadow-sm"
-                  [ngClass]="post.badgeClass"
-                >
-                  {{ post.typeBadge }}
-                </span>
+                <!-- Post Kind Badge & Injured Badge -->
+                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                  @if (post.isInjured) {
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-md shadow-rose-600/30 flex items-center gap-1 animate-pulse">
+                      <span>🚨</span> Mascota Herida
+                    </span>
+                  }
+                  <span
+                    class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shadow-sm"
+                    [ngClass]="post.badgeClass"
+                  >
+                    {{ post.typeBadge }}
+                  </span>
+                </div>
               </div>
 
               <!-- 2. Post Body / Title & Story -->
@@ -460,8 +470,70 @@ interface FeedPost {
                       📍 Visto en: {{ post.lastSeenLocation }}
                     </span>
                   }
+                  @if (post.reportsCount && post.reportsCount > 1) {
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold">
+                      📑 {{ post.reportsCount }} reportes agrupados en la zona
+                    </span>
+                  }
                 }
               </div>
+
+              <!-- 4.1. Cascading Incident Reports (Deduplication / Agrupación Comunitaria) -->
+              @if (post.kind === 'LOST_PET' && post.sightings && post.sightings.length > 0) {
+                <div class="rounded-2xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/30 p-3.5 sm:p-4 space-y-3">
+                  <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div class="flex items-center gap-2">
+                      <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
+                        📍
+                      </div>
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white">
+                          Seguimiento Vecinal en Cascada ({{ post.sightings.length }} reportes agrupados)
+                        </h4>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">
+                          Para no saturar el muro, los reportes en el mismo perímetro se consolidan en este caso principal.
+                        </p>
+                      </div>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                      Caso Activo Consolidado
+                    </span>
+                  </div>
+
+                  <!-- Cascade list -->
+                  <div class="space-y-2 pt-1 border-t border-amber-500/20">
+                    @for (sighting of post.sightings; track sighting.id) {
+                      <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 text-xs">
+                        @if (sighting.photoUrl) {
+                          <img
+                            [src]="sighting.photoUrl"
+                            alt="Foto reporte ciudadano"
+                            class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                        }
+                        <div class="flex-1 min-w-0 space-y-0.5">
+                          <div class="flex items-center justify-between gap-1">
+                            <span class="font-bold text-slate-900 dark:text-white text-[11px] truncate">
+                              {{ sighting.notifier?.fullName || 'Vecino solidario de Dolores Hidalgo' }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 flex-shrink-0">
+                              {{ formatRelativeTime(sighting.createdAt) }}
+                            </span>
+                          </div>
+                          <div class="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
+                            <span class="text-rose-500 font-bold">Ubicación:</span> {{ sighting.locationDescription }}
+                          </div>
+                          @if (sighting.additionalNotes) {
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                              "{{ sighting.additionalNotes }}"
+                            </p>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
 
               <!-- 5. Social Actions & CTA Buttons (ITEM #2: Quiero Adoptar Flow) -->
               <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
@@ -990,6 +1062,24 @@ interface FeedPost {
                     </div>
                   }
 
+                  <!-- Checkbox Mascota Herida / En Peligro Urgente -->
+                  <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="isInjuredCheckbox"
+                      [(ngModel)]="reportLostForm.isInjured"
+                      class="rounded text-rose-600 focus:ring-rose-500 mt-0.5 h-4 w-4 cursor-pointer"
+                    />
+                    <label for="isInjuredCheckbox" class="text-xs cursor-pointer select-none">
+                      <span class="font-black text-rose-700 dark:text-rose-400 flex items-center gap-1">
+                        <span>🚨</span> ¿La mascota está herida o requiere atención médica urgente?
+                      </span>
+                      <span class="text-slate-600 dark:text-slate-400 text-[11px] block mt-0.5 leading-tight">
+                        Al marcar esta opción se eleva la prioridad comunitaria, se alerta a la red de rescate y se agruparán reportes en la misma zona de Dolores Hidalgo en cascada para no duplicar publicaciones.
+                      </span>
+                    </label>
+                  </div>
+
                   <div class="pt-3 flex gap-2">
                     <button
                       (click)="submitReportLost()"
@@ -1138,6 +1228,7 @@ export class CommunityFeedComponent implements OnInit {
     rewardOffered: false,
     rewardDetails: '',
     photoUrl: '',
+    isInjured: false,
   };
 
   ngOnInit(): void {
@@ -1225,6 +1316,9 @@ export class CommunityFeedComponent implements OnInit {
                 contactPhone: rep.contactPhone,
                 rewardOffered: rep.rewardOffered,
                 rewardDetails: rep.rewardDetails,
+                isInjured: rep.isInjured,
+                reportsCount: rep.reportsCount || (rep.sightings ? rep.sightings.length : 1),
+                sightings: rep.sightings || [],
               };
             });
 
@@ -1331,6 +1425,7 @@ export class CommunityFeedComponent implements OnInit {
       rewardOffered: this.reportLostForm.rewardOffered,
       rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
       photos: this.reportLostForm.photoUrl ? [this.reportLostForm.photoUrl.trim()] : [],
+      isInjured: this.reportLostForm.isInjured,
     };
 
     this.lostPetService.create(payload).subscribe({
@@ -1364,6 +1459,9 @@ export class CommunityFeedComponent implements OnInit {
           contactPhone: newReport.contactPhone,
           rewardOffered: newReport.rewardOffered,
           rewardDetails: newReport.rewardDetails,
+          isInjured: newReport.isInjured,
+          reportsCount: newReport.reportsCount || (newReport.sightings ? newReport.sightings.length : 1),
+          sightings: newReport.sightings || [],
         };
         this.allPosts.update(posts => [newPost, ...posts]);
       },

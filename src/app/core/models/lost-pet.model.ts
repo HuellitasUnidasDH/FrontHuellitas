@@ -34,6 +34,10 @@ export interface LostPetReport {
   status: LostPetStatus;
   rewardOffered: boolean;
   rewardDetails?: string;
+  isInjured?: boolean;
+  reportsCount?: number;
+  lastReportedAt?: string;
+  parentReportId?: string;
   sightings?: PetSighting[];
   createdAt: string;
   updatedAt: string;
@@ -52,6 +56,8 @@ export interface CreateLostPetPayload {
   contactPhone: string;
   rewardOffered?: boolean;
   rewardDetails?: string;
+  isInjured?: boolean;
+  parentReportId?: string;
 }
 
 export interface CreateSightingPayload {
