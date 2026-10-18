@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Pet, CreatePetPayload, UpdatePetPayload } from '../models/pet.model';
+import { PublicationComment } from '../models/lost-pet.model';
 import {
   MedicalRecord,
   CreateMedicalRecordPayload,
@@ -113,5 +114,15 @@ export class PetService {
     return this.http
       .delete<ApiResponse<{ message: string }>>(`${this.PETS_URL}/moments/${momentId}`)
       .pipe(map(() => void 0));
+  }
+
+  // ==========================================
+  // COMENTARIOS COMUNITARIOS EN ADOPCIONES
+  // ==========================================
+
+  addComment(petId: string, content: string): Observable<PublicationComment> {
+    return this.http
+      .post<ApiResponse<PublicationComment>>(`${this.PETS_URL}/${petId}/comments`, { content })
+      .pipe(map((res) => res.data));
   }
 }

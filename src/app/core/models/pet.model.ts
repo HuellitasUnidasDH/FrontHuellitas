@@ -1,4 +1,5 @@
 import { User } from './user.model';
+import { PublicationComment } from './lost-pet.model';
 
 export enum PetGender {
   MALE = 'MALE',
@@ -55,6 +56,7 @@ export interface Pet {
   adoptedByUserId?: string;
   adoptedByUser?: User;
   adoptionDate?: string;
+  comments?: PublicationComment[];
   createdAt: string;
   updatedAt: string;
 }

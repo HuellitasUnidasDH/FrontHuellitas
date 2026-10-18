@@ -1631,7 +1631,7 @@ export class CommunityFeedComponent implements OnInit {
               goodWithKids: pet.goodWithKids,
               goodWithOtherPets: pet.goodWithOtherPets,
               petData: pet,
-              comments: [],
+              comments: pet.comments || [],
               showComments: false,
               newCommentText: '',
               isSubmittingComment: false,
@@ -1793,23 +1793,30 @@ export class CommunityFeedComponent implements OnInit {
       return;
     }
 
-    const reportId = post.kind === 'LOST_PET' && post.lostData ? post.lostData.id : null;
-    if (!reportId) {
-      this.notify.info('Los comentarios comunitarios aplican para reportes y avisos del muro.');
-      return;
-    }
-
     const text = post.newCommentText.trim();
     post.isSubmittingComment = true;
 
-    this.lostPetService.addComment(reportId, text).subscribe({
+    const commentObs =
+      post.kind === 'LOST_PET' && post.lostData
+        ? this.lostPetService.addComment(post.lostData.id, text)
+        : post.kind === 'PET_ADOPTION' && post.petData
+        ? this.petService.addComment(post.petData.id, text)
+        : null;
+
+    if (!commentObs) {
+      post.isSubmittingComment = false;
+      this.notify.error('No se pudo identificar la publicación');
+      return;
+    }
+
+    commentObs.subscribe({
       next: (comment) => {
         post.isSubmittingComment = false;
         post.newCommentText = '';
         if (!post.comments) post.comments = [];
         const enrichedComment: PublicationComment = {
           id: comment.id,
-          reportId: comment.reportId,
+          reportId: (comment as any).reportId || (comment as any).petId || post.id,
           authorId: comment.authorId,
           author: comment.author || this.authService.currentUser() || undefined,
           content: comment.content,
