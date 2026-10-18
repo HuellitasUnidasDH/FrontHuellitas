@@ -7,7 +7,7 @@ export enum PetGender {
 }
 
 export type PetSize = 'CHICO' | 'MEDIANO' | 'GRANDE' | 'GIGANTE';
-export type AdoptionStatus = 'DISPONIBLE' | 'EN_PROCESO' | 'ADOPTADA' | 'EN_SEGUIMIENTO';
+export type AdoptionStatus = 'NO_EN_ADOPCION' | 'DISPONIBLE' | 'EN_PROCESO' | 'ADOPTADA' | 'EN_SEGUIMIENTO';
 export type EnergyLevel = 'BAJO' | 'MEDIO' | 'ALTO';
 
 export interface PetColonia {

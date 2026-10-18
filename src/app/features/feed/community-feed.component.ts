@@ -10,17 +10,19 @@ import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
-import { LostPetReport, LostPetStatus, LostPetType, PetSighting } from '../../core/models/lost-pet.model';
+import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 
-type FeedFilterType = 'ALL' | 'ADOPTION' | 'LOST' | 'FOUND';
+type FeedFilterType = 'ALL' | 'ANIMAL_HERIDO' | 'EN_RESGUARDO' | 'EN_ADOPCION' | 'SE_BUSCA' | 'CAMPANA_COMUNITARIA' | 'ADOPTION' | 'LOST' | 'FOUND';
 
 interface FeedPost {
   id: string;
   kind: 'PET_ADOPTION' | 'LOST_PET';
+  postType?: LostPetType;
   title: string;
   authorName: string;
+  authorPhotoUrl?: string;
   authorRole: string;
   authorColonia: string;
   createdAt: string;
@@ -42,7 +44,7 @@ interface FeedPost {
   goodWithKids?: boolean;
   goodWithOtherPets?: boolean;
   petData?: Pet;
-  // Lost specifics
+  // Lost / community post specifics
   lostData?: LostPetReport;
   lastSeenLocation?: string;
   contactPhone?: string;
@@ -51,6 +53,10 @@ interface FeedPost {
   isInjured?: boolean;
   reportsCount?: number;
   sightings?: PetSighting[];
+  comments?: PublicationComment[];
+  showComments?: boolean;
+  newCommentText?: string;
+  isSubmittingComment?: boolean;
 }
 
 @Component({
@@ -89,18 +95,18 @@ interface FeedPost {
           <!-- Quick Action Buttons -->
           <div class="flex items-center gap-2 w-full sm:w-auto">
             <button
-              (click)="openReportLostModal()"
-              class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-bold shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              (click)="openPublicationModal()"
+              class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <span>🚨</span> Reportar Extravío
+              <span>✍️</span> Crear Publicación
             </button>
 
             @if (authService.isAuthenticated()) {
               <a
                 routerLink="/pets/new"
-                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
               >
-                <span>➕</span> Publicar Adopción
+                <span>🐾</span> Mis Mascotas
               </a>
             } @else {
               <a
@@ -115,10 +121,10 @@ interface FeedPost {
       </section>
 
       <!-- ======================================================== -->
-      <!-- Stories / Quick Filters Bar (Facebook / Instagram Style)  -->
+      <!-- Stories / Quick Filters Bar (5 Publication Types)        -->
       <!-- ======================================================== -->
       <section class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
-        <!-- Story 1: Todos -->
+        <!-- 1: Todos -->
         <button
           (click)="setFilter('ALL')"
           class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
@@ -136,61 +142,97 @@ interface FeedPost {
           </span>
         </button>
 
-        <!-- Story 2: En Adopción -->
+        <!-- 2: Animal Herido -->
         <button
-          (click)="setFilter('ADOPTION')"
-          class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
-        >
-          <div
-            class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300"
-            [ngClass]="activeFilter() === 'ADOPTION' ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 scale-105 shadow-md shadow-emerald-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
-          >
-            <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-              🏠
-            </div>
-          </div>
-          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'ADOPTION' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'">
-            En Adopción
-          </span>
-        </button>
-
-        <!-- Story 3: Perdidos Urgentes -->
-        <button
-          (click)="setFilter('LOST')"
+          (click)="setFilter('ANIMAL_HERIDO')"
           class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
         >
           <div
             class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300 relative"
-            [ngClass]="activeFilter() === 'LOST' ? 'bg-gradient-to-tr from-rose-500 to-amber-500 scale-105 shadow-md shadow-rose-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
+            [ngClass]="activeFilter() === 'ANIMAL_HERIDO' ? 'bg-gradient-to-tr from-rose-600 to-red-500 scale-105 shadow-md shadow-rose-600/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
           >
             <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 text-[8px] text-white font-bold items-center justify-center">!</span>
+              <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-600 text-[8px] text-white font-bold items-center justify-center">!</span>
             </span>
             <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
               🚨
             </div>
           </div>
-          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'LOST' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'">
-            Extraviados
+          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'ANIMAL_HERIDO' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'">
+            Animal Herido
           </span>
         </button>
 
-        <!-- Story 4: Encontrados en Calle -->
+        <!-- 3: En Resguardo -->
         <button
-          (click)="setFilter('FOUND')"
+          (click)="setFilter('EN_RESGUARDO')"
           class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
         >
           <div
             class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300"
-            [ngClass]="activeFilter() === 'FOUND' ? 'bg-gradient-to-tr from-sky-500 to-indigo-500 scale-105 shadow-md shadow-sky-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
+            [ngClass]="activeFilter() === 'EN_RESGUARDO' ? 'bg-gradient-to-tr from-amber-500 to-yellow-400 scale-105 shadow-md shadow-amber-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
           >
             <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-              📍
+              🏠
             </div>
           </div>
-          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'FOUND' ? 'text-sky-600 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400'">
-            Encontrados
+          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'EN_RESGUARDO' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400'">
+            En Resguardo
+          </span>
+        </button>
+
+        <!-- 4: En Adopción -->
+        <button
+          (click)="setFilter('EN_ADOPCION')"
+          class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300"
+            [ngClass]="activeFilter() === 'EN_ADOPCION' || activeFilter() === 'ADOPTION' ? 'bg-gradient-to-tr from-emerald-500 to-teal-400 scale-105 shadow-md shadow-emerald-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
+          >
+            <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              💚
+            </div>
+          </div>
+          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'EN_ADOPCION' || activeFilter() === 'ADOPTION' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'">
+            En Adopción
+          </span>
+        </button>
+
+        <!-- 5: Se Busca -->
+        <button
+          (click)="setFilter('SE_BUSCA')"
+          class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300"
+            [ngClass]="activeFilter() === 'SE_BUSCA' || activeFilter() === 'LOST' ? 'bg-gradient-to-tr from-rose-500 to-amber-500 scale-105 shadow-md shadow-rose-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
+          >
+            <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              🔍
+            </div>
+          </div>
+          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'SE_BUSCA' || activeFilter() === 'LOST' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-400'">
+            Se Busca
+          </span>
+        </button>
+
+        <!-- 6: Campañas Comunitarias -->
+        <button
+          (click)="setFilter('CAMPANA_COMUNITARIA')"
+          class="flex flex-col items-center gap-1.5 flex-shrink-0 group cursor-pointer focus:outline-none"
+        >
+          <div
+            class="w-16 h-16 rounded-2xl p-0.5 transition-all duration-300"
+            [ngClass]="activeFilter() === 'CAMPANA_COMUNITARIA' ? 'bg-gradient-to-tr from-purple-500 to-indigo-500 scale-105 shadow-md shadow-purple-500/30' : 'bg-slate-300 dark:bg-slate-800 hover:scale-105'"
+          >
+            <div class="w-full h-full rounded-2xl bg-white dark:bg-slate-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              📢
+            </div>
+          </div>
+          <span class="text-[11px] font-bold" [ngClass]="activeFilter() === 'CAMPANA_COMUNITARIA' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-600 dark:text-slate-400'">
+            Campañas
           </span>
         </button>
       </section>
@@ -200,50 +242,56 @@ interface FeedPost {
       <!-- ======================================================== -->
       <section class="liquid-glass rounded-2xl p-4 shadow-xl border border-slate-200/80 dark:border-slate-800/80">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm flex-shrink-0 shadow-sm">
-            @if (authService.currentUser()?.fullName) {
-              {{ authService.currentUser()?.fullName?.charAt(0) }}
+          <div class="w-10 h-10 rounded-full overflow-hidden shadow-sm bg-slate-200 dark:bg-slate-800 flex-shrink-0">
+            @if (authService.currentUser()?.profilePhotoUrl) {
+              <img [src]="authService.currentUser()?.profilePhotoUrl" [alt]="authService.currentUser()?.fullName" class="w-full h-full object-cover" />
             } @else {
-              🐾
+              <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm">
+                {{ authService.currentUser()?.fullName ? authService.currentUser()?.fullName?.charAt(0)?.toUpperCase() : '🐾' }}
+              </div>
             }
           </div>
 
           <div
-            (click)="onComposerClick()"
+            (click)="openPublicationModal()"
             class="flex-1 bg-slate-100 dark:bg-slate-950/60 hover:bg-slate-200/80 dark:hover:bg-slate-900 px-4 py-2.5 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 cursor-pointer transition-colors border border-slate-200/70 dark:border-slate-800 flex items-center justify-between"
           >
-            <span>¿Encontraste o rescataste un peludito en Dolores Hidalgo?</span>
+            <span>¿Viste un animal herido, en resguardo o buscas a tu mascota en Dolores Hidalgo?</span>
             <span class="text-emerald-500 font-bold text-xs hidden sm:inline">Publicar ✍️</span>
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
           <button
-            (click)="setFilter('ADOPTION')"
-            class="flex-1 py-1.5 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors cursor-pointer"
+            (click)="openPublicationModal('ANIMAL_HERIDO')"
+            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
           >
-            <span class="text-base">🏠</span>
-            <span class="hidden sm:inline">Dar en</span> Adopción
+            <span>🚨</span>
+            <span class="truncate">Animal Herido</span>
           </button>
 
-          <span class="text-slate-300 dark:text-slate-700">|</span>
-
           <button
-            (click)="openReportLostModal()"
-            class="flex-1 py-1.5 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer"
+            (click)="openPublicationModal('EN_RESGUARDO')"
+            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-amber-500/10"
           >
-            <span class="text-base">🚨</span>
-            <span class="hidden sm:inline">Reportar</span> Extraviado
+            <span>🏠</span>
+            <span class="truncate">En Resguardo</span>
           </button>
 
-          <span class="text-slate-300 dark:text-slate-700">|</span>
+          <button
+            (click)="openPublicationModal('EN_ADOPCION')"
+            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-emerald-500/10"
+          >
+            <span>💚</span>
+            <span class="truncate">Dar en Adopción</span>
+          </button>
 
           <button
-            (click)="toggleFiltersPanel()"
-            class="flex-1 py-1.5 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 font-semibold transition-colors cursor-pointer"
+            (click)="openPublicationModal('SE_BUSCA')"
+            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
           >
-            <span class="text-base">🔍</span>
-            <span>Filtrar</span> Colonia
+            <span>🔍</span>
+            <span class="truncate">Se Busca</span>
           </button>
         </div>
       </section>
@@ -361,8 +409,14 @@ interface FeedPost {
               <!-- 1. Post Header (Author, Badge, Timestamp) -->
               <div class="flex items-start justify-between gap-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-lg font-black text-slate-700 dark:text-slate-300 shadow-sm border border-white/20 flex-shrink-0">
-                    {{ post.authorName.charAt(0) }}
+                  <div class="w-11 h-11 rounded-2xl overflow-hidden shadow-sm border border-white/20 flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+                    @if (post.authorPhotoUrl) {
+                      <img [src]="post.authorPhotoUrl" [alt]="post.authorName" class="w-full h-full object-cover" />
+                    } @else {
+                      <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-lg font-black text-slate-950">
+                        {{ post.authorName ? post.authorName.charAt(0).toUpperCase() : '🐾' }}
+                      </div>
+                    }
                   </div>
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -581,14 +635,24 @@ interface FeedPost {
                   }
                 </div>
 
-                <!-- Secondary Share Actions (WhatsApp & Facebook) -->
+                <!-- Secondary Share Actions & Comments Button -->
                 <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                  <button
+                    (click)="toggleComments(post)"
+                    class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                    title="Ver y escribir comentarios"
+                  >
+                    <span>💬</span>
+                    <span>{{ (post.comments?.length || 0) }}</span>
+                    <span class="text-[11px] text-slate-400 hidden sm:inline">Comentarios</span>
+                  </button>
+
                   <button
                     (click)="shareToWhatsApp(post)"
                     class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer flex items-center gap-1"
                     title="Compartir en grupos de WhatsApp"
                   >
-                    <span>💬</span>
+                    <span>📱</span>
                     <span class="text-[11px] font-semibold hidden sm:inline">WhatsApp</span>
                   </button>
 
@@ -610,6 +674,85 @@ interface FeedPost {
                   </button>
                 </div>
               </div>
+
+              <!-- 6. Expandable Community Comments Section -->
+              @if (post.showComments) {
+                <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/60 space-y-3 animate-fadeIn">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <span>💬</span>
+                      <span>Comentarios de la Comunidad ({{ post.comments?.length || 0 }})</span>
+                    </h4>
+                    <span class="text-[10px] text-slate-400">Dolores Hidalgo Cuna de la Independencia</span>
+                  </div>
+
+                  <!-- Comments List -->
+                  @if (post.comments && post.comments.length > 0) {
+                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      @for (comment of post.comments; track comment.id) {
+                        <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 text-xs">
+                          <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+                            @if (comment.author?.profilePhotoUrl) {
+                              <img [src]="comment.author?.profilePhotoUrl" [alt]="comment.author?.fullName" class="w-full h-full object-cover" />
+                            } @else {
+                              <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-[10px]">
+                                {{ comment.author?.fullName ? comment.author?.fullName?.charAt(0)?.toUpperCase() : '👤' }}
+                              </div>
+                            }
+                          </div>
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-1">
+                              <span class="font-bold text-slate-900 dark:text-white text-[11px] truncate">
+                                {{ comment.author?.fullName || 'Vecino solidario' }}
+                              </span>
+                              <span class="text-[10px] text-slate-400 flex-shrink-0">
+                                {{ formatRelativeTime(comment.createdAt) }}
+                              </span>
+                            </div>
+                            <p class="text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed break-words text-[11px]">
+                              {{ comment.content }}
+                            </p>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                      <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Aún no hay comentarios en esta publicación. ¡Sé el primero en aportar información o ayuda!
+                      </p>
+                    </div>
+                  }
+
+                  <!-- Comment Input Box -->
+                  @if (authService.isAuthenticated()) {
+                    <div class="flex items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        [(ngModel)]="post.newCommentText"
+                        (keyup.enter)="submitComment(post)"
+                        placeholder="Escribe un comentario o aporta información..."
+                        class="flex-1 px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        (click)="submitComment(post)"
+                        [disabled]="post.isSubmittingComment || !post.newCommentText?.trim()"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer transition-all flex items-center gap-1"
+                      >
+                        @if (post.isSubmittingComment) {
+                          <span class="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+                        } @else {
+                          <span>Publicar</span>
+                        }
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-center text-xs text-slate-500">
+                      <a routerLink="/auth/login" class="text-emerald-500 font-bold hover:underline">Inicia sesión</a> para dejar un comentario en esta publicación.
+                    </div>
+                  }
+                </div>
+              }
             </article>
           }
         }
@@ -958,39 +1101,100 @@ interface FeedPost {
               <!-- REPORT FORM -->
               <div class="space-y-4">
                 <div class="flex items-center gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
-                  <div class="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-2xl flex-shrink-0">
-                    🚨
+                  <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-2xl flex-shrink-0">
+                    ✍️
                   </div>
                   <div>
                     <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                      Reportar Mascota Extraviada o Encontrada
+                      Crear Publicación en el Muro Comunitario
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                      Red solidaria de búsqueda y rescate en Dolores Hidalgo
+                      Bienestar animal, reportes y solidaridad en Dolores Hidalgo
                     </p>
                   </div>
                 </div>
 
-                <!-- Type Selector Tabs: Se Busca vs Encontrado -->
-                <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-200/60 dark:bg-slate-900/60 text-xs font-bold">
-                  <button
-                    type="button"
-                    (click)="reportLostForm.type = 'EXTRAVIADA'"
-                    [ngClass]="reportLostForm.type === 'EXTRAVIADA' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-600 dark:text-slate-400'"
-                    class="py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>🚨</span>
-                    <span>Se Extravió Mi Mascota</span>
-                  </button>
-                  <button
-                    type="button"
-                    (click)="reportLostForm.type = 'ENCONTRADA_EN_CALLE'"
-                    [ngClass]="reportLostForm.type === 'ENCONTRADA_EN_CALLE' ? 'bg-sky-500 text-white shadow-md' : 'text-slate-600 dark:text-slate-400'"
-                    class="py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>📍</span>
-                    <span>Encontré un Peludito</span>
-                  </button>
+                <!-- Publication Type Selector (5 Distinct Types) -->
+                <div>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px] mb-1.5">
+                    ¿Qué deseas publicar hoy? *
+                  </label>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <!-- 1. Animal Herido -->
+                    <button
+                      type="button"
+                      (click)="setModalPublicationType('ANIMAL_HERIDO')"
+                      [ngClass]="reportLostForm.type === 'ANIMAL_HERIDO' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
+                      class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
+                    >
+                      <span class="text-base">🚨</span>
+                      <span class="text-xs leading-tight">1. Animal Herido</span>
+                      <span class="text-[9px] opacity-80 leading-tight">Urgencia en la calle</span>
+                    </button>
+
+                    <!-- 2. En Resguardo -->
+                    <button
+                      type="button"
+                      (click)="setModalPublicationType('EN_RESGUARDO')"
+                      [ngClass]="reportLostForm.type === 'EN_RESGUARDO' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
+                      class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
+                    >
+                      <span class="text-base">🏠</span>
+                      <span class="text-xs leading-tight">2. En Resguardo</span>
+                      <span class="text-[9px] opacity-80 leading-tight">Lo tengo bajo resguardo</span>
+                    </button>
+
+                    <!-- 3. Dar en Adopción -->
+                    <button
+                      type="button"
+                      (click)="setModalPublicationType('EN_ADOPCION')"
+                      [ngClass]="reportLostForm.type === 'EN_ADOPCION' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
+                      class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
+                    >
+                      <span class="text-base">💚</span>
+                      <span class="text-xs leading-tight">3. Dar en Adopción</span>
+                      <span class="text-[9px] opacity-80 leading-tight">Busco hogar adoptivo</span>
+                    </button>
+
+                    <!-- 4. Se Busca -->
+                    <button
+                      type="button"
+                      (click)="setModalPublicationType('SE_BUSCA')"
+                      [ngClass]="reportLostForm.type === 'SE_BUSCA' || reportLostForm.type === 'EXTRAVIADA' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
+                      class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
+                    >
+                      <span class="text-base">🔍</span>
+                      <span class="text-xs leading-tight">4. Se Busca</span>
+                      <span class="text-[9px] opacity-80 leading-tight">Mascota extraviada</span>
+                    </button>
+
+                    <!-- 5. Campaña Comunitaria -->
+                    <button
+                      type="button"
+                      (click)="setModalPublicationType('CAMPANA_COMUNITARIA')"
+                      [ngClass]="reportLostForm.type === 'CAMPANA_COMUNITARIA' ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
+                      class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent col-span-2 sm:col-span-2"
+                    >
+                      <span class="text-base">📢</span>
+                      <span class="text-xs leading-tight">5. Campaña o Aviso Comunitario</span>
+                      <span class="text-[9px] opacity-80 leading-tight">Esterilización, vacunas, colecta o aviso para rescatistas</span>
+                    </button>
+                  </div>
+
+                  <!-- Type explanation card -->
+                  <div class="mt-2.5 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+                    @if (reportLostForm.type === 'ANIMAL_HERIDO') {
+                      <span>🚨 <strong>Animal Herido:</strong> Reportas para informar sobre un animalito lastimado o en peligro en la calle para que quien pueda o esté cerca acuda a ayudarlo.</span>
+                    } @else if (reportLostForm.type === 'EN_RESGUARDO') {
+                      <span>🏠 <strong>En Resguardo Temporal:</strong> Encontraste a un animal y le diste resguardo temporal esperando a que aparezca su dueño, o para orientarte y buscarle adopción.</span>
+                    } @else if (reportLostForm.type === 'EN_ADOPCION') {
+                      <span>💚 <strong>Dar en Adopción:</strong> Estás dando en adopción a un animal (rescatado o bajo tu tutela) para que una familia responsable lo adopte.</span>
+                    } @else if (reportLostForm.type === 'SE_BUSCA' || reportLostForm.type === 'EXTRAVIADA') {
+                      <span>🔍 <strong>Se Busca Mascota:</strong> Estás buscando a tu mascota porque se te extravió; activa la búsqueda vecinal con opción a recompensa.</span>
+                    } @else if (reportLostForm.type === 'CAMPANA_COMUNITARIA') {
+                      <span>📢 <strong>Campaña / Aviso:</strong> Para rescatistas y ciudadanos que organizan campañas de salud, esterilización o colectas solidarias en Dolores Hidalgo.</span>
+                    }
+                  </div>
                 </div>
 
                 <!-- Form Fields Grid -->
@@ -1276,13 +1480,19 @@ export class CommunityFeedComponent implements OnInit {
     const kids = this.filterGoodWithKids();
     const pets = this.filterGoodWithPets();
 
-    // 1. Kind filter
-    if (filter === 'ADOPTION') {
-      posts = posts.filter((p) => p.kind === 'PET_ADOPTION');
-    } else if (filter === 'LOST') {
-      posts = posts.filter((p) => p.kind === 'LOST_PET' && p.lostData?.type === 'EXTRAVIADA');
+    // 1. Kind/Type filter
+    if (filter === 'ANIMAL_HERIDO') {
+      posts = posts.filter((p) => p.postType === 'ANIMAL_HERIDO' || (p.kind === 'LOST_PET' && p.isInjured));
+    } else if (filter === 'EN_RESGUARDO') {
+      posts = posts.filter((p) => p.postType === 'EN_RESGUARDO' || p.postType === 'ENCONTRADA_EN_CALLE');
+    } else if (filter === 'EN_ADOPCION' || filter === 'ADOPTION') {
+      posts = posts.filter((p) => p.kind === 'PET_ADOPTION' || p.postType === 'EN_ADOPCION');
+    } else if (filter === 'SE_BUSCA' || filter === 'LOST') {
+      posts = posts.filter((p) => p.postType === 'SE_BUSCA' || p.postType === 'EXTRAVIADA');
+    } else if (filter === 'CAMPANA_COMUNITARIA') {
+      posts = posts.filter((p) => p.postType === 'CAMPANA_COMUNITARIA');
     } else if (filter === 'FOUND') {
-      posts = posts.filter((p) => p.kind === 'LOST_PET' && p.lostData?.type === 'ENCONTRADA_EN_CALLE');
+      posts = posts.filter((p) => p.postType === 'EN_RESGUARDO' || p.postType === 'ENCONTRADA_EN_CALLE');
     }
 
     // 2. Search query
@@ -1332,7 +1542,7 @@ export class CommunityFeedComponent implements OnInit {
   reportLostPhotoPreview = signal<string | null>(null);
   reportLostSelectedFile = signal<File | null>(null);
   reportLostForm = {
-    type: 'EXTRAVIADA' as LostPetType,
+    type: 'ANIMAL_HERIDO' as LostPetType,
     species: 'Perro',
     petName: '',
     gender: 'Macho',
@@ -1356,9 +1566,9 @@ export class CommunityFeedComponent implements OnInit {
   syncFilterFromRoute(): void {
     const url = this.router.url;
     if (url.includes('perdidas')) {
-      this.activeFilter.set('LOST');
+      this.activeFilter.set('SE_BUSCA');
     } else if (url.includes('adopciones')) {
-      this.activeFilter.set('ADOPTION');
+      this.activeFilter.set('EN_ADOPCION');
     } else {
       this.activeFilter.set('ALL');
     }
@@ -1371,10 +1581,59 @@ export class CommunityFeedComponent implements OnInit {
     });
   }
 
+  getPostTypeMetadata(rep: LostPetReport): { title: string; authorRole: string; typeBadge: string; badgeClass: string } {
+    switch (rep.type) {
+      case 'ANIMAL_HERIDO':
+        return {
+          title: `🚨 Animal Herido / Emergencia: ${rep.petName || 'En peligro'}`,
+          authorRole: 'Alerta Ciudadana',
+          typeBadge: '🚨 Animal Herido',
+          badgeClass: 'bg-rose-600/20 text-rose-600 dark:text-rose-400 border-rose-600/40',
+        };
+      case 'EN_RESGUARDO':
+        return {
+          title: `🏠 Encontrado y En Resguardo: ${rep.petName || 'Peludito'}`,
+          authorRole: 'Hogar de Paso Temporal',
+          typeBadge: '🏠 En Resguardo',
+          badgeClass: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30',
+        };
+      case 'EN_ADOPCION':
+        return {
+          title: `💚 En Adopción Responsable: ${rep.petName || 'Peludito'}`,
+          authorRole: 'Rescatista / Ciudadano',
+          typeBadge: '💚 En Adopción',
+          badgeClass: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+        };
+      case 'SE_BUSCA':
+      case 'EXTRAVIADA':
+        return {
+          title: `🔍 Se Busca a ${rep.petName || 'Mascota'} (Extraviado)`,
+          authorRole: 'Familia en Búsqueda',
+          typeBadge: '🔍 Se Busca',
+          badgeClass: 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30',
+        };
+      case 'CAMPANA_COMUNITARIA':
+        return {
+          title: `📢 Campaña / Aviso Comunitario: ${rep.petName || 'Dolores Hidalgo'}`,
+          authorRole: 'Rescatista / Difusión',
+          typeBadge: '📢 Campaña',
+          badgeClass: 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30',
+        };
+      case 'ENCONTRADA_EN_CALLE':
+      default:
+        return {
+          title: `📍 Encontrado en calle: ${rep.petName || 'Peludito'}`,
+          authorRole: 'Resguardo Temporal',
+          typeBadge: '📍 Encontrado',
+          badgeClass: 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
+        };
+    }
+  }
+
   loadFeed(): void {
     this.isLoading.set(true);
 
-    // Fetch both adoption pets and lost pet reports concurrently
+    // Fetch both adoption pets and community publications concurrently
     this.petService.getAdoptionCatalog().subscribe({
       next: (pets) => {
         this.lostPetService.getAll().subscribe({
@@ -1382,13 +1641,15 @@ export class CommunityFeedComponent implements OnInit {
             const petPosts: FeedPost[] = (pets || []).map((pet) => ({
               id: `pet-${pet.id}`,
               kind: 'PET_ADOPTION',
+              postType: 'EN_ADOPCION',
               title: `${pet.name} busca una familia amorosa`,
               authorName: pet.owner?.fullName || 'Rescatista Huellitas',
+              authorPhotoUrl: pet.owner?.profilePhotoUrl,
               authorRole: 'Rescatista Verificado',
               authorColonia: pet.colonia?.name || 'Dolores Hidalgo',
               createdAt: pet.createdAt,
               timeAgo: this.formatRelativeTime(pet.createdAt),
-              typeBadge: '🏠 En Adopción',
+              typeBadge: '💚 En Adopción',
               badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
               description: pet.rescueStory || `Conoce a ${pet.name}, un hermoso peludito de talla ${pet.size || 'mediana'} que está listo para llenar tu hogar de amor en Dolores Hidalgo.`,
               photoUrl: pet.photoUrl || (pet.photos && pet.photos[0]) || '',
@@ -1404,24 +1665,28 @@ export class CommunityFeedComponent implements OnInit {
               goodWithKids: pet.goodWithKids,
               goodWithOtherPets: pet.goodWithOtherPets,
               petData: pet,
+              comments: [],
+              showComments: false,
+              newCommentText: '',
+              isSubmittingComment: false,
             }));
 
             const lostPosts: FeedPost[] = (reports || []).map((rep) => {
-              const isLost = rep.type === 'EXTRAVIADA';
+              const meta = this.getPostTypeMetadata(rep);
               return {
                 id: `lost-${rep.id}`,
                 kind: 'LOST_PET',
-                title: isLost ? `🚨 Se busca a ${rep.petName} (Extraviado)` : `📍 Encontrado en calle: ${rep.petName}`,
-                authorName: rep.reporter?.fullName || 'Ciudadano DH',
-                authorRole: isLost ? 'Dueño en Búsqueda' : 'Resguardo Temporal',
+                postType: rep.type,
+                title: meta.title,
+                authorName: rep.reporter?.fullName || 'Ciudadano Solidario',
+                authorPhotoUrl: rep.reporter?.profilePhotoUrl,
+                authorRole: meta.authorRole,
                 authorColonia: rep.colonia?.name || 'Dolores Hidalgo',
                 createdAt: rep.createdAt,
                 timeAgo: this.formatRelativeTime(rep.createdAt),
-                typeBadge: isLost ? '🚨 Se Busca' : '📍 Encontrado',
-                badgeClass: isLost
-                  ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                  : 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
-                description: rep.distinctiveFeatures || `Visto por última vez en ${rep.lastSeenLocation}. Por favor ayuda compartiendo este reporte.`,
+                typeBadge: meta.typeBadge,
+                badgeClass: meta.badgeClass,
+                description: rep.distinctiveFeatures || `Visto en ${rep.lastSeenLocation}. Por favor ayuda compartiendo este reporte.`,
                 photoUrl: (rep.photos && rep.photos[0]) || '',
                 photos: rep.photos || [],
                 species: rep.species,
@@ -1435,6 +1700,10 @@ export class CommunityFeedComponent implements OnInit {
                 isInjured: rep.isInjured,
                 reportsCount: rep.reportsCount || (rep.sightings ? rep.sightings.length : 1),
                 sightings: rep.sightings || [],
+                comments: rep.comments || [],
+                showComments: false,
+                newCommentText: '',
+                isSubmittingComment: false,
               };
             });
 
@@ -1459,12 +1728,16 @@ export class CommunityFeedComponent implements OnInit {
 
   setFilter(filter: FeedFilterType): void {
     this.activeFilter.set(filter);
-    if (filter === 'LOST') {
+    if (filter === 'SE_BUSCA' || filter === 'LOST') {
       this.router.navigate([], { queryParams: { tab: 'perdidos' }, replaceUrl: true });
-    } else if (filter === 'ADOPTION') {
+    } else if (filter === 'EN_ADOPCION' || filter === 'ADOPTION') {
       this.router.navigate([], { queryParams: { tab: 'adopciones' }, replaceUrl: true });
-    } else if (filter === 'FOUND') {
-      this.router.navigate([], { queryParams: { tab: 'encontrados' }, replaceUrl: true });
+    } else if (filter === 'ANIMAL_HERIDO') {
+      this.router.navigate([], { queryParams: { tab: 'heridos' }, replaceUrl: true });
+    } else if (filter === 'EN_RESGUARDO') {
+      this.router.navigate([], { queryParams: { tab: 'resguardo' }, replaceUrl: true });
+    } else if (filter === 'CAMPANA_COMUNITARIA') {
+      this.router.navigate([], { queryParams: { tab: 'campanas' }, replaceUrl: true });
     } else {
       this.router.navigate([], { queryParams: {}, replaceUrl: true });
     }
@@ -1506,10 +1779,20 @@ export class CommunityFeedComponent implements OnInit {
   onSpeciesChange(): void {}
 
   onComposerClick(): void {
-    this.openReportLostModal();
+    this.openPublicationModal();
   }
 
-  openReportLostModal(): void {
+  setModalPublicationType(type: LostPetType): void {
+    this.reportLostForm.type = type;
+    if (type === 'ANIMAL_HERIDO') {
+      this.reportLostForm.isInjured = true;
+    }
+    if (type === 'CAMPANA_COMUNITARIA' && !this.reportLostForm.petName) {
+      this.reportLostForm.petName = 'Campaña Comunitaria';
+    }
+  }
+
+  openPublicationModal(defaultType?: LostPetType): void {
     this.isReportLostModalOpen.set(true);
     this.reportLostSuccess.set(null);
     this.reportLostPhotoSource.set('FILE');
@@ -1517,11 +1800,64 @@ export class CommunityFeedComponent implements OnInit {
     this.reportLostSelectedFile.set(null);
     this.reportLostForm.photoUrl = '';
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
+    if (defaultType) {
+      this.setModalPublicationType(defaultType);
+    } else {
+      this.setModalPublicationType('ANIMAL_HERIDO');
+    }
+  }
+
+  openReportLostModal(): void {
+    this.openPublicationModal('SE_BUSCA');
   }
 
   closeReportLostModal(): void {
     this.isReportLostModalOpen.set(false);
     this.reportLostSuccess.set(null);
+  }
+
+  toggleComments(post: FeedPost): void {
+    post.showComments = !post.showComments;
+  }
+
+  submitComment(post: FeedPost): void {
+    if (!post.newCommentText || !post.newCommentText.trim()) return;
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para dejar un comentario');
+      return;
+    }
+
+    const reportId = post.kind === 'LOST_PET' && post.lostData ? post.lostData.id : null;
+    if (!reportId) {
+      this.notify.info('Los comentarios comunitarios aplican para reportes y avisos del muro.');
+      return;
+    }
+
+    const text = post.newCommentText.trim();
+    post.isSubmittingComment = true;
+
+    this.lostPetService.addComment(reportId, text).subscribe({
+      next: (comment) => {
+        post.isSubmittingComment = false;
+        post.newCommentText = '';
+        if (!post.comments) post.comments = [];
+        const enrichedComment: PublicationComment = {
+          id: comment.id,
+          reportId: comment.reportId,
+          authorId: comment.authorId,
+          author: comment.author || this.authService.currentUser() || undefined,
+          content: comment.content,
+          createdAt: comment.createdAt || new Date().toISOString(),
+        };
+        post.comments.push(enrichedComment);
+        this.notify.success('¡Comentario publicado!');
+      },
+      error: (err) => {
+        post.isSubmittingComment = false;
+        const msg = err.error?.message || 'Error al enviar el comentario';
+        this.notify.error(msg);
+      },
+    });
   }
 
   onReportLostFileSelected(event: Event): void {
@@ -1537,7 +1873,7 @@ export class CommunityFeedComponent implements OnInit {
 
   submitReportLost(): void {
     if (!this.reportLostForm.lastSeenLocation.trim() || !this.reportLostForm.distinctiveFeatures.trim()) {
-      this.notify.warning('Por favor indica el lugar de avistamiento y señas particulares');
+      this.notify.warning('Por favor indica la ubicación y señas particulares');
       return;
     }
 
@@ -1547,7 +1883,7 @@ export class CommunityFeedComponent implements OnInit {
       const payload = {
         type: this.reportLostForm.type,
         species: this.reportLostForm.species,
-        petName: this.reportLostForm.petName.trim() || 'Peludito sin identificar',
+        petName: this.reportLostForm.petName.trim() || 'Peludito comunitario',
         gender: this.reportLostForm.gender,
         coloniaId: this.reportLostForm.coloniaId || undefined,
         lastSeenLocation: this.reportLostForm.lastSeenLocation.trim(),
@@ -1564,22 +1900,22 @@ export class CommunityFeedComponent implements OnInit {
         next: (newReport) => {
           this.isSubmittingReportLost.set(false);
           this.reportLostSuccess.set(newReport);
-          this.notify.success('¡Alerta publicada exitosamente en el Muro de Dolores Hidalgo!');
+          this.notify.success('¡Publicación realizada exitosamente en el Muro!');
           
-          const isLost = newReport.type === 'EXTRAVIADA';
+          const meta = this.getPostTypeMetadata(newReport);
           const newPost: FeedPost = {
             id: `lost-${newReport.id}`,
             kind: 'LOST_PET',
-            title: isLost ? `🚨 Se busca a ${newReport.petName} (Extraviado)` : `📍 Encontrado en calle: ${newReport.petName}`,
-            authorName: this.authService.currentUser()?.fullName || 'Ciudadano DH',
-            authorRole: isLost ? 'Dueño en Búsqueda' : 'Resguardo Temporal',
+            postType: newReport.type,
+            title: meta.title,
+            authorName: this.authService.currentUser()?.fullName || 'Ciudadano Solidario',
+            authorPhotoUrl: this.authService.currentUser()?.profilePhotoUrl,
+            authorRole: meta.authorRole,
             authorColonia: this.colonias().find(c => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
             createdAt: new Date().toISOString(),
             timeAgo: 'Hace un momento',
-            typeBadge: isLost ? '🚨 Se Busca' : '📍 Encontrado',
-            badgeClass: isLost
-              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
-              : 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
+            typeBadge: meta.typeBadge,
+            badgeClass: meta.badgeClass,
             description: newReport.distinctiveFeatures,
             photoUrl: (newReport.photos && newReport.photos[0]) || '',
             photos: newReport.photos || [],
@@ -1594,12 +1930,16 @@ export class CommunityFeedComponent implements OnInit {
             isInjured: newReport.isInjured,
             reportsCount: newReport.reportsCount || (newReport.sightings ? newReport.sightings.length : 1),
             sightings: newReport.sightings || [],
+            comments: [],
+            showComments: false,
+            newCommentText: '',
+            isSubmittingComment: false,
           };
           this.allPosts.update(posts => [newPost, ...posts]);
         },
         error: (err) => {
           this.isSubmittingReportLost.set(false);
-          const msg = err.error?.message || 'No se pudo registrar el reporte. Por favor intenta de nuevo.';
+          const msg = err.error?.message || 'No se pudo registrar la publicación. Por favor intenta de nuevo.';
           this.notify.error(msg);
         },
       });

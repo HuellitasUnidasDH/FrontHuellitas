@@ -55,4 +55,10 @@ export class LostPetService {
       .post<ApiResponse<PetSighting>>(`${this.URL}/${id}/sightings`, payload)
       .pipe(map((r) => r.data));
   }
+
+  addComment(id: string, content: string): Observable<any> {
+    return this.http
+      .post<ApiResponse<any>>(`${this.URL}/${id}/comments`, { content })
+      .pipe(map((r) => r.data));
+  }
 }

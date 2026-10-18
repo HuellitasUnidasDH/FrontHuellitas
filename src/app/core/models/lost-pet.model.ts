@@ -1,8 +1,24 @@
 import { User } from './user.model';
 import { Colonia } from './colonia.model';
 
-export type LostPetType = 'EXTRAVIADA' | 'ENCONTRADA_EN_CALLE';
+export type LostPetType =
+  | 'ANIMAL_HERIDO'
+  | 'EN_RESGUARDO'
+  | 'EN_ADOPCION'
+  | 'SE_BUSCA'
+  | 'CAMPANA_COMUNITARIA'
+  | 'EXTRAVIADA'
+  | 'ENCONTRADA_EN_CALLE';
 export type LostPetStatus = 'BUSQUEDA_ACTIVA' | 'AVISTADA_RECIENTEMENTE' | 'REENCONTRADA' | 'CERRADO';
+
+export interface PublicationComment {
+  id: string;
+  reportId: string;
+  authorId: string;
+  author?: User;
+  content: string;
+  createdAt: string;
+}
 
 export interface PetSighting {
   id: string;
@@ -39,6 +55,7 @@ export interface LostPetReport {
   lastReportedAt?: string;
   parentReportId?: string;
   sightings?: PetSighting[];
+  comments?: PublicationComment[];
   createdAt: string;
   updatedAt: string;
 }

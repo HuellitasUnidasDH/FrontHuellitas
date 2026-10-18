@@ -253,6 +253,25 @@ import { PetGroup } from '../../../core/models/group.model';
                 </label>
               </div>
             </div>
+
+            <!-- Adoption Distinction Card (Mis Mascotas vs En Adopción) -->
+            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20">
+              <label class="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  formControlName="isForAdoption"
+                  class="mt-1 w-5 h-5 rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                />
+                <div class="space-y-0.5">
+                  <span class="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    ¿Ofrecer a esta mascota en adopción comunitaria?
+                  </span>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <strong>Déjalo desmarcado</strong> si es tu mascota personal de casa (para llevar su carnet médico, vacunas y momentos familiares). No aparecerá en adopción comunitaria.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
 
           <!-- Clinical Notes -->
@@ -326,6 +345,7 @@ export class PetFormComponent implements OnInit {
     color: [''],
     microchipNumber: [''],
     isSterilized: [false],
+    isForAdoption: [false],
     notes: [''],
   });
 
@@ -362,6 +382,7 @@ export class PetFormComponent implements OnInit {
           color: pet.color || '',
           microchipNumber: pet.microchipNumber || '',
           isSterilized: pet.isSterilized,
+          isForAdoption: pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO',
           notes: pet.notes || '',
         });
 
@@ -406,6 +427,7 @@ export class PetFormComponent implements OnInit {
         color: formVal.color || undefined,
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
+        status: formVal.isForAdoption ? 'DISPONIBLE' : 'NO_EN_ADOPCION',
         notes: formVal.notes || undefined,
       };
 

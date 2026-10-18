@@ -51,6 +51,19 @@ import { UserRole } from '../../../core/models/user.model';
                   >
                     {{ pet()!.gender === 'FEMALE' ? 'Hembra' : 'Macho' }}
                   </span>
+                  @if (pet()!.status === 'NO_EN_ADOPCION') {
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                      🏠 Mascota de Casa
+                    </span>
+                  } @else if (pet()!.status === 'DISPONIBLE') {
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      💚 En Adopción Activa
+                    </span>
+                  } @else if (pet()!.status === 'ADOPTADA') {
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 flex items-center gap-1">
+                      🎉 ¡Adoptada!
+                    </span>
+                  }
                   @if (pet()!.group) {
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                       👨‍👩‍👧‍👦 {{ pet()!.group.name }}
