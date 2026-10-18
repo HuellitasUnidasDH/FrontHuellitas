@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PetService } from '../../../core/services/pet.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -14,7 +14,7 @@ import { UserRole } from '../../../core/models/user.model';
 @Component({
   selector: 'app-pet-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, ReactiveFormsModule],
+  imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule],
   template: `
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       @if (isLoading()) {
@@ -350,46 +350,90 @@ import { UserRole } from '../../../core/models/user.model';
             <form [formGroup]="momentForm" (ngSubmit)="onSubmitMoment()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
               <!-- Scrollable Body -->
               <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 overscroll-contain">
-                <!-- Image Dropzone / Preview -->
+                <!-- Image Dropzone / Preview with Dual Source (File or URL) -->
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Fotografía del Momento *
                   </label>
 
-                  @if (isCompressingImage()) {
-                    <div class="flex flex-col items-center justify-center border-2 border-emerald-500/40 rounded-2xl p-8 bg-slate-800/40 space-y-2">
-                      <div class="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                      <span class="text-xs font-bold text-emerald-400">Optimizando y escalando fotografía... ⚡</span>
-                      <span class="text-[10px] text-slate-400">Reduciendo peso para evitar congelamientos</span>
-                    </div>
-                  } @else if (!imagePreview()) {
-                    <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-6 cursor-pointer bg-slate-800/40 hover:bg-slate-800/60 transition-all">
-                      <span class="text-3xl mb-2">📷</span>
-                      <span class="text-xs font-bold text-slate-200">Seleccionar foto desde galería o cámara</span>
-                      <span class="text-[10px] text-slate-400 mt-1">Cualquier resolución · Optimización inteligente activa</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        (change)="onFileSelected($event)"
-                        class="hidden"
-                      />
-                    </label>
-                  } @else {
-                    <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
-                      <img
-                        [src]="imagePreview()"
-                        alt="Previsualización"
-                        class="w-full h-48 sm:h-52 object-contain"
-                      />
-                      <div class="absolute bottom-2 right-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          (click)="removeSelectedFile()"
-                          class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
-                        >
-                          Cambiar Foto
-                        </button>
+                  <!-- Dual Source Toggle -->
+                  <div class="flex rounded-xl bg-slate-800 p-1 mb-2.5 gap-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      (click)="momentPhotoSource.set('FILE')"
+                      [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': momentPhotoSource() === 'FILE', 'text-slate-400 hover:text-white': momentPhotoSource() !== 'FILE' }"
+                      class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer"
+                    >
+                      📁 Desde mi dispositivo
+                    </button>
+                    <button
+                      type="button"
+                      (click)="momentPhotoSource.set('URL')"
+                      [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': momentPhotoSource() === 'URL', 'text-slate-400 hover:text-white': momentPhotoSource() !== 'URL' }"
+                      class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer"
+                    >
+                      🔗 Pegar enlace URL
+                    </button>
+                  </div>
+
+                  @if (momentPhotoSource() === 'FILE') {
+                    @if (isCompressingImage()) {
+                      <div class="flex flex-col items-center justify-center border-2 border-emerald-500/40 rounded-2xl p-8 bg-slate-800/40 space-y-2">
+                        <div class="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs font-bold text-emerald-400">Optimizando y escalando fotografía... ⚡</span>
+                        <span class="text-[10px] text-slate-400">Reduciendo peso para evitar congelamientos</span>
                       </div>
+                    } @else if (!imagePreview()) {
+                      <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-6 cursor-pointer bg-slate-800/40 hover:bg-slate-800/60 transition-all">
+                        <span class="text-3xl mb-2">📷</span>
+                        <span class="text-xs font-bold text-slate-200">Seleccionar foto desde galería o cámara</span>
+                        <span class="text-[10px] text-slate-400 mt-1">Cualquier resolución · Optimización inteligente activa</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          (change)="onFileSelected($event)"
+                          class="hidden"
+                        />
+                      </label>
+                    } @else {
+                      <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
+                        <img
+                          [src]="imagePreview()"
+                          alt="Previsualización"
+                          class="w-full h-48 sm:h-52 object-contain"
+                        />
+                        <div class="absolute bottom-2 right-2 flex items-center gap-2">
+                          <button
+                            type="button"
+                            (click)="removeSelectedFile()"
+                            class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
+                          >
+                            Cambiar Foto
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  } @else {
+                    <!-- URL Source -->
+                    <div class="space-y-2">
+                      <input
+                        type="url"
+                        [ngModel]="momentUrlInput()"
+                        (ngModelChange)="momentUrlInput.set($event)"
+                        [ngModelOptions]="{ standalone: true }"
+                        placeholder="https://images.unsplash.com/... o enlace web de la foto"
+                        class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                      />
+
+                      @if (momentUrlInput().trim()) {
+                        <div class="relative rounded-2xl overflow-hidden border border-emerald-500/40 shadow-lg group bg-slate-950">
+                          <img
+                            [src]="momentUrlInput().trim()"
+                            alt="Previsualización por URL"
+                            class="w-full h-48 sm:h-52 object-contain"
+                          />
+                        </div>
+                      }
                     </div>
                   }
                 </div>
@@ -445,7 +489,7 @@ import { UserRole } from '../../../core/models/user.model';
 
                 <button
                   type="submit"
-                  [disabled]="momentForm.invalid || !selectedFile() || isUploadingMoment() || isCompressingImage()"
+                  [disabled]="momentForm.invalid || (momentPhotoSource() === 'FILE' && !selectedFile()) || (momentPhotoSource() === 'URL' && !momentUrlInput().trim()) || isUploadingMoment() || isCompressingImage()"
                   class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
                   @if (isUploadingMoment()) {
@@ -648,7 +692,9 @@ export class PetDetailComponent implements OnInit {
   isCompressingImage = signal(false);
   selectedMomentForLightbox = signal<PetMoment | null>(null);
 
-  // Moment File Upload
+  // Moment File Upload & Dual Source (File or URL)
+  momentPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  momentUrlInput = signal<string>('');
   selectedFile = signal<File | null>(null);
   imagePreview = signal<string | null>(null);
 
@@ -748,6 +794,7 @@ export class PetDetailComponent implements OnInit {
   closeAddMomentModal(): void {
     this.showAddMomentModal.set(false);
     this.lockBodyScroll(false);
+    this.momentUrlInput.set('');
   }
 
   async onFileSelected(event: Event): Promise<void> {
@@ -800,11 +847,17 @@ export class PetDetailComponent implements OnInit {
   }
 
   onSubmitMoment(): void {
-    if (this.momentForm.invalid || !this.selectedFile() || !this.pet()) return;
+    const isFileSource = this.momentPhotoSource() === 'FILE';
+    const hasPhoto = isFileSource ? !!this.selectedFile() : !!this.momentUrlInput().trim();
+    if (this.momentForm.invalid || !hasPhoto || !this.pet()) return;
 
     const val = this.momentForm.value;
     const formData = new FormData();
-    formData.append('file', this.selectedFile()!);
+    if (isFileSource && this.selectedFile()) {
+      formData.append('file', this.selectedFile()!);
+    } else {
+      formData.append('photoUrl', this.momentUrlInput().trim());
+    }
     formData.append('title', val.title!);
     formData.append('momentDate', val.momentDate!);
     if (val.description) {
@@ -814,15 +867,16 @@ export class PetDetailComponent implements OnInit {
     this.isUploadingMoment.set(true);
     this.petService.addMoment(this.pet()!.id, formData).subscribe({
       next: () => {
-        this.notification.success('¡Momento Inmortalizado!', 'La fotografía se guardó en Supabase Storage');
+        this.notification.success('¡Momento Inmortalizado!', 'El recuerdo fotográfico se guardó exitosamente');
         this.closeAddMomentModal();
         this.isUploadingMoment.set(false);
         this.removeSelectedFile();
+        this.momentUrlInput.set('');
         this.loadMoments(this.pet()!.id);
       },
       error: (err) => {
         this.isUploadingMoment.set(false);
-        const msg = err.error?.message || 'No se pudo subir la fotografía. Intenta de nuevo.';
+        const msg = err.error?.message || 'No se pudo guardar la fotografía. Intenta de nuevo.';
         this.notification.error('Error al guardar', msg);
       },
     });

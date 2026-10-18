@@ -8,6 +8,7 @@ import { ColoniaService } from '../../core/services/colonia.service';
 import { AdoptionService } from '../../core/services/adoption.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ImageUploadService } from '../../core/services/image-upload.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
@@ -834,6 +835,62 @@ interface FeedPost {
                 ></textarea>
               </div>
 
+              <div>
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Foto del avistamiento (Opcional)
+                </label>
+                <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2 gap-1 text-xs font-bold max-w-sm">
+                  <button
+                    type="button"
+                    (click)="sightingPhotoSource.set('FILE')"
+                    [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'FILE' }"
+                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                  >
+                    📁 Desde mi dispositivo
+                  </button>
+                  <button
+                    type="button"
+                    (click)="sightingPhotoSource.set('URL')"
+                    [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'URL' }"
+                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                  >
+                    🔗 Pegar enlace URL
+                  </button>
+                </div>
+
+                @if (sightingPhotoSource() === 'FILE') {
+                  <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-500 rounded-2xl p-3 cursor-pointer bg-white/40 dark:bg-slate-900/40 text-center">
+                    <span class="text-xl mb-0.5">📷</span>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Seleccionar foto desde celular o PC</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      (change)="onSightingFileSelected($event)"
+                      class="hidden"
+                    />
+                  </label>
+                } @else {
+                  <input
+                    type="url"
+                    [(ngModel)]="sightingForm.photoUrl"
+                    (ngModelChange)="sightingPhotoPreview.set($event)"
+                    placeholder="https://... o enlace directo"
+                    class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500"
+                  />
+                }
+
+                @if (sightingPhotoPreview() || sightingForm.photoUrl) {
+                  <div class="mt-2 p-2 rounded-xl bg-white/60 dark:bg-slate-900/60 border border-rose-500/30 flex items-center gap-2">
+                    <img
+                      [src]="sightingPhotoPreview() || sightingForm.photoUrl"
+                      alt="Foto avistamiento"
+                      class="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Foto lista</span>
+                  </div>
+                }
+              </div>
+
               <div class="pt-2 flex gap-2">
                 <button
                   (click)="submitSighting()"
@@ -1031,14 +1088,65 @@ interface FeedPost {
 
                   <div>
                     <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                      Enlace a Foto (Opcional)
+                      Fotografía de la mascota (Recomendada para identificarla)
                     </label>
-                    <input
-                      type="url"
-                      [(ngModel)]="reportLostForm.photoUrl"
-                      placeholder="https://... o pega enlace de imagen"
-                      class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500"
-                    />
+
+                    <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2 gap-1 text-xs font-bold max-w-sm">
+                      <button
+                        type="button"
+                        (click)="reportLostPhotoSource.set('FILE')"
+                        [ngClass]="{ 'bg-rose-500 text-white shadow': reportLostPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'FILE' }"
+                        class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                      >
+                        📁 Desde mi dispositivo
+                      </button>
+                      <button
+                        type="button"
+                        (click)="reportLostPhotoSource.set('URL')"
+                        [ngClass]="{ 'bg-rose-500 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
+                        class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                      >
+                        🔗 Pegar enlace URL
+                      </button>
+                    </div>
+
+                    @if (reportLostPhotoSource() === 'FILE') {
+                      <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all text-center">
+                        <span class="text-2xl mb-1">📷</span>
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para seleccionar foto desde celular o PC</span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">JPG, PNG o WEBP</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          (change)="onReportLostFileSelected($event)"
+                          class="hidden"
+                        />
+                      </label>
+                    } @else {
+                      <input
+                        type="url"
+                        [(ngModel)]="reportLostForm.photoUrl"
+                        (ngModelChange)="reportLostPhotoPreview.set($event)"
+                        placeholder="https://... o pega enlace directo de imagen"
+                        class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500"
+                      />
+                    }
+
+                    @if (reportLostPhotoPreview() || reportLostForm.photoUrl) {
+                      <div class="mt-2 p-2 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-rose-500/30 flex items-center gap-3">
+                        <img
+                          [src]="reportLostPhotoPreview() || reportLostForm.photoUrl"
+                          alt="Vista previa"
+                          class="w-14 h-14 rounded-xl object-cover border border-rose-500/40 shadow-sm"
+                        />
+                        <div class="text-xs">
+                          <span class="font-bold block text-slate-900 dark:text-white">Foto lista para difusión</span>
+                          <span class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">
+                            {{ reportLostPhotoSource() === 'FILE' ? 'Archivo cargado desde tu dispositivo' : 'Enlace web válido' }}
+                          </span>
+                        </div>
+                      </div>
+                    }
                   </div>
 
                   @if (reportLostForm.type === 'EXTRAVIADA') {
@@ -1120,6 +1228,7 @@ export class CommunityFeedComponent implements OnInit {
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
+  private imageUploadService = inject(ImageUploadService);
 
   // Data signals
   allPosts = signal<FeedPost[]>([]);
@@ -1148,8 +1257,12 @@ export class CommunityFeedComponent implements OnInit {
   // Sighting modal state
   selectedLostPetForSighting = signal<LostPetReport | null>(null);
   isSubmittingSighting = signal<boolean>(false);
+  sightingPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  sightingPhotoPreview = signal<string | null>(null);
+  sightingSelectedFile = signal<File | null>(null);
   sightingForm = {
     locationDescription: '',
+    photoUrl: '',
     additionalNotes: '',
   };
 
@@ -1215,6 +1328,9 @@ export class CommunityFeedComponent implements OnInit {
   isReportLostModalOpen = signal<boolean>(false);
   reportLostSuccess = signal<LostPetReport | null>(null);
   isSubmittingReportLost = signal<boolean>(false);
+  reportLostPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  reportLostPhotoPreview = signal<string | null>(null);
+  reportLostSelectedFile = signal<File | null>(null);
   reportLostForm = {
     type: 'EXTRAVIADA' as LostPetType,
     species: 'Perro',
@@ -1396,12 +1512,27 @@ export class CommunityFeedComponent implements OnInit {
   openReportLostModal(): void {
     this.isReportLostModalOpen.set(true);
     this.reportLostSuccess.set(null);
+    this.reportLostPhotoSource.set('FILE');
+    this.reportLostPhotoPreview.set(null);
+    this.reportLostSelectedFile.set(null);
+    this.reportLostForm.photoUrl = '';
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
   }
 
   closeReportLostModal(): void {
     this.isReportLostModalOpen.set(false);
     this.reportLostSuccess.set(null);
+  }
+
+  onReportLostFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.reportLostSelectedFile.set(file);
+      this.imageUploadService.fileToDataUrl(file).then((preview) => {
+        this.reportLostPhotoPreview.set(preview);
+      });
+    }
   }
 
   submitReportLost(): void {
@@ -1412,65 +1543,77 @@ export class CommunityFeedComponent implements OnInit {
 
     this.isSubmittingReportLost.set(true);
 
-    const payload = {
-      type: this.reportLostForm.type,
-      species: this.reportLostForm.species,
-      petName: this.reportLostForm.petName.trim() || 'Peludito sin identificar',
-      gender: this.reportLostForm.gender,
-      coloniaId: this.reportLostForm.coloniaId || undefined,
-      lastSeenLocation: this.reportLostForm.lastSeenLocation.trim(),
-      incidentDate: this.reportLostForm.incidentDate || new Date().toISOString().split('T')[0],
-      distinctiveFeatures: this.reportLostForm.distinctiveFeatures.trim(),
-      contactPhone: this.reportLostForm.contactPhone.trim() || '4181234567',
-      rewardOffered: this.reportLostForm.rewardOffered,
-      rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
-      photos: this.reportLostForm.photoUrl ? [this.reportLostForm.photoUrl.trim()] : [],
-      isInjured: this.reportLostForm.isInjured,
+    const executeCreation = (finalPhotoUrl?: string) => {
+      const payload = {
+        type: this.reportLostForm.type,
+        species: this.reportLostForm.species,
+        petName: this.reportLostForm.petName.trim() || 'Peludito sin identificar',
+        gender: this.reportLostForm.gender,
+        coloniaId: this.reportLostForm.coloniaId || undefined,
+        lastSeenLocation: this.reportLostForm.lastSeenLocation.trim(),
+        incidentDate: this.reportLostForm.incidentDate || new Date().toISOString().split('T')[0],
+        distinctiveFeatures: this.reportLostForm.distinctiveFeatures.trim(),
+        contactPhone: this.reportLostForm.contactPhone.trim() || '4181234567',
+        rewardOffered: this.reportLostForm.rewardOffered,
+        rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
+        photos: finalPhotoUrl ? [finalPhotoUrl] : [],
+        isInjured: this.reportLostForm.isInjured,
+      };
+
+      this.lostPetService.create(payload).subscribe({
+        next: (newReport) => {
+          this.isSubmittingReportLost.set(false);
+          this.reportLostSuccess.set(newReport);
+          this.notify.success('¡Alerta publicada exitosamente en el Muro de Dolores Hidalgo!');
+          
+          const isLost = newReport.type === 'EXTRAVIADA';
+          const newPost: FeedPost = {
+            id: `lost-${newReport.id}`,
+            kind: 'LOST_PET',
+            title: isLost ? `🚨 Se busca a ${newReport.petName} (Extraviado)` : `📍 Encontrado en calle: ${newReport.petName}`,
+            authorName: this.authService.currentUser()?.fullName || 'Ciudadano DH',
+            authorRole: isLost ? 'Dueño en Búsqueda' : 'Resguardo Temporal',
+            authorColonia: this.colonias().find(c => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
+            createdAt: new Date().toISOString(),
+            timeAgo: 'Hace un momento',
+            typeBadge: isLost ? '🚨 Se Busca' : '📍 Encontrado',
+            badgeClass: isLost
+              ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
+              : 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
+            description: newReport.distinctiveFeatures,
+            photoUrl: (newReport.photos && newReport.photos[0]) || '',
+            photos: newReport.photos || [],
+            species: newReport.species,
+            gender: newReport.gender,
+            coloniaName: this.colonias().find(c => c.id === newReport.coloniaId)?.name,
+            lostData: newReport,
+            lastSeenLocation: newReport.lastSeenLocation,
+            contactPhone: newReport.contactPhone,
+            rewardOffered: newReport.rewardOffered,
+            rewardDetails: newReport.rewardDetails,
+            isInjured: newReport.isInjured,
+            reportsCount: newReport.reportsCount || (newReport.sightings ? newReport.sightings.length : 1),
+            sightings: newReport.sightings || [],
+          };
+          this.allPosts.update(posts => [newPost, ...posts]);
+        },
+        error: (err) => {
+          this.isSubmittingReportLost.set(false);
+          const msg = err.error?.message || 'No se pudo registrar el reporte. Por favor intenta de nuevo.';
+          this.notify.error(msg);
+        },
+      });
     };
 
-    this.lostPetService.create(payload).subscribe({
-      next: (newReport) => {
-        this.isSubmittingReportLost.set(false);
-        this.reportLostSuccess.set(newReport);
-        this.notify.success('¡Alerta publicada exitosamente en el Muro de Dolores Hidalgo!');
-        
-        const isLost = newReport.type === 'EXTRAVIADA';
-        const newPost: FeedPost = {
-          id: `lost-${newReport.id}`,
-          kind: 'LOST_PET',
-          title: isLost ? `🚨 Se busca a ${newReport.petName} (Extraviado)` : `📍 Encontrado en calle: ${newReport.petName}`,
-          authorName: this.authService.currentUser()?.fullName || 'Ciudadano DH',
-          authorRole: isLost ? 'Dueño en Búsqueda' : 'Resguardo Temporal',
-          authorColonia: this.colonias().find(c => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
-          createdAt: new Date().toISOString(),
-          timeAgo: 'Hace un momento',
-          typeBadge: isLost ? '🚨 Se Busca' : '📍 Encontrado',
-          badgeClass: isLost
-            ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30'
-            : 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
-          description: newReport.distinctiveFeatures,
-          photoUrl: (newReport.photos && newReport.photos[0]) || '',
-          photos: newReport.photos || [],
-          species: newReport.species,
-          gender: newReport.gender,
-          coloniaName: this.colonias().find(c => c.id === newReport.coloniaId)?.name,
-          lostData: newReport,
-          lastSeenLocation: newReport.lastSeenLocation,
-          contactPhone: newReport.contactPhone,
-          rewardOffered: newReport.rewardOffered,
-          rewardDetails: newReport.rewardDetails,
-          isInjured: newReport.isInjured,
-          reportsCount: newReport.reportsCount || (newReport.sightings ? newReport.sightings.length : 1),
-          sightings: newReport.sightings || [],
-        };
-        this.allPosts.update(posts => [newPost, ...posts]);
-      },
-      error: (err) => {
-        this.isSubmittingReportLost.set(false);
-        const msg = err.error?.message || 'No se pudo registrar el reporte. Por favor intenta de nuevo.';
-        this.notify.error(msg);
-      },
-    });
+    if (this.reportLostPhotoSource() === 'FILE' && this.reportLostSelectedFile()) {
+      this.imageUploadService.uploadImage(this.reportLostSelectedFile()!, 'lost-pets').subscribe({
+        next: (uploadedUrl) => executeCreation(uploadedUrl),
+        error: () => executeCreation(this.reportLostPhotoPreview() || undefined),
+      });
+    } else {
+      const url = this.reportLostForm.photoUrl?.trim() || this.reportLostPhotoPreview() || undefined;
+      executeCreation(url);
+    }
   }
 
   getLostBroadcastWhatsAppUrl(report: LostPetReport): string {
@@ -1543,14 +1686,31 @@ export class CommunityFeedComponent implements OnInit {
   // ==========================================
   openSightingModal(report: LostPetReport): void {
     this.selectedLostPetForSighting.set(report);
+    this.sightingPhotoSource.set('FILE');
+    this.sightingPhotoPreview.set(null);
+    this.sightingSelectedFile.set(null);
     this.sightingForm = {
       locationDescription: '',
+      photoUrl: '',
       additionalNotes: '',
     };
   }
 
   closeSightingModal(): void {
     this.selectedLostPetForSighting.set(null);
+    this.sightingPhotoPreview.set(null);
+    this.sightingSelectedFile.set(null);
+  }
+
+  onSightingFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.sightingSelectedFile.set(file);
+      this.imageUploadService.fileToDataUrl(file).then((preview) => {
+        this.sightingPhotoPreview.set(preview);
+      });
+    }
   }
 
   submitSighting(): void {
@@ -1558,18 +1718,37 @@ export class CommunityFeedComponent implements OnInit {
     if (!report) return;
 
     this.isSubmittingSighting.set(true);
-    this.lostPetService.addSighting(report.id, this.sightingForm).subscribe({
-      next: () => {
-        this.isSubmittingSighting.set(false);
-        this.closeSightingModal();
-        this.notify.success('¡Aviso de avistamiento enviado con éxito!');
-      },
-      error: () => {
-        this.isSubmittingSighting.set(false);
-        this.notify.info('Avistamiento registrado temporalmente.');
-        this.closeSightingModal();
-      },
-    });
+
+    const executeSighting = (photoUrl?: string) => {
+      const payload = {
+        locationDescription: this.sightingForm.locationDescription.trim(),
+        photoUrl: photoUrl || undefined,
+        additionalNotes: this.sightingForm.additionalNotes.trim() || undefined,
+      };
+
+      this.lostPetService.addSighting(report.id, payload).subscribe({
+        next: () => {
+          this.isSubmittingSighting.set(false);
+          this.closeSightingModal();
+          this.notify.success('¡Aviso de avistamiento enviado con éxito!');
+        },
+        error: () => {
+          this.isSubmittingSighting.set(false);
+          this.notify.info('Avistamiento registrado temporalmente.');
+          this.closeSightingModal();
+        },
+      });
+    };
+
+    if (this.sightingPhotoSource() === 'FILE' && this.sightingSelectedFile()) {
+      this.imageUploadService.uploadImage(this.sightingSelectedFile()!, 'sightings').subscribe({
+        next: (uploadedUrl) => executeSighting(uploadedUrl),
+        error: () => executeSighting(this.sightingPhotoPreview() || undefined),
+      });
+    } else {
+      const url = this.sightingForm.photoUrl?.trim() || this.sightingPhotoPreview() || undefined;
+      executeSighting(url);
+    }
   }
 
   // ==========================================

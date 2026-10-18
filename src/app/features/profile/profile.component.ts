@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserService, UserPublications } from '../../core/services/user.service';
 import { ColoniaService } from '../../core/services/colonia.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ImageUploadService } from '../../core/services/image-upload.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { Pet } from '../../core/models/pet.model';
@@ -404,13 +405,64 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
               </div>
 
               <div>
-                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">URL de Foto de Perfil</label>
-                <input
-                  type="url"
-                  [(ngModel)]="editForm.profilePhotoUrl"
-                  placeholder="https://..."
-                  class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
-                />
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Foto de Perfil</label>
+                
+                <!-- Selector de origen de foto para modal de edición -->
+                <div class="flex rounded-xl bg-slate-200 dark:bg-slate-800 p-1 mb-2 gap-1 text-[11px] font-bold">
+                  <button
+                    type="button"
+                    (click)="editPhotoSource.set('FILE')"
+                    [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': editPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': editPhotoSource() !== 'FILE' }"
+                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                  >
+                    📁 Desde mi dispositivo
+                  </button>
+                  <button
+                    type="button"
+                    (click)="editPhotoSource.set('URL')"
+                    [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': editPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': editPhotoSource() !== 'URL' }"
+                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                  >
+                    🔗 Pegar enlace URL
+                  </button>
+                </div>
+
+                @if (editPhotoSource() === 'FILE') {
+                  <div>
+                    <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-xl p-3 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all">
+                      <span class="text-xl mb-1">📁</span>
+                      <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Seleccionar foto de celular o PC</span>
+                      <span class="text-[10px] text-slate-500 dark:text-slate-400">JPG, PNG o WEBP</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        (change)="onEditPhotoFileSelected($event)"
+                        class="hidden"
+                      />
+                    </label>
+                  </div>
+                } @else {
+                  <input
+                    type="url"
+                    [(ngModel)]="editForm.profilePhotoUrl"
+                    (ngModelChange)="editFormPhotoPreview.set($event)"
+                    placeholder="https://images.unsplash.com/..."
+                    class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                }
+
+                @if (editFormPhotoPreview() || editForm.profilePhotoUrl) {
+                  <div class="mt-2 flex items-center gap-3 p-2 rounded-xl bg-slate-100 dark:bg-slate-900/60 border border-emerald-500/30">
+                    <img
+                      [src]="editFormPhotoPreview() || editForm.profilePhotoUrl"
+                      alt="Vista previa de perfil"
+                      class="w-12 h-12 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
+                    />
+                    <div class="flex-1 text-[11px] text-slate-600 dark:text-slate-300 truncate">
+                      Vista previa lista para guardar
+                    </div>
+                  </div>
+                }
               </div>
 
               <div class="pt-3 flex gap-2">
@@ -438,7 +490,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
       }
 
       <!-- ======================================================== -->
-      <!-- MODAL RÁPIDO: CAMBIAR FOTO DE PERFIL                     -->
+      <!-- MODAL RÁPIDO: CAMBIAR FOTO DE PERFIL (FILE O URL)        -->
       <!-- ======================================================== -->
       @if (isPhotoModalOpen()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
@@ -452,33 +504,88 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 
             <div class="flex items-center gap-2.5">
               <span class="text-2xl">📷</span>
-              <h3 class="text-base font-black text-slate-900 dark:text-white">Cambiar Foto de Perfil</h3>
+              <div>
+                <h3 class="text-base font-black text-slate-900 dark:text-white">Cambiar Foto de Perfil</h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Actualiza tu avatar desde tu dispositivo o mediante enlace web</p>
+              </div>
+            </div>
+
+            <!-- Tabs: Dispositivo vs URL -->
+            <div class="flex rounded-xl bg-slate-200 dark:bg-slate-800 p-1 gap-1 text-xs font-bold">
+              <button
+                type="button"
+                (click)="quickPhotoSource.set('FILE')"
+                [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': quickPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': quickPhotoSource() !== 'FILE' }"
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer"
+              >
+                📁 Desde mi dispositivo
+              </button>
+              <button
+                type="button"
+                (click)="quickPhotoSource.set('URL')"
+                [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': quickPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': quickPhotoSource() !== 'URL' }"
+                class="flex-1 py-1.5 rounded-lg transition-all cursor-pointer"
+              >
+                🔗 Pegar enlace web
+              </button>
             </div>
 
             <div class="space-y-3 text-xs">
-              <p class="text-slate-600 dark:text-slate-400">
-                Pega el enlace web (URL) de tu fotografía de perfil para actualizar tu avatar en Huellitas:
-              </p>
+              @if (quickPhotoSource() === 'FILE') {
+                <div>
+                  <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-6 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all">
+                    <span class="text-3xl mb-1.5">📷</span>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para elegir foto de celular o PC</span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Formatos JPG, PNG, WEBP</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      (change)="onQuickPhotoFileSelected($event)"
+                      class="hidden"
+                    />
+                  </label>
+                </div>
+              } @else {
+                <div class="space-y-1">
+                  <label class="block font-bold text-slate-700 dark:text-slate-300">Enlace de la imagen (URL)</label>
+                  <input
+                    type="url"
+                    [(ngModel)]="quickPhotoUrl"
+                    (ngModelChange)="quickPhotoPreview.set($event)"
+                    placeholder="https://images.unsplash.com/..."
+                    class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              }
 
-              <div>
-                <input
-                  type="url"
-                  [(ngModel)]="quickPhotoUrl"
-                  placeholder="https://images.unsplash.com/..."
-                  class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
+              <!-- Previsualización de la foto seleccionada -->
+              @if (quickPhotoPreview() || (quickPhotoSource() === 'URL' && quickPhotoUrl.trim())) {
+                <div class="p-3 rounded-2xl bg-slate-100 dark:bg-slate-900/70 border border-emerald-500/30 flex items-center gap-3">
+                  <img
+                    [src]="quickPhotoPreview() || quickPhotoUrl"
+                    alt="Vista previa de perfil"
+                    class="w-16 h-16 rounded-2xl object-cover border border-emerald-500/50 shadow-md"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <h5 class="text-xs font-bold text-slate-900 dark:text-white truncate">Vista previa lista</h5>
+                    <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {{ quickPhotoSource() === 'FILE' ? 'Archivo listo para subir' : 'Enlace web válido' }}
+                    </p>
+                  </div>
+                </div>
+              }
 
               <div class="pt-2 flex gap-2">
                 <button
                   (click)="savePhotoOnly()"
-                  [disabled]="isSaving() || !quickPhotoUrl.trim()"
+                  [disabled]="isSaving() || (quickPhotoSource() === 'FILE' && !selectedQuickFile()) || (quickPhotoSource() === 'URL' && !quickPhotoUrl.trim())"
                   class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   @if (isSaving()) {
-                    <span>Actualizando...</span>
+                    <div class="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Guardando fotografía...</span>
                   } @else {
-                    <span>Actualizar Foto</span>
+                    <span>Guardar Fotografía</span>
                   }
                 </button>
               </div>
@@ -492,10 +599,11 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 })
 export class ProfileComponent implements OnInit {
   brand = BRAND_CONFIG;
-  private authService = inject(AuthService);
-  private userService = inject(UserService);
-  private coloniaService = inject(ColoniaService);
-  private notify = inject(NotificationService);
+  authService = inject(AuthService);
+  userService = inject(UserService);
+  coloniaService = inject(ColoniaService);
+  imageUploadService = inject(ImageUploadService);
+  notify = inject(NotificationService);
 
   user = signal<User | null>(null);
   publications = signal<UserPublications | null>(null);
@@ -508,7 +616,17 @@ export class ProfileComponent implements OnInit {
   // Modal states
   isEditModalOpen = signal<boolean>(false);
   isPhotoModalOpen = signal<boolean>(false);
+
+  // Dual photo controls (Quick Photo Modal)
+  quickPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  selectedQuickFile = signal<File | null>(null);
+  quickPhotoPreview = signal<string | null>(null);
   quickPhotoUrl = '';
+
+  // Dual photo controls (Edit Profile Modal)
+  editPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  selectedEditFile = signal<File | null>(null);
+  editFormPhotoPreview = signal<string | null>(null);
 
   editForm = {
     fullName: '',
@@ -534,11 +652,16 @@ export class ProfileComponent implements OnInit {
           coloniaId: u.coloniaId || '',
         };
         this.quickPhotoUrl = u.profilePhotoUrl || '';
+        this.quickPhotoPreview.set(u.profilePhotoUrl || null);
+        this.editFormPhotoPreview.set(u.profilePhotoUrl || null);
       },
       error: () => {
-        // Fallback to authService currentUser
         const u = this.authService.currentUser();
         this.user.set(u);
+        if (u) {
+          this.quickPhotoUrl = u.profilePhotoUrl || '';
+          this.quickPhotoPreview.set(u.profilePhotoUrl || null);
+        }
       },
     });
   }
@@ -572,13 +695,36 @@ export class ProfileComponent implements OnInit {
         profilePhotoUrl: u.profilePhotoUrl || '',
         coloniaId: u.coloniaId || '',
       };
+      this.selectedEditFile.set(null);
+      this.editFormPhotoPreview.set(u.profilePhotoUrl || null);
     }
     this.isEditModalOpen.set(true);
   }
 
   openPhotoModal(): void {
-    this.quickPhotoUrl = this.user()?.profilePhotoUrl || '';
+    const u = this.user();
+    this.quickPhotoUrl = u?.profilePhotoUrl || '';
+    this.quickPhotoPreview.set(u?.profilePhotoUrl || null);
+    this.selectedQuickFile.set(null);
     this.isPhotoModalOpen.set(true);
+  }
+
+  async onQuickPhotoFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    this.selectedQuickFile.set(file);
+    const dataUrl = await this.imageUploadService.fileToDataUrl(file);
+    this.quickPhotoPreview.set(dataUrl);
+  }
+
+  async onEditPhotoFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    this.selectedEditFile.set(file);
+    const dataUrl = await this.imageUploadService.fileToDataUrl(file);
+    this.editFormPhotoPreview.set(dataUrl);
   }
 
   saveProfile(): void {
@@ -588,6 +734,25 @@ export class ProfileComponent implements OnInit {
     }
 
     this.isSaving.set(true);
+
+    const file = this.selectedEditFile();
+    if (file && this.editPhotoSource() === 'FILE') {
+      this.imageUploadService.uploadImage(file, 'profiles').subscribe({
+        next: (uploadedUrl) => {
+          this.editForm.profilePhotoUrl = uploadedUrl;
+          this.executeSaveProfile();
+        },
+        error: () => {
+          this.isSaving.set(false);
+          this.notify.error('No se pudo procesar la fotografía de perfil');
+        },
+      });
+    } else {
+      this.executeSaveProfile();
+    }
+  }
+
+  private executeSaveProfile(): void {
     this.userService.updateProfile(this.editForm).subscribe({
       next: (updatedUser) => {
         this.isSaving.set(false);
@@ -604,15 +769,39 @@ export class ProfileComponent implements OnInit {
   }
 
   savePhotoOnly(): void {
-    if (!this.quickPhotoUrl.trim()) return;
+    if (this.quickPhotoSource() === 'FILE') {
+      const file = this.selectedQuickFile();
+      if (!file) {
+        this.notify.warning('Por favor selecciona una foto de tu dispositivo');
+        return;
+      }
+      this.isSaving.set(true);
+      this.imageUploadService.uploadImage(file, 'profiles').subscribe({
+        next: (photoUrl) => {
+          this.persistPhotoUrl(photoUrl);
+        },
+        error: () => {
+          this.isSaving.set(false);
+          this.notify.error('No se pudo procesar la fotografía');
+        },
+      });
+    } else {
+      if (!this.quickPhotoUrl.trim()) {
+        this.notify.warning('Por favor ingresa una URL válida');
+        return;
+      }
+      this.isSaving.set(true);
+      this.persistPhotoUrl(this.quickPhotoUrl.trim());
+    }
+  }
 
-    this.isSaving.set(true);
-    this.userService.updateProfile({ profilePhotoUrl: this.quickPhotoUrl.trim() }).subscribe({
+  private persistPhotoUrl(url: string): void {
+    this.userService.updateProfile({ profilePhotoUrl: url }).subscribe({
       next: (updatedUser) => {
         this.isSaving.set(false);
         this.user.set(updatedUser);
         this.isPhotoModalOpen.set(false);
-        this.notify.success('Foto de perfil actualizada');
+        this.notify.success('¡Foto de perfil actualizada exitosamente!');
         this.authService.updateCurrentUser(updatedUser);
       },
       error: (err) => {

@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PetService } from '../../../core/services/pet.service';
 import { GroupService } from '../../../core/services/group.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { PetGender } from '../../../core/models/pet.model';
 import { PetGroup } from '../../../core/models/group.model';
 
@@ -89,6 +90,71 @@ import { PetGroup } from '../../../core/models/group.model';
                   <option [value]="PetGender.FEMALE">Hembra</option>
                 </select>
               </div>
+            </div>
+
+            <!-- Pet Photo Section (Dual Source: File or URL) -->
+            <div class="mt-4 pt-4 border-t border-slate-200/40 dark:border-slate-800/60">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                Fotografía Principal de la Mascota
+              </label>
+
+              <!-- Switcher -->
+              <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2.5 gap-1 text-xs font-bold max-w-sm">
+                <button
+                  type="button"
+                  (click)="photoSource.set('FILE')"
+                  [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': photoSource() !== 'FILE' }"
+                  class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                >
+                  📁 Desde mi dispositivo
+                </button>
+                <button
+                  type="button"
+                  (click)="photoSource.set('URL')"
+                  [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'URL', 'text-slate-600 dark:text-slate-400': photoSource() !== 'URL' }"
+                  class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                >
+                  🔗 Pegar enlace URL
+                </button>
+              </div>
+
+              @if (photoSource() === 'FILE') {
+                <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all">
+                  <span class="text-2xl mb-1">📷</span>
+                  <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para seleccionar foto desde celular o PC</span>
+                  <span class="text-[10px] text-slate-500 dark:text-slate-400">JPG, PNG o WEBP</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    (change)="onPhotoFileSelected($event)"
+                    class="hidden"
+                  />
+                </label>
+              } @else {
+                <input
+                  type="url"
+                  formControlName="photoUrl"
+                  (ngModelChange)="photoPreview.set($event)"
+                  placeholder="https://images.unsplash.com/... o enlace web de la foto"
+                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+              }
+
+              @if (photoPreview() || petForm.get('photoUrl')?.value) {
+                <div class="mt-2.5 p-2 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-emerald-500/30 flex items-center gap-3">
+                  <img
+                    [src]="photoPreview() || petForm.get('photoUrl')?.value"
+                    alt="Vista previa de la mascota"
+                    class="w-16 h-16 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
+                  />
+                  <div class="text-xs text-slate-600 dark:text-slate-300">
+                    <span class="font-bold block text-slate-900 dark:text-white">Foto lista</span>
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {{ photoSource() === 'FILE' ? 'Archivo cargado desde tu dispositivo' : 'Enlace web válido' }}
+                    </span>
+                  </div>
+                </div>
+              }
             </div>
           </div>
 
@@ -233,6 +299,7 @@ export class PetFormComponent implements OnInit {
   private petService = inject(PetService);
   private groupService = inject(GroupService);
   private notification = inject(NotificationService);
+  private imageUploadService = inject(ImageUploadService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -243,12 +310,17 @@ export class PetFormComponent implements OnInit {
   petId = signal<string | null>(null);
   availableGroups = signal<PetGroup[]>([]);
 
+  photoSource = signal<'FILE' | 'URL'>('FILE');
+  photoPreview = signal<string | null>(null);
+  selectedPhotoFile = signal<File | null>(null);
+
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
     species: ['Perro', [Validators.required]],
     breed: [''],
     gender: [PetGender.MALE],
     groupId: [null as string | null],
+    photoUrl: [''],
     birthDate: [''],
     weightKg: [null as number | null],
     color: [''],
@@ -284,6 +356,7 @@ export class PetFormComponent implements OnInit {
           breed: pet.breed || '',
           gender: pet.gender,
           groupId: pet.groupId || null,
+          photoUrl: pet.photoUrl || '',
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
           weightKg: pet.weightKg ? Number(pet.weightKg) : null,
           color: pet.color || '',
@@ -291,11 +364,27 @@ export class PetFormComponent implements OnInit {
           isSterilized: pet.isSterilized,
           notes: pet.notes || '',
         });
+
+        if (pet.photoUrl) {
+          this.photoPreview.set(pet.photoUrl);
+          this.photoSource.set('URL');
+        }
       },
       error: () => {
         this.router.navigate(['/pets']);
       },
     });
+  }
+
+  onPhotoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.selectedPhotoFile.set(file);
+      this.imageUploadService.fileToDataUrl(file).then((preview) => {
+        this.photoPreview.set(preview);
+      });
+    }
   }
 
   onSubmit(): void {
@@ -304,38 +393,56 @@ export class PetFormComponent implements OnInit {
     this.isSubmitting.set(true);
     const formVal = this.petForm.value;
 
-    const payload: any = {
-      name: formVal.name!,
-      species: formVal.species!,
-      breed: formVal.breed || undefined,
-      gender: formVal.gender || PetGender.MALE,
-      groupId: formVal.groupId || null,
-      birthDate: formVal.birthDate || undefined,
-      weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
-      color: formVal.color || undefined,
-      microchipNumber: formVal.microchipNumber || undefined,
-      isSterilized: !!formVal.isSterilized,
-      notes: formVal.notes || undefined,
+    const finalizeSubmission = (finalPhotoUrl?: string) => {
+      const payload: any = {
+        name: formVal.name!,
+        species: formVal.species!,
+        breed: formVal.breed || undefined,
+        gender: formVal.gender || PetGender.MALE,
+        groupId: formVal.groupId || null,
+        photoUrl: finalPhotoUrl || undefined,
+        birthDate: formVal.birthDate || undefined,
+        weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
+        color: formVal.color || undefined,
+        microchipNumber: formVal.microchipNumber || undefined,
+        isSterilized: !!formVal.isSterilized,
+        notes: formVal.notes || undefined,
+      };
+
+      if (this.isEditMode() && this.petId()) {
+        this.petService.update(this.petId()!, payload).subscribe({
+          next: () => {
+            this.isSubmitting.set(false);
+            this.notification.success('Actualizado', 'Datos de la mascota actualizados exitosamente');
+            this.router.navigate(['/pets', this.petId()!]);
+          },
+          error: () => this.isSubmitting.set(false),
+        });
+      } else {
+        this.petService.create(payload).subscribe({
+          next: (created) => {
+            this.isSubmitting.set(false);
+            this.notification.success('Registrado', 'Mascota registrada correctamente');
+            this.router.navigate(['/pets', created.id]);
+          },
+          error: () => this.isSubmitting.set(false),
+        });
+      }
     };
 
-    if (this.isEditMode() && this.petId()) {
-      this.petService.update(this.petId()!, payload).subscribe({
-        next: () => {
-          this.isSubmitting.set(false);
-          this.notification.success('Actualizado', 'Datos de la mascota actualizados exitosamente');
-          this.router.navigate(['/pets', this.petId()!]);
+    if (this.photoSource() === 'FILE' && this.selectedPhotoFile()) {
+      this.imageUploadService.uploadImage(this.selectedPhotoFile()!, 'pets').subscribe({
+        next: (uploadedUrl) => {
+          finalizeSubmission(uploadedUrl);
         },
-        error: () => this.isSubmitting.set(false),
+        error: () => {
+          // Fallback to data preview if any network issue
+          finalizeSubmission(this.photoPreview() || undefined);
+        },
       });
     } else {
-      this.petService.create(payload).subscribe({
-        next: (created) => {
-          this.isSubmitting.set(false);
-          this.notification.success('Registrado', 'Mascota registrada correctamente');
-          this.router.navigate(['/pets', created.id]);
-        },
-        error: () => this.isSubmitting.set(false),
-      });
+      const url = formVal.photoUrl?.trim() || this.photoPreview() || undefined;
+      finalizeSubmission(url);
     }
   }
 }
