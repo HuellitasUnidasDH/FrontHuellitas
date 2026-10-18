@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, HostListener } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -127,16 +127,18 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   @if (authService.isAuthenticated()) {
                     <div class="my-1 border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
-                    <!-- Panel de Rescatista -->
-                    <a
-                      routerLink="/panel-rescatista"
-                      routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      (click)="closeAllDropdowns()"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                    >
-                      <span class="text-sm">📋</span>
-                      <span>Panel de Rescatista</span>
-                    </a>
+                    <!-- Panel de Rescatista (Sólo visible para Rescatistas y Admins) -->
+                    @if (isRescuerOrAdmin()) {
+                      <a
+                        routerLink="/panel-rescatista"
+                        routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        (click)="closeAllDropdowns()"
+                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <span class="text-sm">📋</span>
+                        <span>Panel de Rescatista</span>
+                      </a>
+                    }
 
                     <!-- Verificación de Adoptante -->
                     <a
@@ -507,14 +509,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <span>Verificación de Adoptante</span>
                   </a>
 
-                  <a
-                    routerLink="/panel-rescatista"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">📋</span>
-                    <span>Panel de Rescatista (Seguimiento 7, 30, 90)</span>
-                  </a>
+                  @if (isRescuerOrAdmin()) {
+                    <a
+                      routerLink="/panel-rescatista"
+                      (click)="closeMobileMenu()"
+                      class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-700 dark:text-emerald-400 font-semibold"
+                    >
+                      <span class="text-base">📋</span>
+                      <span>Panel de Rescatista (Seguimiento 7, 30, 90)</span>
+                    </a>
+                  }
 
                   <a
                     routerLink="/dashboard"
@@ -736,6 +740,11 @@ export class NavbarComponent implements OnInit {
   isMobileMenuOpen = signal(false);
   isMoreMenuOpen = signal(false);
   isUserMenuOpen = signal(false);
+
+  isRescuerOrAdmin = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE || role === UserRole.ADMIN;
+  });
 
   toggleMoreMenu(event: Event): void {
     event.stopPropagation();

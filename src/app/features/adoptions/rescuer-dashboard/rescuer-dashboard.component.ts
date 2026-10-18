@@ -1,11 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { AdoptionRequest, AdoptionFollowup, AdoptionRequestStatus } from '../../../core/models/adoption.model';
+import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
 @Component({
@@ -232,6 +233,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 })
 export class RescuerDashboardComponent implements OnInit {
   brand = BRAND_CONFIG;
+  private router = inject(Router);
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
@@ -242,6 +244,13 @@ export class RescuerDashboardComponent implements OnInit {
   isLoading = signal<boolean>(true);
 
   ngOnInit(): void {
+    const role = this.authService.currentUser()?.role;
+    if (role !== UserRole.RESCATISTA_VERIFICADO && role !== UserRole.ALBERGUE && role !== UserRole.ADMIN) {
+      this.notify.error('Acceso denegado', 'Esta vista es exclusiva para rescatistas verificados y administradores.');
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
     this.loadData();
   }
 

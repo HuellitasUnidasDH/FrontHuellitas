@@ -64,7 +64,7 @@ interface FeedPost {
   standalone: true,
   imports: [CommonModule, RouterLink, RouterModule, FormsModule],
   template: `
-    <div class="max-w-4xl mx-auto px-3 sm:px-6 py-4 space-y-6">
+    <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-5 space-y-6">
 
       <!-- ======================================================== -->
       <!-- Top Hero Header / Dolores Hidalgo Brand Banner           -->
@@ -378,73 +378,73 @@ interface FeedPost {
       <!-- ======================================================== -->
       <!-- FEED POSTS (Facebook Style Cards)                        -->
       <!-- ======================================================== -->
-      <section class="space-y-6">
-        @if (isLoading()) {
-          <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
-            <div class="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 animate-pulse">
-              Cargando publicaciones de Dolores Hidalgo...
-            </p>
-          </div>
-        } @else if (filteredPosts().length === 0) {
-          <div class="liquid-glass rounded-3xl p-12 text-center space-y-4">
-            <span class="text-5xl">🐾</span>
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-              No hay publicaciones con estos filtros
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-              Intenta cambiar de colonia o selecciona "Todo el Muro" para ver a todos los peluditos de Dolores Hidalgo.
-            </p>
-            <button
-              (click)="clearFilters()"
-              class="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold shadow-md cursor-pointer"
-            >
-              Ver todas las publicaciones
-            </button>
-          </div>
-        } @else {
+      @if (isLoading()) {
+        <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
+          <div class="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p class="text-xs font-bold text-slate-500 dark:text-slate-400 animate-pulse">
+            Cargando publicaciones de Dolores Hidalgo...
+          </p>
+        </div>
+      } @else if (filteredPosts().length === 0) {
+        <div class="liquid-glass rounded-3xl p-12 text-center space-y-4">
+          <span class="text-5xl">🐾</span>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+            No hay publicaciones con estos filtros
+          </h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            Intenta cambiar de colonia o selecciona "Todo el Muro" para ver a todos los peluditos de Dolores Hidalgo.
+          </p>
+          <button
+            (click)="clearFilters()"
+            class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
+          >
+            Ver todas las publicaciones
+          </button>
+        </div>
+      } @else {
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
           @for (post of filteredPosts(); track post.id) {
-            <article class="liquid-glass-card liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border border-slate-200/80 dark:border-slate-800/80">
+            <article class="liquid-glass-card liquid-glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg hover:shadow-2xl flex flex-col justify-between border border-slate-200/80 dark:border-white/10 transition-all duration-300 hover:-translate-y-1">
               
               <!-- 1. Post Header (Author, Badge, Timestamp) -->
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-11 h-11 rounded-2xl overflow-hidden shadow-sm border border-white/20 flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+              <div class="flex items-start justify-between gap-2.5">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-10 h-10 rounded-xl overflow-hidden shadow-sm border border-white/20 flex-shrink-0 bg-slate-200 dark:bg-slate-800">
                     @if (post.authorPhotoUrl) {
                       <img [src]="post.authorPhotoUrl" [alt]="post.authorName" class="w-full h-full object-cover" />
                     } @else {
-                      <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-lg font-black text-slate-950">
+                      <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-base font-black text-slate-950">
                         {{ post.authorName ? post.authorName.charAt(0).toUpperCase() : '🐾' }}
                       </div>
                     }
                   </div>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
                         {{ post.authorName }}
                       </span>
-                      <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate">
                         • {{ post.authorRole }}
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      <span>📍 {{ post.authorColonia || 'Dolores Hidalgo' }}</span>
+                    <div class="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                      <span class="truncate">📍 {{ post.authorColonia || 'Dolores Hgo.' }}</span>
                       <span>•</span>
-                      <span>{{ post.timeAgo }}</span>
+                      <span class="flex-shrink-0">{{ post.timeAgo }}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Post Kind Badge & Injured Badge -->
-                <div class="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                <div class="flex flex-col items-end gap-1 flex-shrink-0">
                   @if (post.isInjured) {
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-md shadow-rose-600/30 flex items-center gap-1 animate-pulse">
-                      <span>🚨</span> Mascota Herida
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-sm shadow-rose-600/30 flex items-center gap-1 animate-pulse">
+                      <span>🚨</span> Herido
                     </span>
                   }
                   <span
-                    class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border shadow-sm"
+                    class="px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider border shadow-sm"
                     [ngClass]="post.badgeClass"
                   >
                     {{ post.typeBadge }}
@@ -452,82 +452,82 @@ interface FeedPost {
                 </div>
               </div>
 
-              <!-- 2. Post Body / Title & Story -->
-              <div class="space-y-2">
-                <h2 class="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+              <!-- 2. Post Body / Title & Story (Compact & High Contrast) -->
+              <div class="mt-2.5 space-y-1">
+                <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight line-clamp-1 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                   {{ post.title }}
                 </h2>
-                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
                   {{ post.description }}
                 </p>
               </div>
 
-              <!-- 3. Post Image (Crisp, High Quality, Responsive with Badges Overlay) -->
+              <!-- 3. Post Image (Optimal 16:10 / Compact Height with Floating Specular Badges) -->
               @if (post.photoUrl) {
-                <div class="relative w-full h-72 sm:h-96 rounded-2xl overflow-hidden bg-slate-950/20 group">
+                <div class="relative w-full h-44 sm:h-52 rounded-2xl overflow-hidden bg-slate-950/20 group my-2.5 flex-shrink-0 border border-black/5 dark:border-white/10">
                   <img
                     [src]="post.photoUrl"
                     [alt]="post.title"
-                    class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                   />
 
                   <!-- Floating attributes badge overlay on image -->
-                  <div class="absolute bottom-3 inset-x-3 flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-950/70 backdrop-blur-md text-white text-[11px]">
+                  <div class="absolute bottom-2 inset-x-2 flex flex-wrap items-center gap-1 p-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md text-white text-[10px]">
                     <span class="font-bold">🐾 {{ post.species }}</span>
                     @if (post.breed) {
-                      <span>• {{ post.breed }}</span>
+                      <span class="truncate max-w-[110px]">• {{ post.breed }}</span>
                     }
                     @if (post.approxAge) {
-                      <span class="bg-white/20 px-2 py-0.5 rounded-md">🎂 {{ post.approxAge }}</span>
+                      <span class="bg-white/20 px-1.5 py-0.5 rounded">🎂 {{ post.approxAge }}</span>
                     }
                     @if (post.size) {
-                      <span class="bg-white/20 px-2 py-0.5 rounded-md">📏 Talla {{ post.size }}</span>
+                      <span class="bg-white/20 px-1.5 py-0.5 rounded">📏 {{ post.size }}</span>
                     }
                     @if (post.coloniaName) {
-                      <span class="ml-auto text-emerald-300 font-bold">📍 {{ post.coloniaName }}</span>
+                      <span class="ml-auto text-emerald-300 font-bold truncate max-w-[120px]">📍 {{ post.coloniaName }}</span>
                     }
                   </div>
                 </div>
               }
 
               <!-- 4. Tactical Attribute Tags (Health, Behavior, Rewards) -->
-              <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <div class="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] my-1.5">
                 @if (post.kind === 'PET_ADOPTION') {
                   @if (post.isSterilized) {
-                    <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
-                      ✂️ Esterilizado(a)
+                    <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
+                      ✂️ Esterilizado
                     </span>
                   }
                   @if (post.isVaccinated) {
-                    <span class="px-2.5 py-1 rounded-lg bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30 font-semibold">
-                      💉 Cuadro de Vacunas
+                    <span class="px-2 py-0.5 rounded-lg bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30 font-semibold">
+                      💉 Vacunado
                     </span>
                   }
                   @if (post.goodWithKids) {
-                    <span class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-semibold">
-                      👶 Bueno con niños
+                    <span class="px-2 py-0.5 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-semibold">
+                      👶 Niños OK
                     </span>
                   }
                   @if (post.goodWithOtherPets) {
-                    <span class="px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 font-semibold">
-                      🐕 Amigable con mascotas
+                    <span class="px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 font-semibold">
+                      🐕 Mascotas OK
                     </span>
                   }
                 } @else if (post.kind === 'LOST_PET') {
                   @if (post.rewardOffered) {
-                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40 font-bold animate-pulse">
+                    <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40 font-bold animate-pulse">
                       🎁 Recompensa: {{ post.rewardDetails || 'Ofrecida' }}
                     </span>
                   }
                   @if (post.lastSeenLocation) {
-                    <span class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-semibold">
-                      📍 Visto en: {{ post.lastSeenLocation }}
+                    <span class="px-2 py-0.5 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-semibold truncate max-w-full">
+                      📍 Visto: {{ post.lastSeenLocation }}
                     </span>
                   }
                   @if (post.reportsCount && post.reportsCount > 1) {
-                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold">
-                      📑 {{ post.reportsCount }} reportes agrupados en la zona
+                    <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold">
+                      📑 {{ post.reportsCount }} reportes agrupados
                     </span>
                   }
                 }
@@ -535,90 +535,60 @@ interface FeedPost {
 
               <!-- 4.1. Cascading Incident Reports (Deduplication / Agrupación Comunitaria) -->
               @if (post.kind === 'LOST_PET' && post.sightings && post.sightings.length > 0) {
-                <div class="rounded-2xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/30 p-3.5 sm:p-4 space-y-3">
-                  <div class="flex items-center justify-between gap-2 flex-wrap">
-                    <div class="flex items-center gap-2">
-                      <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
-                        📍
-                      </div>
-                      <div>
-                        <h4 class="text-xs font-bold text-slate-900 dark:text-white">
-                          Seguimiento Vecinal en Cascada ({{ post.sightings.length }} reportes agrupados)
-                        </h4>
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400">
-                          Para no saturar el muro, los reportes en el mismo perímetro se consolidan en este caso principal.
-                        </p>
-                      </div>
-                    </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                      Caso Activo Consolidado
+                <div class="rounded-xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/30 p-2.5 my-1.5 space-y-2">
+                  <div class="flex items-center justify-between gap-1 text-[11px]">
+                    <span class="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                      <span>📍</span> Cascada vecinal ({{ post.sightings.length }} reportes)
                     </span>
+                    <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">Consolidado</span>
                   </div>
-
-                  <!-- Cascade list -->
-                  <div class="space-y-2 pt-1 border-t border-amber-500/20">
+                  <div class="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                     @for (sighting of post.sightings; track sighting.id) {
-                      <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 text-xs">
-                        @if (sighting.photoUrl) {
-                          <img
-                            [src]="sighting.photoUrl"
-                            alt="Foto reporte ciudadano"
-                            class="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200 dark:border-slate-700"
-                          />
-                        }
-                        <div class="flex-1 min-w-0 space-y-0.5">
-                          <div class="flex items-center justify-between gap-1">
-                            <span class="font-bold text-slate-900 dark:text-white text-[11px] truncate">
-                              {{ sighting.notifier?.fullName || 'Vecino solidario de Dolores Hidalgo' }}
-                            </span>
-                            <span class="text-[10px] text-slate-400 flex-shrink-0">
-                              {{ formatRelativeTime(sighting.createdAt) }}
-                            </span>
-                          </div>
-                          <div class="text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                            <span class="text-rose-500 font-bold">Ubicación:</span> {{ sighting.locationDescription }}
-                          </div>
-                          @if (sighting.additionalNotes) {
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
-                              "{{ sighting.additionalNotes }}"
-                            </p>
-                          }
+                      <div class="p-2 rounded-lg bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 text-[10px]">
+                        <div class="flex items-center justify-between">
+                          <span class="font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {{ sighting.notifier?.fullName || 'Vecino solidario' }}
+                          </span>
+                          <span class="text-slate-400">{{ formatRelativeTime(sighting.createdAt) }}</span>
                         </div>
+                        <p class="text-slate-600 dark:text-slate-300 font-medium truncate mt-0.5">
+                          <span class="text-rose-500 font-bold">Ubicación:</span> {{ sighting.locationDescription }}
+                        </p>
                       </div>
                     }
                   </div>
                 </div>
               }
 
-              <!-- 5. Social Actions & CTA Buttons (ITEM #2: Quiero Adoptar Flow) -->
-              <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
-                <div class="flex items-center gap-2 w-full sm:w-auto">
+              <!-- 5. Social Actions & CTA Buttons -->
+              <div class="mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 flex-1 min-w-[140px]">
                   @if (post.kind === 'PET_ADOPTION' && post.petData) {
                     <!-- Main CTA: Quiero Adoptar -->
                     <button
                       (click)="openAdoptionModal(post.petData)"
-                      class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-lg shadow-emerald-500/25 transition-all cursor-pointer flex items-center gap-1.5"
+                      class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1"
                     >
                       <span>💚</span>
-                      <span>Quiero Adoptar</span>
+                      <span>Adoptar</span>
                     </button>
 
                     <!-- Ver Ficha Completa -->
                     <a
                       [routerLink]="['/adopciones', post.petData.id]"
-                      class="px-3.5 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                      class="px-2.5 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                     >
                       <span>👁️</span>
-                      <span>Ficha</span>
+                      <span class="hidden sm:inline">Ficha</span>
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
                     <!-- CTA: ¡Lo he visto! -->
                     <button
                       (click)="openSightingModal(post.lostData)"
-                      class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-black shadow-lg shadow-rose-500/25 transition-all cursor-pointer flex items-center gap-1.5"
+                      class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
                     >
                       <span>👀</span>
-                      <span>¡Lo he visto!</span>
+                      <span>¡Lo vi!</span>
                     </button>
 
                     <!-- Contact Owner WhatsApp -->
@@ -626,48 +596,45 @@ interface FeedPost {
                       <a
                         [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la publicación de ' + post.title + ' en Huellitas Dolores Hidalgo')"
                         target="_blank"
-                        class="px-3.5 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                       >
                         <span>📲</span>
-                        <span>WhatsApp</span>
+                        <span class="hidden sm:inline">WhatsApp</span>
                       </a>
                     }
                   }
                 </div>
 
                 <!-- Secondary Share Actions & Comments Button -->
-                <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                <div class="flex items-center gap-1 flex-shrink-0">
                   <button
                     (click)="toggleComments(post)"
-                    class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
                     title="Ver y escribir comentarios"
                   >
                     <span>💬</span>
                     <span>{{ (post.comments?.length || 0) }}</span>
-                    <span class="text-[11px] text-slate-400 hidden sm:inline">Comentarios</span>
                   </button>
 
                   <button
                     (click)="shareToWhatsApp(post)"
-                    class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer flex items-center gap-1"
+                    class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
                     title="Compartir en grupos de WhatsApp"
                   >
                     <span>📱</span>
-                    <span class="text-[11px] font-semibold hidden sm:inline">WhatsApp</span>
                   </button>
 
                   <button
                     (click)="shareToFacebook(post)"
-                    class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-sky-500/20 hover:text-sky-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer flex items-center gap-1"
+                    class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-sky-500/20 hover:text-sky-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
                     title="Compartir en Facebook"
                   >
                     <span>🌐</span>
-                    <span class="text-[11px] font-semibold hidden sm:inline">Facebook</span>
                   </button>
 
                   <button
                     (click)="copyPostLink(post)"
-                    class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
+                    class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
                     title="Copiar enlace"
                   >
                     🔗
@@ -677,39 +644,38 @@ interface FeedPost {
 
               <!-- 6. Expandable Community Comments Section -->
               @if (post.showComments) {
-                <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/60 space-y-3 animate-fadeIn">
-                  <div class="flex items-center justify-between">
-                    <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <div class="pt-2.5 mt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 space-y-2.5 animate-fadeIn">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <h4 class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
                       <span>💬</span>
-                      <span>Comentarios de la Comunidad ({{ post.comments?.length || 0 }})</span>
+                      <span>Comentarios ({{ post.comments?.length || 0 }})</span>
                     </h4>
-                    <span class="text-[10px] text-slate-400">Dolores Hidalgo Cuna de la Independencia</span>
                   </div>
 
                   <!-- Comments List -->
                   @if (post.comments && post.comments.length > 0) {
-                    <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                       @for (comment of post.comments; track comment.id) {
-                        <div class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 text-xs">
-                          <div class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
+                        <div class="flex items-start gap-2 p-2 rounded-xl bg-slate-100/90 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800/60 text-xs">
+                          <div class="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-800">
                             @if (comment.author?.profilePhotoUrl) {
                               <img [src]="comment.author?.profilePhotoUrl" [alt]="comment.author?.fullName" class="w-full h-full object-cover" />
                             } @else {
-                              <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-[10px]">
+                              <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-[9px]">
                                 {{ comment.author?.fullName ? comment.author?.fullName?.charAt(0)?.toUpperCase() : '👤' }}
                               </div>
                             }
                           </div>
                           <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-1">
-                              <span class="font-bold text-slate-900 dark:text-white text-[11px] truncate">
+                              <span class="font-bold text-slate-900 dark:text-white text-[10px] truncate">
                                 {{ comment.author?.fullName || 'Vecino solidario' }}
                               </span>
-                              <span class="text-[10px] text-slate-400 flex-shrink-0">
+                              <span class="text-[9px] text-slate-400 flex-shrink-0">
                                 {{ formatRelativeTime(comment.createdAt) }}
                               </span>
                             </div>
-                            <p class="text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed break-words text-[11px]">
+                            <p class="text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed break-words text-[10px]">
                               {{ comment.content }}
                             </p>
                           </div>
@@ -717,46 +683,46 @@ interface FeedPost {
                       }
                     </div>
                   } @else {
-                    <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 text-center">
-                      <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Aún no hay comentarios en esta publicación. ¡Sé el primero en aportar información o ayuda!
+                    <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 text-center">
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                        Aún no hay comentarios. ¡Sé el primero en aportar información!
                       </p>
                     </div>
                   }
 
                   <!-- Comment Input Box -->
                   @if (authService.isAuthenticated()) {
-                    <div class="flex items-center gap-2 pt-1">
+                    <div class="flex items-center gap-1.5 pt-1">
                       <input
                         type="text"
                         [(ngModel)]="post.newCommentText"
                         (keyup.enter)="submitComment(post)"
-                        placeholder="Escribe un comentario o aporta información..."
-                        class="flex-1 px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                        placeholder="Escribe un comentario..."
+                        class="flex-1 px-2.5 py-1.5 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                       />
                       <button
                         (click)="submitComment(post)"
                         [disabled]="post.isSubmittingComment || !post.newCommentText?.trim()"
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer transition-all flex items-center gap-1"
+                        class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-sm disabled:opacity-50 cursor-pointer transition-all flex items-center gap-1"
                       >
                         @if (post.isSubmittingComment) {
                           <span class="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
                         } @else {
-                          <span>Publicar</span>
+                          <span>Enviar</span>
                         }
                       </button>
                     </div>
                   } @else {
-                    <div class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-center text-xs text-slate-500">
-                      <a routerLink="/auth/login" class="text-emerald-500 font-bold hover:underline">Inicia sesión</a> para dejar un comentario en esta publicación.
+                    <div class="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 text-center text-[10px] text-slate-500">
+                      <a routerLink="/auth/login" class="text-emerald-500 font-bold hover:underline">Inicia sesión</a> para comentar.
                     </div>
                   }
                 </div>
               }
             </article>
           }
-        }
-      </section>
+        </section>
+      }
 
       <!-- ======================================================== -->
       <!-- MODAL ITEM #2: FLUJO INTELIGENTE "QUIERO ADOPTAR"        -->

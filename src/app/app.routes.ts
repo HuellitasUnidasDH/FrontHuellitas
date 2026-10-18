@@ -42,7 +42,7 @@ export const routes: Routes = [
   },
   {
     path: 'panel-rescatista',
-    canActivate: [authGuard],
+    canActivate: [authGuard, roleGuard([UserRole.RESCATISTA_VERIFICADO, UserRole.ALBERGUE, UserRole.ADMIN])],
     loadComponent: () =>
       import('./features/adoptions/rescuer-dashboard/rescuer-dashboard.component').then(
         (m) => m.RescuerDashboardComponent,
