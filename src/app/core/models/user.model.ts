@@ -18,6 +18,7 @@ export interface User {
   isPhoneVerified?: boolean;
   verificationLevel?: number; // 0: No verificado, 1: Teléfono, 2: Cuestionario, 3: Compromiso
   coloniaId?: string;
+  colonia?: any;
   profilePhotoUrl?: string;
   role: UserRole;
   isActive: boolean;

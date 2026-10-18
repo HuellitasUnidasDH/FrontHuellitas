@@ -164,6 +164,11 @@ export class AuthService {
     this.currentUserSignal.set(authData.user);
   }
 
+  updateCurrentUser(user: User): void {
+    this.storage.setItem('user', JSON.stringify(user));
+    this.currentUserSignal.set(user);
+  }
+
   private loadStoredUser(): User | null {
     const userStr = this.storage.getItem('user');
     if (!userStr) return null;
