@@ -5,6 +5,8 @@ import { ToastContainerComponent } from './shared/components/toast-container/toa
 import { PrivacyNoticeModalComponent } from './shared/components/privacy-modal/privacy-modal.component';
 import { AuthService } from './core/services/auth.service';
 
+import { BRAND_CONFIG } from './core/constants/brand.constants';
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -13,6 +15,7 @@ import { AuthService } from './core/services/auth.service';
   styleUrl: './app.css',
 })
 export class App {
+  brand = BRAND_CONFIG;
   authService = inject(AuthService);
 
   onAcceptUpdatedPrivacy(): void {

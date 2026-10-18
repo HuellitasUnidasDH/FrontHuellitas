@@ -7,7 +7,46 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'dashboard',
+    loadComponent: () =>
+      import('./features/feed/community-feed.component').then((m) => m.CommunityFeedComponent),
+  },
+  {
+    path: 'adopciones',
+    loadComponent: () =>
+      import('./features/feed/community-feed.component').then((m) => m.CommunityFeedComponent),
+  },
+  {
+    path: 'adopciones/:id',
+    loadComponent: () =>
+      import('./features/pets/pet-public-detail/pet-public-detail.component').then(
+        (m) => m.PetPublicDetailComponent,
+      ),
+  },
+  {
+    path: 'perdidas',
+    loadComponent: () =>
+      import('./features/feed/community-feed.component').then((m) => m.CommunityFeedComponent),
+  },
+  {
+    path: 'aliados',
+    loadComponent: () =>
+      import('./features/allies/allies-directory.component').then((m) => m.AlliesDirectoryComponent),
+  },
+  {
+    path: 'verificacion',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/adoptions/adopter-verification/adopter-verification.component').then(
+        (m) => m.AdopterVerificationComponent,
+      ),
+  },
+  {
+    path: 'panel-rescatista',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/adoptions/rescuer-dashboard/rescuer-dashboard.component').then(
+        (m) => m.RescuerDashboardComponent,
+      ),
   },
   {
     path: 'auth/login',
@@ -67,6 +106,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: 'dashboard',
+    redirectTo: '',
   },
 ];

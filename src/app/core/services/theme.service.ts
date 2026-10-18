@@ -45,6 +45,10 @@ export class ThemeService {
     }
 
     // Default to system preference, fallback to dark for premium aesthetic
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark';
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'dark';
+    }
+
+    return 'dark';
   }
 }

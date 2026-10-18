@@ -34,6 +34,35 @@ export class PetService {
       .pipe(map((res) => res.data));
   }
 
+  getAdoptionCatalog(filters?: {
+    species?: string;
+    size?: string;
+    status?: string;
+    coloniaId?: string;
+    goodWithKids?: boolean;
+    goodWithOtherPets?: boolean;
+    search?: string;
+  }): Observable<Pet[]> {
+    let params = new HttpParams();
+    if (filters?.species) params = params.set('species', filters.species);
+    if (filters?.size) params = params.set('size', filters.size);
+    if (filters?.status) params = params.set('status', filters.status);
+    if (filters?.coloniaId) params = params.set('coloniaId', filters.coloniaId);
+    if (filters?.goodWithKids !== undefined) params = params.set('goodWithKids', String(filters.goodWithKids));
+    if (filters?.goodWithOtherPets !== undefined) params = params.set('goodWithOtherPets', String(filters.goodWithOtherPets));
+    if (filters?.search) params = params.set('search', filters.search);
+
+    return this.http
+      .get<ApiResponse<Pet[]>>(`${this.PETS_URL}/public/catalog`, { params })
+      .pipe(map((res) => res.data));
+  }
+
+  getPublicById(id: string): Observable<Pet> {
+    return this.http
+      .get<ApiResponse<Pet>>(`${this.PETS_URL}/public/${id}`)
+      .pipe(map((res) => res.data));
+  }
+
   create(payload: CreatePetPayload): Observable<Pet> {
     return this.http
       .post<ApiResponse<Pet>>(this.PETS_URL, payload)

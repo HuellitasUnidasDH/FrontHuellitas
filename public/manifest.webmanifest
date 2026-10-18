@@ -1,0 +1,49 @@
+{
+  "name": "Huellitas Unidas DH - Adopción y Rescate",
+  "short_name": "Huellitas",
+  "description": "Plataforma comunitaria de adopción responsable, reporte de extravíos y directorio animal en Dolores Hidalgo Cuna de la Independencia Nacional, Guanajuato.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070c18",
+  "theme_color": "#10b981",
+  "lang": "es-MX",
+  "categories": ["lifestyle", "social", "utilities"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Muro Comunitario",
+      "short_name": "Muro",
+      "description": "Ver publicaciones y adopciones en Dolores Hidalgo",
+      "url": "/",
+      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Mascotas Extraviadas",
+      "short_name": "Perdidos",
+      "description": "Reportes urgentes de mascotas extraviadas",
+      "url": "/perdidas",
+      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Aliados y Veterinarias",
+      "short_name": "Aliados",
+      "description": "Directorio de clínicas y tiendas aliadas con descuento",
+      "url": "/aliados",
+      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
+    }
+  ]
+}

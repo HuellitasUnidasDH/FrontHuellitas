@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { UserRole } from '../../../core/models/user.model';
+import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
 @Component({
   selector: 'app-navbar',
@@ -35,17 +36,75 @@ import { UserRole } from '../../../core/models/user.model';
               <span
                 class="text-base sm:text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-emerald-800 to-teal-700 dark:from-white dark:via-emerald-200 dark:to-teal-300 bg-clip-text text-transparent"
               >
-                VetRegistro
+                {{ brand.name }}
               </span>
               <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-600 dark:text-emerald-400 -mt-1 hidden lg:inline-block">
-                Enterprise Cloud
+                {{ brand.city }}
               </span>
             </div>
           </a>
 
           <!-- Desktop Navigation Tabs (Visible on md/lg screens and up) -->
-          @if (authService.isAuthenticated()) {
-            <nav class="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-slate-200/50 dark:bg-slate-950/40 border border-slate-300/40 dark:border-slate-800/60 backdrop-blur-md">
+          <nav class="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-slate-200/50 dark:bg-slate-950/40 border border-slate-300/40 dark:border-slate-800/60 backdrop-blur-md">
+            <!-- Muro Comunitario (Public) -->
+            <a
+              routerLink="/"
+              routerLinkActive="active-nav-tab"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            >
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
+              <span>📰</span>
+              <span>Muro</span>
+            </a>
+
+            <!-- Adopciones (Public) -->
+            <a
+              routerLink="/adopciones"
+              routerLinkActive="active-nav-tab"
+              class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            >
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
+              <span>🏠</span>
+              <span>Adopciones</span>
+            </a>
+
+            <!-- Perdidos / Alertas (Public) -->
+            <a
+              routerLink="/perdidas"
+              routerLinkActive="active-nav-tab"
+              class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            >
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
+              <span>🚨</span>
+              <span>Perdidos</span>
+            </a>
+
+            <!-- Aliados (Public) -->
+            <a
+              routerLink="/aliados"
+              routerLinkActive="active-nav-tab"
+              class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+            >
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
+              <span>🩺</span>
+              <span>Aliados</span>
+            </a>
+
+            @if (authService.isAuthenticated()) {
+              <span class="text-slate-300 dark:text-slate-700 px-0.5">|</span>
+
+              <!-- Panel Rescatista -->
+              <a
+                routerLink="/panel-rescatista"
+                routerLinkActive="active-nav-tab"
+                class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
+                <span>📋</span>
+                <span>Rescatista</span>
+              </a>
+
               <!-- Dashboard -->
               <a
                 routerLink="/dashboard"
@@ -58,7 +117,7 @@ import { UserRole } from '../../../core/models/user.model';
                 <span>Dashboard</span>
               </a>
 
-              <!-- Mascotas -->
+              <!-- Mis Mascotas -->
               <a
                 routerLink="/pets"
                 routerLinkActive="active-nav-tab"
@@ -81,18 +140,7 @@ import { UserRole } from '../../../core/models/user.model';
                 <span>Familias</span>
               </a>
 
-              <!-- Nueva Mascota Action Pill -->
-              <a
-                routerLink="/pets/new"
-                routerLinkActive="active-nav-tab"
-                class="nav-tab-item relative px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors flex items-center gap-1 whitespace-nowrap cursor-pointer"
-              >
-                <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
-                <span class="font-black text-sm">+</span>
-                <span>Nueva</span>
-              </a>
-
-              <!-- Admin Link (Only for ADMIN role - compact & highlighted) -->
+              <!-- Admin Link (Only for ADMIN role) -->
               @if (authService.isAdmin()) {
                 <a
                   routerLink="/admin"
@@ -104,8 +152,8 @@ import { UserRole } from '../../../core/models/user.model';
                   <span>Admin</span>
                 </a>
               }
-            </nav>
-          }
+            }
+          </nav>
         </div>
 
         <!-- Right Controls: Theme Switcher & User Profile -->
@@ -135,17 +183,17 @@ import { UserRole } from '../../../core/models/user.model';
               </span>
             </div>
 
-            <!-- Logout Button -->
+            <!-- Logout Button (Desktop) -->
             <button
               (click)="authService.logout()"
-              class="px-3 py-1.5 text-xs font-bold rounded-xl sm:rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+              class="hidden sm:flex px-3 py-1.5 text-xs font-bold rounded-xl sm:rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:border-rose-500/40 transition-all cursor-pointer shadow-sm items-center gap-1"
               title="Cerrar sesión"
             >
               <span>🚪</span>
-              <span class="hidden sm:inline">Salir</span>
+              <span>Salir</span>
             </button>
           } @else {
-            <div class="flex items-center gap-2">
+            <div class="hidden sm:flex items-center gap-2">
               <a
                 routerLink="/auth/login"
                 class="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-xl sm:rounded-2xl text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition-colors"
@@ -160,75 +208,267 @@ import { UserRole } from '../../../core/models/user.model';
               </a>
             </div>
           }
+
+          <!-- Mobile Hamburger / Drawer Toggle Button (Visible only on mobile) -->
+          <button
+            (click)="toggleMobileMenu()"
+            type="button"
+            class="md:hidden w-9 h-9 rounded-xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/80 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-sm text-base"
+            aria-label="Abrir menú"
+          >
+            @if (isMobileMenuOpen()) {
+              <span>✕</span>
+            } @else {
+              <span>☰</span>
+            }
+          </button>
         </div>
       </div>
+
+      <!-- ======================================================== -->
+      <!-- Mobile Sliding Navigation Drawer                         -->
+      <!-- ======================================================== -->
+      @if (isMobileMenuOpen()) {
+        <div
+          class="md:hidden fixed inset-0 top-16 z-50 bg-slate-950/70 backdrop-blur-md flex flex-col p-4 animate-fadeIn"
+          (click)="closeMobileMenu()"
+        >
+          <div
+            class="liquid-glass rounded-3xl p-5 shadow-2xl border border-emerald-500/30 space-y-4 max-h-[80vh] overflow-y-auto"
+            (click)="$event.stopPropagation()"
+          >
+            <!-- User Status in Drawer -->
+            @if (authService.isAuthenticated()) {
+              <div class="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm shadow-md">
+                    {{ authService.currentUser()?.fullName?.charAt(0) }}
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold text-slate-900 dark:text-white">
+                      {{ authService.currentUser()?.fullName }}
+                    </h4>
+                    <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      {{ getRoleBadge(authService.currentUser()?.role) }}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  (click)="authService.logout(); closeMobileMenu()"
+                  class="p-2 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-bold"
+                  title="Salir"
+                >
+                  🚪 Salir
+                </button>
+              </div>
+            } @else {
+              <div class="flex gap-2 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+                <a
+                  routerLink="/auth/login"
+                  (click)="closeMobileMenu()"
+                  class="flex-1 py-2 text-center text-xs font-bold rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-white"
+                >
+                  Iniciar Sesión
+                </a>
+                <a
+                  routerLink="/auth/register"
+                  (click)="closeMobileMenu()"
+                  class="flex-1 py-2 text-center text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md"
+                >
+                  Registrarme
+                </a>
+              </div>
+            }
+
+            <!-- Navigation Links List -->
+            <div class="space-y-1 text-xs font-bold text-slate-700 dark:text-slate-200">
+              <a
+                routerLink="/"
+                (click)="closeMobileMenu()"
+                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+              >
+                <span class="text-base">📰</span>
+                <span>Muro Comunitario</span>
+              </a>
+
+              <a
+                routerLink="/adopciones"
+                (click)="closeMobileMenu()"
+                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+              >
+                <span class="text-base">🏠</span>
+                <span>Peluditos en Adopción</span>
+              </a>
+
+              <a
+                routerLink="/perdidas"
+                (click)="closeMobileMenu()"
+                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+              >
+                <span class="text-base">🚨</span>
+                <span>Mascotas Extraviadas / Encontradas</span>
+              </a>
+
+              <a
+                routerLink="/aliados"
+                (click)="closeMobileMenu()"
+                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+              >
+                <span class="text-base">🩺</span>
+                <span>Directorio de Aliados (Dolores Hidalgo)</span>
+              </a>
+
+              @if (authService.isAuthenticated()) {
+                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                  <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-2.5">
+                    Mi Cuenta y Servicios
+                  </span>
+
+                  <a
+                    routerLink="/verificacion"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-600 dark:text-emerald-400"
+                  >
+                    <span class="text-base">🛡️</span>
+                    <span>Verificación de Adoptante (Niveles 1-3)</span>
+                  </a>
+
+                  <a
+                    routerLink="/panel-rescatista"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="text-base">📋</span>
+                    <span>Panel de Rescatista (Seguimiento 7, 30, 90)</span>
+                  </a>
+
+                  <a
+                    routerLink="/dashboard"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="text-base">📊</span>
+                    <span>Dashboard Clínico</span>
+                  </a>
+
+                  <a
+                    routerLink="/pets"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="text-base">🐾</span>
+                    <span>Mis Mascotas</span>
+                  </a>
+
+                  <a
+                    routerLink="/groups"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="text-base">👨‍👩‍👧‍👦</span>
+                    <span>Familias / Grupos</span>
+                  </a>
+
+                  @if (authService.isAdmin()) {
+                    <a
+                      routerLink="/admin"
+                      (click)="closeMobileMenu()"
+                      class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors"
+                    >
+                      <span class="text-base">🛡️</span>
+                      <span>Panel Administrador</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
+              <span>{{ brand.name }} • {{ brand.city }}</span>
+              <button
+                (click)="closeMobileMenu()"
+                class="px-3 py-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </header>
 
     <!-- ======================================================== -->
     <!-- Mobile Bottom Navigation Dock (Native App Style)         -->
     <!-- Visible ONLY on mobile (< md), thumb-friendly, sleek     -->
     <!-- ======================================================== -->
-    @if (authService.isAuthenticated()) {
-      <nav
-        class="md:hidden fixed bottom-3 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
+    <nav
+      class="md:hidden fixed bottom-3 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
+    >
+      <!-- Muro (Public) -->
+      <a
+        routerLink="/"
+        routerLinkActive="mobile-dock-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
       >
+        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">📰</span>
+        <span class="text-[10px] font-bold mt-0.5">Muro</span>
+      </a>
+
+      <!-- Adopciones (Public) -->
+      <a
+        routerLink="/adopciones"
+        routerLinkActive="mobile-dock-active"
+        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+      >
+        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🏠</span>
+        <span class="text-[10px] font-bold mt-0.5">Adoptar</span>
+      </a>
+
+      <!-- Perdidos (Public) -->
+      <a
+        routerLink="/perdidas"
+        routerLinkActive="mobile-dock-active"
+        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+      >
+        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🚨</span>
+        <span class="text-[10px] font-bold mt-0.5">Perdidos</span>
+      </a>
+
+      @if (authService.isAuthenticated()) {
         <!-- Dashboard -->
         <a
           routerLink="/dashboard"
           routerLinkActive="mobile-dock-active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
         >
           <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">📊</span>
-          <span class="text-[10px] font-bold mt-0.5">Inicio</span>
+          <span class="text-[10px] font-bold mt-0.5">Panel</span>
         </a>
 
-        <!-- Mascotas -->
-        <a
-          routerLink="/pets"
-          routerLinkActive="mobile-dock-active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
-        >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🐾</span>
-          <span class="text-[10px] font-bold mt-0.5">Mascotas</span>
-        </a>
-
-        <!-- Familias -->
-        <a
-          routerLink="/groups"
-          routerLinkActive="mobile-dock-active"
-          class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
-        >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👨‍👩‍👧</span>
-          <span class="text-[10px] font-bold mt-0.5">Familias</span>
-        </a>
-
-        <!-- Registrar Mascota Center Button -->
+        <!-- Nueva Mascota Action Pill -->
         <a
           routerLink="/pets/new"
           routerLinkActive="mobile-dock-active-add"
           class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-emerald-600 dark:text-emerald-400 transition-colors group flex-1"
         >
-          <div class="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-base font-black text-emerald-600 dark:text-emerald-400 group-[.mobile-dock-active-add]:bg-emerald-500 group-[.mobile-dock-active-add]:text-slate-950 transition-colors">
+          <div class="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-sm font-black text-emerald-600 dark:text-emerald-400 group-[.mobile-dock-active-add]:bg-emerald-500 group-[.mobile-dock-active-add]:text-slate-950 transition-colors">
             +
           </div>
-          <span class="text-[10px] font-bold mt-0.5">Nueva</span>
+          <span class="text-[9px] font-bold mt-0.5">Nueva</span>
         </a>
-
-        <!-- Admin Tab (Only if ADMIN) -->
-        @if (authService.isAdmin()) {
-          <a
-            routerLink="/admin"
-            routerLinkActive="mobile-dock-active-admin"
-            class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-rose-600 dark:text-rose-400 transition-colors group flex-1"
-          >
-            <span class="text-base group-[.mobile-dock-active-admin]:scale-110 transition-transform">🛡️</span>
-            <span class="text-[10px] font-bold mt-0.5">Admin</span>
-          </a>
-        }
-      </nav>
-    }
+      } @else {
+        <!-- Ingresar (Guest) -->
+        <a
+          routerLink="/auth/login"
+          routerLinkActive="mobile-dock-active"
+          class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        >
+          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👤</span>
+          <span class="text-[10px] font-bold mt-0.5">Entrar</span>
+        </a>
+      }
+    </nav>
   `,
   styles: [`
     :host {
@@ -284,8 +524,18 @@ import { UserRole } from '../../../core/models/user.model';
 export class NavbarComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
+  brand = BRAND_CONFIG;
 
   isScrolled = signal(false);
+  isMobileMenuOpen = signal(false);
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen.update((v) => !v);
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen.set(false);
+  }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
@@ -304,12 +554,19 @@ export class NavbarComponent implements OnInit {
     switch (role) {
       case UserRole.ADMIN:
         return 'Administrador';
+      case UserRole.RESCATISTA_VERIFICADO:
+        return 'Rescatista';
+      case UserRole.ALBERGUE:
+        return 'Albergue';
+      case UserRole.CLINICA_ALIADA:
       case UserRole.VETERINARIAN:
-        return 'Médico Veterinario';
+        return 'Clínica Aliada';
+      case UserRole.ADOPTANTE_VERIFICADO:
+        return 'Adoptante Verificado';
+      case UserRole.USUARIO_GENERAL:
       case UserRole.PET_OWNER:
-        return 'Dueño';
       default:
-        return 'Usuario';
+        return 'Ciudadano';
     }
   }
 }
