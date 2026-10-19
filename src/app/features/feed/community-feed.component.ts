@@ -9,6 +9,7 @@ import { AdoptionService } from '../../core/services/adoption.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
@@ -1449,6 +1450,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
   private imageUploadService = inject(ImageUploadService);
+  private confirmService = inject(ConfirmService);
 
   // Data signals
   allPosts = signal<FeedPost[]>([]);
@@ -1616,17 +1618,26 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  confirmDeactivatePost(post: FeedPost): void {
-    const confirmed = window.confirm(
-      '¿Deseas dar de baja y desactivar esta publicación?\n\nDejará de mostrarse en el muro comunitario y búsquedas activas, pero el registro permanecerá archivado en la base de datos como evidencia y respaldo administrativo.',
-    );
+  async confirmDeactivatePost(post: FeedPost): Promise<void> {
+    const isPet = post.kind === 'PET_ADOPTION';
+    const petName = post.title || (isPet ? 'esta mascota' : 'este reporte');
+
+    const confirmed = await this.confirmService.confirm({
+      title: 'Dar de baja publicación',
+      message: `¿Deseas dar de baja y desactivar la publicación "${petName}"?`,
+      submessage: 'Dejará de mostrarse en el muro comunitario y búsquedas activas. El registro permanecerá resguardado de forma segura en la base de datos como evidencia y respaldo administrativo.',
+      confirmText: 'Sí, dar de baja',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
     if (!confirmed) return;
 
     if (post.kind === 'PET_ADOPTION' && post.petData) {
       this.petService.delete(post.petData.id).subscribe({
         next: () => {
           this.allPosts.update((posts) => posts.filter((p) => p.id !== post.id));
-          this.notify.success('Publicación de mascota desactivada y archivada correctamente');
+          this.notify.success('Publicación desactivada y archivada correctamente');
         },
         error: (err) => {
           this.notify.error(err.error?.message || 'Error al desactivar la publicación');

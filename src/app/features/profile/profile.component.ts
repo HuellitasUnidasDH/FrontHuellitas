@@ -9,6 +9,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { PetService } from '../../core/services/pet.service';
 import { LostPetService } from '../../core/services/lost-pet.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { Pet } from '../../core/models/pet.model';
@@ -628,6 +629,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   petService = inject(PetService);
   lostPetService = inject(LostPetService);
   notify = inject(NotificationService);
+  confirmService = inject(ConfirmService);
 
   user = signal<User | null>(null);
   publications = signal<UserPublications | null>(null);
@@ -872,10 +874,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
     return `${datePart} • ${timePart}`;
   }
 
-  deactivatePet(id: string): void {
-    const confirmed = window.confirm(
-      '¿Deseas dar de baja y desactivar esta mascota de adopción?\n\nDejará de aparecer públicamente en el catálogo y en el muro comunitario, pero se conservará archivada en el sistema para auditoría y respaldo administrativo.',
-    );
+  async deactivatePet(id: string): Promise<void> {
+    const pet = this.publications()?.pets.find((p) => p.id === id);
+    const petName = pet?.name ? `"${pet.name}"` : 'esta mascota';
+
+    const confirmed = await this.confirmService.confirm({
+      title: 'Dar de baja adopción',
+      message: `¿Deseas dar de baja y desactivar la publicación de adopción de ${petName}?`,
+      submessage: 'Dejará de aparecer en el catálogo público y en el muro comunitario, pero se mantendrá archivada en el sistema para auditoría y respaldo administrativo.',
+      confirmText: 'Sí, dar de baja',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
     if (!confirmed) return;
 
     this.petService.delete(id).subscribe({
@@ -895,10 +906,19 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  deactivateLostReport(id: string): void {
-    const confirmed = window.confirm(
-      '¿Deseas dar de baja y desactivar este reporte?\n\nDejará de aparecer en el muro y en las alertas comunitarias, pero se preservará archivado en la base de datos como evidencia y registro legal.',
-    );
+  async deactivateLostReport(id: string): Promise<void> {
+    const report = this.publications()?.lostReports.find((r) => r.id === id);
+    const reportTitle = report?.petName ? `"${report.petName}"` : 'este reporte';
+
+    const confirmed = await this.confirmService.confirm({
+      title: 'Dar de baja reporte',
+      message: `¿Deseas dar de baja y desactivar el reporte de ${reportTitle}?`,
+      submessage: 'Dejará de mostrarse en el muro comunitario y alertas públicas, pero se preservará resguardado en la base de datos como evidencia y registro de seguridad.',
+      confirmText: 'Sí, dar de baja',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
     if (!confirmed) return;
 
     this.lostPetService.delete(id).subscribe({

@@ -5,6 +5,7 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { PetService } from '../../../core/services/pet.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 import { compressAndResizeImage } from '../../../core/utils/image-compressor.util';
 import { Pet } from '../../../core/models/pet.model';
 import { MedicalRecord } from '../../../core/models/medical-record.model';
@@ -688,6 +689,7 @@ export class PetDetailComponent implements OnInit {
   private fb = inject(FormBuilder);
   private petService = inject(PetService);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
   authService = inject(AuthService);
 
   pet = signal<Pet | null>(null);
@@ -895,9 +897,18 @@ export class PetDetailComponent implements OnInit {
     });
   }
 
-  onDeleteMoment(moment: PetMoment, event: Event): void {
+  async onDeleteMoment(moment: PetMoment, event: Event): Promise<void> {
     event.stopPropagation();
-    if (!confirm(`¿Estás seguro de eliminar el recuerdo "${moment.title}"?`)) return;
+    const confirmed = await this.confirmService.confirm({
+      title: 'Eliminar recuerdo',
+      message: `¿Estás seguro de que deseas eliminar el recuerdo "${moment.title}"?`,
+      submessage: 'Esta fotografía y momento se eliminarán de la galería de tu mascota.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
+    if (!confirmed) return;
 
     this.petService.deleteMoment(moment.id).subscribe({
       next: () => {

@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { GroupService } from '../../core/services/group.service';
 import { PetService } from '../../core/services/pet.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PetGroup, GroupFeedMoment } from '../../core/models/group.model';
 import { Pet } from '../../core/models/pet.model';
@@ -519,6 +520,7 @@ export class GroupsComponent implements OnInit, OnDestroy {
   private groupService = inject(GroupService);
   private petService = inject(PetService);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
 
@@ -708,8 +710,17 @@ export class GroupsComponent implements OnInit, OnDestroy {
     this.lockBodyScroll(false);
   }
 
-  onLeaveGroup(group: PetGroup): void {
-    if (!confirm(`¿Estás seguro de que deseas salir de "${group.name}"?`)) return;
+  async onLeaveGroup(group: PetGroup): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Salir de la familia',
+      message: `¿Estás seguro de que deseas salir del grupo familiar "${group.name}"?`,
+      submessage: 'Tus mascotas registradas ya no compartirán el álbum común de esta familia.',
+      confirmText: 'Sí, salir',
+      cancelText: 'Cancelar',
+      type: 'warning',
+      icon: '🚪',
+    });
+    if (!confirmed) return;
 
     const userId = this.currentUser()!.id;
     this.groupService.removeMember(group.id, userId).subscribe({
@@ -721,8 +732,17 @@ export class GroupsComponent implements OnInit, OnDestroy {
     });
   }
 
-  onDeleteGroup(group: PetGroup): void {
-    if (!confirm(`¿Estás seguro de eliminar la familia "${group.name}"? Las mascotas volverán a ser personales.`)) return;
+  async onDeleteGroup(group: PetGroup): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Eliminar familia',
+      message: `¿Estás seguro de eliminar la familia "${group.name}"?`,
+      submessage: 'Las mascotas registradas volverán a ser de perfil personal.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
+    if (!confirmed) return;
 
     this.groupService.deleteGroup(group.id).subscribe({
       next: () => {

@@ -6,6 +6,7 @@ import { UserService } from '../../core/services/user.service';
 import { PetService } from '../../core/services/pet.service';
 import { AuditService } from '../../core/services/audit.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/services/auth.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Pet } from '../../core/models/pet.model';
@@ -729,6 +730,7 @@ export class AdminComponent implements OnInit {
   private petService = inject(PetService);
   private auditService = inject(AuditService);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
 
   activeTab = signal<'monitoring' | 'audit' | 'users' | 'pets'>('monitoring');
@@ -909,35 +911,59 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  onDeleteUser(user: User): void {
-    if (confirm(`¿Estás seguro de eliminar a ${user.fullName}? Se eliminarán también todas sus mascotas asociadas.`)) {
-      this.userService.delete(user.id).subscribe({
-        next: () => {
-          this.notification.success('Usuario eliminado', `La cuenta de ${user.fullName} fue eliminada`);
-          this.loadUsers();
-          this.loadPets();
-          this.loadStats();
-        },
-      });
-    }
+  async onDeleteUser(user: User): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Eliminar usuario',
+      message: `¿Estás seguro de eliminar a ${user.fullName}?`,
+      submessage: 'Se eliminarán también todas sus mascotas asociadas de la base de datos.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '👤',
+    });
+    if (!confirmed) return;
+
+    this.userService.delete(user.id).subscribe({
+      next: () => {
+        this.notification.success('Usuario eliminado', `La cuenta de ${user.fullName} fue eliminada`);
+        this.loadUsers();
+        this.loadPets();
+        this.loadStats();
+      },
+    });
   }
 
-  onDeletePet(pet: Pet): void {
-    if (confirm(`¿Estás seguro de eliminar el registro de ${pet.name}?`)) {
-      this.petService.delete(pet.id).subscribe({
-        next: () => {
-          this.notification.success('Mascota eliminada', `${pet.name} fue eliminada`);
-          this.loadPets();
-          this.loadStats();
-        },
-      });
-    }
+  async onDeletePet(pet: Pet): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Dar de baja mascota',
+      message: `¿Estás seguro de dar de baja el registro de ${pet.name}?`,
+      submessage: 'La ficha se archivará con baja lógica en el sistema.',
+      confirmText: 'Sí, dar de baja',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
+    if (!confirmed) return;
+
+    this.petService.delete(pet.id).subscribe({
+      next: () => {
+        this.notification.success('Mascota dada de baja', `${pet.name} fue archivada`);
+        this.loadPets();
+        this.loadStats();
+      },
+    });
   }
 
-  onInvalidatePrivacyVersion(): void {
-    const isConfirmed = confirm(
-      '¿Deseas invalidar la aprobación del Aviso de Privacidad para TODOS los usuarios? Esto obligará a todos los usuarios a leer y aceptar la nueva versión antes de poder seguir utilizando la aplicación.'
-    );
+  async onInvalidatePrivacyVersion(): Promise<void> {
+    const isConfirmed = await this.confirmService.confirm({
+      title: 'Actualizar Términos Legales',
+      message: '¿Deseas invalidar la aprobación del Aviso de Privacidad para TODOS los usuarios?',
+      submessage: 'Esto obligará a toda la comunidad a leer y aceptar los nuevos términos legales antes de poder continuar usando la plataforma.',
+      confirmText: 'Sí, invalidar y requerir',
+      cancelText: 'Cancelar',
+      type: 'warning',
+      icon: '📜',
+    });
     if (!isConfirmed) return;
 
     this.userService.resetPrivacyTerms('2026-v2.0').subscribe({

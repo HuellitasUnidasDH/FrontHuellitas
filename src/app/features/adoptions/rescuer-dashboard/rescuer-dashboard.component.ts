@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 import { AdoptionRequest, AdoptionFollowup, AdoptionRequestStatus } from '../../../core/models/adoption.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
@@ -237,6 +238,7 @@ export class RescuerDashboardComponent implements OnInit {
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
 
   activeTab = signal<'REQUESTS' | 'FOLLOWUPS'>('REQUESTS');
   requests = signal<AdoptionRequest[]>([]);
@@ -305,8 +307,17 @@ export class RescuerDashboardComponent implements OnInit {
     return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
   }
 
-  registerProofModal(fol: AdoptionFollowup): void {
-    const photoUrl = prompt('Ingresa la URL de la fotografía de bienestar recibida:');
+  async registerProofModal(fol: AdoptionFollowup): Promise<void> {
+    const photoUrl = await this.confirmService.prompt({
+      title: 'Fotografía de Seguimiento',
+      message: `Registrar evidencia de bienestar para ${fol.pet?.name || 'la mascota'} (Hito: ${fol.dayMilestone} días)`,
+      submessage: 'Ingresa el enlace directo o URL de la fotografía enviada por el adoptante.',
+      inputPlaceholder: 'https://...',
+      confirmText: 'Registrar Evidencia',
+      cancelText: 'Cancelar',
+      type: 'info',
+      icon: '📸',
+    });
     if (photoUrl && photoUrl.trim()) {
       this.adoptionService.registerFollowupProof(fol.id, photoUrl.trim(), 'Fotografía recibida por WhatsApp').subscribe({
         next: () => {

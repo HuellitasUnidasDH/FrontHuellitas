@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PetService } from '../../../core/services/pet.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 import { Pet } from '../../../core/models/pet.model';
 
 @Component({
@@ -195,6 +196,7 @@ import { Pet } from '../../../core/models/pet.model';
 export class PetListComponent implements OnInit {
   private petService = inject(PetService);
   private notification = inject(NotificationService);
+  private confirmService = inject(ConfirmService);
 
   pets = signal<Pet[]>([]);
   isLoading = signal(true);
@@ -227,14 +229,26 @@ export class PetListComponent implements OnInit {
     this.fetchPets();
   }
 
-  onDeletePet(pet: Pet): void {
-    if (confirm(`¿Estás seguro de que deseas eliminar el registro de ${pet.name}?`)) {
-      this.petService.delete(pet.id).subscribe({
-        next: () => {
-          this.notification.success('Mascota eliminada', `${pet.name} fue eliminada exitosamente`);
-          this.fetchPets();
-        },
-      });
-    }
+  async onDeletePet(pet: Pet): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Dar de baja mascota',
+      message: `¿Estás seguro de que deseas dar de baja el registro de "${pet.name}"?`,
+      submessage: 'La ficha dejará de mostrarse en tu lista activa, pero se conservará archivada en la base de datos como respaldo.',
+      confirmText: 'Sí, dar de baja',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
+    if (!confirmed) return;
+
+    this.petService.delete(pet.id).subscribe({
+      next: () => {
+        this.notification.success('Mascota dada de baja', `${pet.name} fue archivada exitosamente`);
+        this.fetchPets();
+      },
+      error: (err) => {
+        this.notification.error(err.error?.message || 'Error al dar de baja a la mascota');
+      },
+    });
   }
 }
