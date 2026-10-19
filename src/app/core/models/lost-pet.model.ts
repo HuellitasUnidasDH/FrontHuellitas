@@ -51,6 +51,8 @@ export interface LostPetReport {
   rewardOffered: boolean;
   rewardDetails?: string;
   isInjured?: boolean;
+  temperamentTags?: string[];
+  isDeleted?: boolean;
   reportsCount?: number;
   lastReportedAt?: string;
   parentReportId?: string;
@@ -75,6 +77,9 @@ export interface CreateLostPetPayload {
   rewardDetails?: string;
   isInjured?: boolean;
   parentReportId?: string;
+  temperamentTags?: string[];
+  goodWithKids?: boolean;
+  goodWithOtherPets?: boolean;
 }
 
 export interface CreateSightingPayload {

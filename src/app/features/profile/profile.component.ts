@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,6 +7,8 @@ import { UserService, UserPublications } from '../../core/services/user.service'
 import { ColoniaService } from '../../core/services/colonia.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
+import { PetService } from '../../core/services/pet.service';
+import { LostPetService } from '../../core/services/lost-pet.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { Pet } from '../../core/models/pet.model';
@@ -208,15 +210,25 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                     </div>
 
                     <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs">
-                      <span class="text-slate-400 text-[11px]">
-                        {{ formatDate(pet.createdAt) }}
+                      <span class="text-slate-400 text-[11px] flex items-center gap-1">
+                        <span>🕒</span> {{ formatExactDateTime(pet.createdAt) }}
                       </span>
-                      <a
-                        [routerLink]="['/adopciones', pet.id]"
-                        class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
-                      >
-                        Ver ficha →
-                      </a>
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          (click)="deactivatePet(pet.id)"
+                          class="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer text-xs"
+                          title="Desactivar y archivar publicación"
+                        >
+                          🗑️
+                        </button>
+                        <a
+                          [routerLink]="['/adopciones', pet.id]"
+                          class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                        >
+                          Ver ficha →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -283,15 +295,25 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                     </div>
 
                     <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs">
-                      <span class="text-slate-400 text-[11px]">
-                        {{ formatDate(rep.createdAt) }}
+                      <span class="text-slate-400 text-[11px] flex items-center gap-1">
+                        <span>🕒</span> {{ formatExactDateTime(rep.createdAt) }}
                       </span>
-                      <a
-                        routerLink="/perdidas"
-                        class="text-rose-600 dark:text-rose-400 font-bold hover:underline"
-                      >
-                        Ver en el muro →
-                      </a>
+                      <div class="flex items-center gap-2">
+                        <button
+                          type="button"
+                          (click)="deactivateLostReport(rep.id)"
+                          class="p-1 rounded-lg text-rose-500 hover:bg-rose-500/10 cursor-pointer text-xs"
+                          title="Desactivar y archivar reporte"
+                        >
+                          🗑️
+                        </button>
+                        <a
+                          routerLink="/perdidas"
+                          class="text-rose-600 dark:text-rose-400 font-bold hover:underline"
+                        >
+                          Ver en el muro →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -361,7 +383,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
           <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 space-y-4 max-h-[90vh] overflow-y-auto">
             <button
-              (click)="isEditModalOpen.set(false)"
+              (click)="closeEditModal()"
               class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
             >
               ✕
@@ -478,7 +500,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                   }
                 </button>
                 <button
-                  (click)="isEditModalOpen.set(false)"
+                  (click)="closeEditModal()"
                   class="px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                 >
                   Cancelar
@@ -496,7 +518,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
           <div class="liquid-glass rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl relative border border-emerald-500/30 space-y-4">
             <button
-              (click)="isPhotoModalOpen.set(false)"
+              (click)="closePhotoModal()"
               class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
             >
               ✕
@@ -597,12 +619,14 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
     </div>
   `,
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   authService = inject(AuthService);
   userService = inject(UserService);
   coloniaService = inject(ColoniaService);
   imageUploadService = inject(ImageUploadService);
+  petService = inject(PetService);
+  lostPetService = inject(LostPetService);
   notify = inject(NotificationService);
 
   user = signal<User | null>(null);
@@ -687,6 +711,9 @@ export class ProfileComponent implements OnInit {
   }
 
   openEditModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     const u = this.user();
     if (u) {
       this.editForm = {
@@ -701,12 +728,29 @@ export class ProfileComponent implements OnInit {
     this.isEditModalOpen.set(true);
   }
 
+  closeEditModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
+    this.isEditModalOpen.set(false);
+  }
+
   openPhotoModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     const u = this.user();
     this.quickPhotoUrl = u?.profilePhotoUrl || '';
     this.quickPhotoPreview.set(u?.profilePhotoUrl || null);
     this.selectedQuickFile.set(null);
     this.isPhotoModalOpen.set(true);
+  }
+
+  closePhotoModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
+    this.isPhotoModalOpen.set(false);
   }
 
   async onQuickPhotoFileSelected(event: Event): Promise<void> {
@@ -757,7 +801,7 @@ export class ProfileComponent implements OnInit {
       next: (updatedUser) => {
         this.isSaving.set(false);
         this.user.set(updatedUser);
-        this.isEditModalOpen.set(false);
+        this.closeEditModal();
         this.notify.success('¡Perfil actualizado exitosamente!');
         this.authService.updateCurrentUser(updatedUser);
       },
@@ -800,7 +844,7 @@ export class ProfileComponent implements OnInit {
       next: (updatedUser) => {
         this.isSaving.set(false);
         this.user.set(updatedUser);
-        this.isPhotoModalOpen.set(false);
+        this.closePhotoModal();
         this.notify.success('¡Foto de perfil actualizada exitosamente!');
         this.authService.updateCurrentUser(updatedUser);
       },
@@ -809,6 +853,75 @@ export class ProfileComponent implements OnInit {
         this.notify.error(err.error?.message || 'Error al actualizar la foto');
       },
     });
+  }
+
+  formatExactDateTime(dateStr?: string): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const datePart = date.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${datePart} • ${timePart}`;
+  }
+
+  deactivatePet(id: string): void {
+    const confirmed = window.confirm(
+      '¿Deseas dar de baja y desactivar esta mascota de adopción?\n\nDejará de aparecer públicamente en el catálogo y en el muro comunitario, pero se conservará archivada en el sistema para auditoría y respaldo administrativo.',
+    );
+    if (!confirmed) return;
+
+    this.petService.delete(id).subscribe({
+      next: () => {
+        this.publications.update((pubs) => {
+          if (!pubs) return pubs;
+          return {
+            ...pubs,
+            pets: pubs.pets.filter((p) => p.id !== id),
+          };
+        });
+        this.notify.success('Publicación de mascota desactivada y archivada');
+      },
+      error: (err) => {
+        this.notify.error(err.error?.message || 'Error al desactivar la publicación');
+      },
+    });
+  }
+
+  deactivateLostReport(id: string): void {
+    const confirmed = window.confirm(
+      '¿Deseas dar de baja y desactivar este reporte?\n\nDejará de aparecer en el muro y en las alertas comunitarias, pero se preservará archivado en la base de datos como evidencia y registro legal.',
+    );
+    if (!confirmed) return;
+
+    this.lostPetService.delete(id).subscribe({
+      next: () => {
+        this.publications.update((pubs) => {
+          if (!pubs) return pubs;
+          return {
+            ...pubs,
+            lostReports: pubs.lostReports.filter((r) => r.id !== id),
+          };
+        });
+        this.notify.success('Reporte desactivado y archivado correctamente');
+      },
+      error: (err) => {
+        this.notify.error(err.error?.message || 'Error al desactivar el reporte');
+      },
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
   }
 
   getRoleBadge(role?: UserRole): string {

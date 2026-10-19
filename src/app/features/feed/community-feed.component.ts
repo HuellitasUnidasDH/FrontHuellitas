@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -38,6 +38,7 @@ interface FeedPost {
   size?: string;
   gender?: string;
   coloniaName?: string;
+  temperamentTags?: string[];
   // Adoption specifics
   isSterilized?: boolean;
   isVaccinated?: boolean;
@@ -493,23 +494,32 @@ interface FeedPost {
 
               <!-- 4. Tactical Attribute Tags (Health, Behavior, Rewards) -->
               <div class="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] my-1.5">
+                <!-- User-selected temperament & coexistence tags -->
+                @if (post.temperamentTags && post.temperamentTags.length > 0) {
+                  @for (tag of post.temperamentTags; track tag) {
+                    <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 font-semibold text-[10px]">
+                      🏷️ {{ tag }}
+                    </span>
+                  }
+                }
+
                 @if (post.kind === 'PET_ADOPTION') {
-                  @if (post.isSterilized) {
+                  @if (post.isSterilized && !post.temperamentTags?.includes('Esterilizado(a)')) {
                     <span class="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-semibold">
                       ✂️ Esterilizado
                     </span>
                   }
-                  @if (post.isVaccinated) {
+                  @if (post.isVaccinated && !post.temperamentTags?.includes('Vacunado(a)')) {
                     <span class="px-2 py-0.5 rounded-lg bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30 font-semibold">
                       💉 Vacunado
                     </span>
                   }
-                  @if (post.goodWithKids) {
+                  @if (post.goodWithKids && !post.temperamentTags?.includes('Bueno con niños')) {
                     <span class="px-2 py-0.5 rounded-lg bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-semibold">
                       👶 Niños OK
                     </span>
                   }
-                  @if (post.goodWithOtherPets) {
+                  @if (post.goodWithOtherPets && !post.temperamentTags?.includes('Sociable con perros') && !post.temperamentTags?.includes('Convive con gatos')) {
                     <span class="px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-500/30 font-semibold">
                       🐕 Mascotas OK
                     </span>
@@ -616,6 +626,16 @@ interface FeedPost {
                     <span>{{ (post.comments?.length || 0) }}</span>
                   </button>
 
+                  @if (canDeletePost(post)) {
+                    <button
+                      (click)="confirmDeactivatePost(post)"
+                      class="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-500 hover:text-white border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 text-xs transition-colors cursor-pointer"
+                      title="Desactivar y archivar mi publicación"
+                    >
+                      <span>🗑️</span>
+                    </button>
+                  }
+
                   <button
                     (click)="shareToWhatsApp(post)"
                     class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
@@ -671,8 +691,8 @@ interface FeedPost {
                               <span class="font-bold text-slate-900 dark:text-white text-[10px] truncate">
                                 {{ comment.author?.fullName || 'Vecino solidario' }}
                               </span>
-                              <span class="text-[9px] text-slate-400 flex-shrink-0">
-                                {{ formatRelativeTime(comment.createdAt) }}
+                              <span class="text-[9px] text-slate-400 font-medium flex-shrink-0">
+                                {{ formatExactDateTime(comment.createdAt) }}
                               </span>
                             </div>
                             <p class="text-slate-700 dark:text-slate-300 mt-0.5 leading-relaxed break-words text-[10px]">
@@ -1256,6 +1276,36 @@ interface FeedPost {
                     ></textarea>
                   </div>
 
+                  <!-- Temperamento y Convivencia (Selección manual múltiple, sin asumir conductas por defecto) -->
+                  <div class="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                      <label class="block font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px] flex items-center gap-1.5">
+                        <span>🏷️</span> Temperamento y Convivencia
+                      </label>
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                        {{ reportLostForm.temperamentTags.length }} seleccionada(s)
+                      </span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-snug">
+                      Elige únicamente los rasgos observados. No asumimos conductas automáticas para evitar confusiones al adoptante.
+                    </p>
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                      @for (tag of availableTemperamentTags; track tag) {
+                        <button
+                          type="button"
+                          (click)="toggleTemperamentTag(tag)"
+                          [ngClass]="isTagSelected(tag)
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-bold'
+                            : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-emerald-500'"
+                          class="px-2.5 py-1 rounded-xl text-[11px] border transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                        >
+                          <span>{{ isTagSelected(tag) ? '✓' : '+' }}</span>
+                          <span>{{ tag }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+
                   <div>
                     <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
                       Fotografía de la mascota (Recomendada para identificarla)
@@ -1388,7 +1438,7 @@ interface FeedPost {
     </div>
   `,
 })
-export class CommunityFeedComponent implements OnInit {
+export class CommunityFeedComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -1521,7 +1571,79 @@ export class CommunityFeedComponent implements OnInit {
     rewardDetails: '',
     photoUrl: '',
     isInjured: false,
+    temperamentTags: [] as string[],
   };
+
+  availableTemperamentTags: string[] = [
+    'Bueno con niños',
+    'Sociable con perros',
+    'Convive con gatos',
+    'Tranquilo / Calmo',
+    'Juguetón / Activo',
+    'Protector / Guardián',
+    'Tímido / Requiere paciencia',
+    'Apto para departamento',
+    'Requiere patio o jardín',
+    'Esterilizado(a)',
+    'Vacunado(a)',
+    'Acostumbrado a pasear con correa',
+    'Entrenado para hacer afuera',
+  ];
+
+  toggleTemperamentTag(tag: string): void {
+    const index = this.reportLostForm.temperamentTags.indexOf(tag);
+    if (index > -1) {
+      this.reportLostForm.temperamentTags.splice(index, 1);
+    } else {
+      this.reportLostForm.temperamentTags.push(tag);
+    }
+  }
+
+  isTagSelected(tag: string): boolean {
+    return this.reportLostForm.temperamentTags.includes(tag);
+  }
+
+  canDeletePost(post: FeedPost): boolean {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    if (post.kind === 'PET_ADOPTION' && post.petData) {
+      return post.petData.ownerId === user.id;
+    }
+    if (post.kind === 'LOST_PET' && post.lostData) {
+      return post.lostData.reporterId === user.id;
+    }
+    return false;
+  }
+
+  confirmDeactivatePost(post: FeedPost): void {
+    const confirmed = window.confirm(
+      '¿Deseas dar de baja y desactivar esta publicación?\n\nDejará de mostrarse en el muro comunitario y búsquedas activas, pero el registro permanecerá archivado en la base de datos como evidencia y respaldo administrativo.',
+    );
+    if (!confirmed) return;
+
+    if (post.kind === 'PET_ADOPTION' && post.petData) {
+      this.petService.delete(post.petData.id).subscribe({
+        next: () => {
+          this.allPosts.update((posts) => posts.filter((p) => p.id !== post.id));
+          this.notify.success('Publicación de mascota desactivada y archivada correctamente');
+        },
+        error: (err) => {
+          this.notify.error(err.error?.message || 'Error al desactivar la publicación');
+        },
+      });
+    } else if (post.kind === 'LOST_PET' && post.lostData) {
+      this.lostPetService.delete(post.lostData.id).subscribe({
+        next: () => {
+          this.allPosts.update((posts) => posts.filter((p) => p.id !== post.id));
+          this.notify.success('Publicación desactivada y archivada correctamente');
+        },
+        error: (err) => {
+          this.notify.error(err.error?.message || 'Error al desactivar la publicación');
+        },
+      });
+    }
+  }
 
   ngOnInit(): void {
     this.syncFilterFromRoute();
@@ -1614,7 +1736,8 @@ export class CommunityFeedComponent implements OnInit {
               authorRole: 'Rescatista Verificado',
               authorColonia: pet.colonia?.name || 'Dolores Hidalgo',
               createdAt: pet.createdAt,
-              timeAgo: this.formatRelativeTime(pet.createdAt),
+              timeAgo: this.formatExactDateTime(pet.createdAt),
+              temperamentTags: pet.temperamentTags || [],
               typeBadge: '💚 En Adopción',
               badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
               description: pet.rescueStory || `Conoce a ${pet.name}, un hermoso peludito de talla ${pet.size || 'mediana'} que está listo para llenar tu hogar de amor en Dolores Hidalgo.`,
@@ -1649,7 +1772,8 @@ export class CommunityFeedComponent implements OnInit {
                 authorRole: meta.authorRole,
                 authorColonia: rep.colonia?.name || 'Dolores Hidalgo',
                 createdAt: rep.createdAt,
-                timeAgo: this.formatRelativeTime(rep.createdAt),
+                timeAgo: this.formatExactDateTime(rep.createdAt),
+                temperamentTags: rep.temperamentTags || [],
                 typeBadge: meta.typeBadge,
                 badgeClass: meta.badgeClass,
                 description: rep.distinctiveFeatures || `Visto en ${rep.lastSeenLocation}. Por favor ayuda compartiendo este reporte.`,
@@ -1759,12 +1883,16 @@ export class CommunityFeedComponent implements OnInit {
   }
 
   openPublicationModal(defaultType?: LostPetType): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     this.isReportLostModalOpen.set(true);
     this.reportLostSuccess.set(null);
     this.reportLostPhotoSource.set('FILE');
     this.reportLostPhotoPreview.set(null);
     this.reportLostSelectedFile.set(null);
     this.reportLostForm.photoUrl = '';
+    this.reportLostForm.temperamentTags = [];
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
     if (defaultType) {
       this.setModalPublicationType(defaultType);
@@ -1778,6 +1906,9 @@ export class CommunityFeedComponent implements OnInit {
   }
 
   closeReportLostModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
     this.isReportLostModalOpen.set(false);
     this.reportLostSuccess.set(null);
   }
@@ -1867,6 +1998,11 @@ export class CommunityFeedComponent implements OnInit {
         rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
         photos: finalPhotoUrl ? [finalPhotoUrl] : [],
         isInjured: this.reportLostForm.isInjured,
+        temperamentTags: this.reportLostForm.temperamentTags,
+        goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
+        goodWithOtherPets:
+          this.reportLostForm.temperamentTags.includes('Sociable con perros') ||
+          this.reportLostForm.temperamentTags.includes('Convive con gatos'),
       };
 
       this.lostPetService.create(payload).subscribe({
@@ -1885,8 +2021,9 @@ export class CommunityFeedComponent implements OnInit {
             authorPhotoUrl: this.authService.currentUser()?.profilePhotoUrl,
             authorRole: meta.authorRole,
             authorColonia: this.colonias().find(c => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
-            createdAt: new Date().toISOString(),
-            timeAgo: 'Hace un momento',
+            createdAt: newReport.createdAt || new Date().toISOString(),
+            timeAgo: this.formatExactDateTime(newReport.createdAt || new Date().toISOString()),
+            temperamentTags: newReport.temperamentTags || this.reportLostForm.temperamentTags || [],
             typeBadge: meta.typeBadge,
             badgeClass: meta.badgeClass,
             description: newReport.distinctiveFeatures,
@@ -1940,6 +2077,9 @@ export class CommunityFeedComponent implements OnInit {
   // ITEM #2: FLUJO "QUIERO ADOPTAR"
   // ==========================================
   openAdoptionModal(pet: Pet): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     this.selectedPetForAdoption.set(pet);
     this.adoptionSubmittedSuccess.set(false);
     this.adoptionForm = {
@@ -1950,6 +2090,9 @@ export class CommunityFeedComponent implements OnInit {
   }
 
   closeAdoptionModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
     this.selectedPetForAdoption.set(null);
     this.adoptionSubmittedSuccess.set(false);
   }
@@ -1998,6 +2141,9 @@ export class CommunityFeedComponent implements OnInit {
   // SIGHTINGS MODAL
   // ==========================================
   openSightingModal(report: LostPetReport): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     this.selectedLostPetForSighting.set(report);
     this.sightingPhotoSource.set('FILE');
     this.sightingPhotoPreview.set(null);
@@ -2010,6 +2156,9 @@ export class CommunityFeedComponent implements OnInit {
   }
 
   closeSightingModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
     this.selectedLostPetForSighting.set(null);
     this.sightingPhotoPreview.set(null);
     this.sightingSelectedFile.set(null);
@@ -2093,16 +2242,30 @@ export class CommunityFeedComponent implements OnInit {
     this.notify.success('Enlace de la publicación copiado al portapapeles');
   }
 
-  formatRelativeTime(dateStr: string): string {
+  formatExactDateTime(dateStr: string): string {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
+    if (isNaN(date.getTime())) return dateStr;
+    const datePart = date.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timePart = date.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${datePart} • ${timePart}`;
+  }
 
-    if (diffHours < 1) return 'Hace unos momentos';
-    if (diffHours < 24) return `Hace ${diffHours} ${diffHours === 1 ? 'hora' : 'horas'}`;
-    if (diffDays < 7) return `Hace ${diffDays} ${diffDays === 1 ? 'día' : 'días'}`;
-    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  formatRelativeTime(dateStr: string): string {
+    return this.formatExactDateTime(dateStr);
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
   }
 }

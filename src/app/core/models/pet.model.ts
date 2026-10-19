@@ -45,6 +45,8 @@ export interface Pet {
   knownDiseases?: string;
   goodWithKids?: boolean;
   goodWithOtherPets?: boolean;
+  temperamentTags?: string[];
+  isDeleted?: boolean;
   energyLevel?: EnergyLevel;
   trainingNotes?: string;
   rescueStory?: string;
@@ -86,6 +88,7 @@ export interface CreatePetPayload {
   knownDiseases?: string;
   goodWithKids?: boolean;
   goodWithOtherPets?: boolean;
+  temperamentTags?: string[];
   energyLevel?: EnergyLevel;
   trainingNotes?: string;
   rescueStory?: string;

@@ -61,4 +61,10 @@ export class LostPetService {
       .post<ApiResponse<any>>(`${this.URL}/${id}/comments`, { content })
       .pipe(map((r) => r.data));
   }
+
+  delete(id: string): Observable<{ message: string }> {
+    return this.http
+      .delete<ApiResponse<{ message: string }>>(`${this.URL}/${id}`)
+      .pipe(map((r) => r.data));
+  }
 }
