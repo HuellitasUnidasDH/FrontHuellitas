@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -35,11 +35,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           </div>
 
           <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="refreshData()"
+              [disabled]="isRefreshing()"
+              class="px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-slate-700"
+              title="Actualizar bandeja de solicitudes"
+            >
+              <span [class.animate-spin]="isRefreshing()">🔄</span>
+              <span>Actualizar</span>
+            </button>
+
             <a
               routerLink="/pets/new"
-              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md"
+              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-1 hover:brightness-105 transition-all"
             >
-              + Publicar Mascota
+              <span>+</span> Publicar Mascota
             </a>
           </div>
         </div>
@@ -73,6 +84,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <!-- TAB 1: SOLICITUDES DE ADOPCIÓN -->
         @if (activeTab() === 'REQUESTS') {
           <section class="space-y-4">
+            <!-- Sync & Quick Actions Bar -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-1 text-xs">
+              <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Detección en tiempo real activa
+                </span>
+                <span class="text-[11px] text-slate-500">
+                  Última sincronización: <strong>{{ lastUpdatedFormatted() }}</strong>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                (click)="refreshData()"
+                [disabled]="isRefreshing()"
+                class="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer flex items-center gap-1 disabled:opacity-50"
+              >
+                <span [class.animate-spin]="isRefreshing()">🔄</span>
+                <span>Recargar ahora</span>
+              </button>
+            </div>
+
             @if (requests().length === 0) {
               <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
                 <span class="text-4xl">📭</span>
@@ -109,10 +143,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </span>
                     </div>
 
-                    <!-- Adopter Message -->
+                    <!-- Adopter Message with Protocol Styling -->
                     @if (req.adopterMessage) {
-                      <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 whitespace-pre-line">
-                        {{ req.adopterMessage }}
+                      <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-emerald-500/20 shadow-inner text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-sans">
+                        <div class="flex items-center gap-1.5 font-bold text-[11px] text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
+                          <span>📋</span>
+                          <span>Respuestas y Compromisos del Protocolo de Adopción:</span>
+                        </div>
+                        <div class="pl-1 text-slate-700 dark:text-slate-300">
+                          {{ req.adopterMessage }}
+                        </div>
                       </div>
                     }
 
@@ -232,7 +272,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     </div>
   `,
 })
-export class RescuerDashboardComponent implements OnInit {
+export class RescuerDashboardComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   private router = inject(Router);
   private adoptionService = inject(AdoptionService);
@@ -244,6 +284,10 @@ export class RescuerDashboardComponent implements OnInit {
   requests = signal<AdoptionRequest[]>([]);
   followups = signal<AdoptionFollowup[]>([]);
   isLoading = signal<boolean>(true);
+  isRefreshing = signal<boolean>(false);
+  lastUpdated = signal<Date>(new Date());
+
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     const role = this.authService.currentUser()?.role;
@@ -254,6 +298,75 @@ export class RescuerDashboardComponent implements OnInit {
     }
 
     this.loadData();
+    this.startAutoRefresh();
+  }
+
+  ngOnDestroy(): void {
+    this.stopAutoRefresh();
+  }
+
+  startAutoRefresh(): void {
+    this.stopAutoRefresh();
+    // Auto-detección en segundo plano cada 20 segundos
+    this.pollTimer = setInterval(() => {
+      this.silentRefresh();
+    }, 20000);
+  }
+
+  stopAutoRefresh(): void {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+  }
+
+  lastUpdatedFormatted(): string {
+    const d = this.lastUpdated();
+    return d.toLocaleTimeString('es-MX', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  }
+
+  silentRefresh(): void {
+    this.adoptionService.getPublisherInbox().subscribe({
+      next: (newReqs) => {
+        const previousCount = this.requests().length;
+        const previousPending = this.requests().filter((r) => r.status === 'PENDIENTE').length;
+        const currentPending = (newReqs || []).filter((r) => r.status === 'PENDIENTE').length;
+
+        if (newReqs && newReqs.length > previousCount && currentPending > previousPending) {
+          this.notify.info(
+            '¡Nueva solicitud recibida!',
+            'Un adoptante acaba de postular una solicitud para una de tus mascotas.',
+          );
+        }
+
+        this.requests.set(newReqs || []);
+        this.lastUpdated.set(new Date());
+      },
+    });
+  }
+
+  refreshData(): void {
+    this.isRefreshing.set(true);
+    this.adoptionService.getPublisherInbox().subscribe({
+      next: (reqs) => {
+        this.requests.set(reqs || []);
+        this.adoptionService.getFollowups().subscribe({
+          next: (fols) => {
+            this.followups.set(fols || []);
+            this.isRefreshing.set(false);
+            this.lastUpdated.set(new Date());
+            this.notify.success('Bandeja de solicitudes actualizada');
+          },
+          error: () => this.isRefreshing.set(false),
+        });
+      },
+      error: () => this.isRefreshing.set(false),
+    });
   }
 
   loadData(): void {

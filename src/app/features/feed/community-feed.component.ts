@@ -843,60 +843,140 @@ interface FeedPost {
                   </div>
                 } @else {
                   <!-- Authenticated Form -->
-                  <p class="text-xs text-slate-600 dark:text-slate-300">
-                    Por favor responde estas breves preguntas para garantizar el bienestar de <strong>{{ selectedPetForAdoption()!.name }}</strong>:
-                  </p>
+                  <div class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2.5">
+                    <span class="text-base sm:text-lg">📋</span>
+                    <div class="text-[11px] text-slate-700 dark:text-slate-300 leading-snug">
+                      <strong class="text-emerald-700 dark:text-emerald-400">Protocolo de Adopción Responsable:</strong>
+                      Responde este cuestionario para que el rescatista evalúe tu solicitud. Todas las preguntas y compromisos son obligatorios.
+                    </div>
+                  </div>
 
-                  <div class="space-y-3">
+                  <div class="space-y-3.5">
+                    <!-- 1. Tipo de Vivienda -->
                     <div>
                       <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                        1. ¿En qué tipo de vivienda vivirá?
+                        1. ¿En qué tipo de vivienda vivirá la mascota? <span class="text-rose-500">*</span>
                       </label>
                       <select
                         [(ngModel)]="adoptionForm.housingType"
                         class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                       >
-                        <option value="CASA_PROPIA">Casa propia con patio o jardín cercado</option>
-                        <option value="CASA_RENTA">Casa en renta (con permiso explícito para mascotas)</option>
-                        <option value="DEPARTAMENTO">Departamento / Espacio interior</option>
+                        <option value="CASA_PROPIA_PATIO">🏡 Casa propia con patio o jardín cercado y seguro</option>
+                        <option value="CASA_PROPIA_SIN_PATIO">🏠 Casa propia sin patio (espacio interior)</option>
+                        <option value="RENTA_CON_PERMISO">🏢 Casa o departamento en renta (con permiso del casero)</option>
                       </select>
                     </div>
 
+                    <!-- 2. Acuerdo Familiar -->
                     <div>
                       <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                        2. ¿Tienes otras mascotas actualmente?
+                        2. ¿Toda la familia o personas en casa aceptan la adopción? <span class="text-rose-500">*</span>
+                      </label>
+                      <select
+                        [(ngModel)]="adoptionForm.familyAgreed"
+                        class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="SI_FAMILIA">👨‍👩‍👧‍👦 Sí, toda la familia acepta y asumirá la responsabilidad</option>
+                        <option value="VIVO_SOLO">👤 Vivo solo(a) y asumo la total responsabilidad del cuidado</option>
+                      </select>
+                    </div>
+
+                    <!-- 3. Mascotas Actuales y Esterilización -->
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                        3. ¿Tienes otras mascotas en casa? ¿Están esterilizadas y vacunadas? <span class="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         [(ngModel)]="adoptionForm.currentPets"
-                        placeholder="Ej: 1 perrito mestizo de 3 años, esterilizado / Ninguna"
+                        placeholder="Ej: 1 perrito criollo de 3 años esterilizado / Ninguna mascota actualmente"
                         class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                       />
                     </div>
 
+                    <!-- 4. Plan de Mudanza o Imprevistos -->
                     <div>
                       <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                        3. ¿Por qué deseas adoptar a {{ selectedPetForAdoption()!.name }}?
+                        4. En caso de mudanza, viaje o cambio laboral, ¿cuál es tu plan? <span class="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        [(ngModel)]="adoptionForm.relocationPlan"
+                        placeholder="Ej: La mascota siempre se muda con nosotros / Familiares directos de apoyo"
+                        class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <!-- 5. Motivo y Tiempo Diario -->
+                    <div>
+                      <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                        5. ¿Por qué deseas adoptar a {{ selectedPetForAdoption()!.name }} y cuánto tiempo le dedicarás? <span class="text-rose-500">*</span>
                       </label>
                       <textarea
                         [(ngModel)]="adoptionForm.reason"
-                        rows="3"
-                        placeholder="Platícanos sobre tu familia, tu rutina y el espacio que le ofrecerás..."
+                        rows="2"
+                        placeholder="Platícanos sobre tu rutina diaria, paseos y el cariño que recibirá en tu hogar..."
                         class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                       ></textarea>
                     </div>
+
+                    <!-- 6. Compromisos Obligatorios del Convenio (Checkboxes) -->
+                    <div class="p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-900/80 border border-slate-300/80 dark:border-slate-700/80 space-y-2.5">
+                      <span class="block text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                        📜 Compromisos Obligatorios del Convenio de Adopción:
+                      </span>
+
+                      <label class="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          [(ngModel)]="adoptionForm.agreeNoAbandon"
+                          class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                        <span class="text-[11px] leading-tight">
+                          <strong>Miembro de la familia:</strong> Tendrá agua, alimento, cariño y atención médica. Jamás estará amarrado, en azoteas, ni será regalado, vendido o reubicado sin consentimiento previo.
+                        </span>
+                      </label>
+
+                      <label class="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          [(ngModel)]="adoptionForm.agreeSterilization"
+                          class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                        <span class="text-[11px] leading-tight">
+                          <strong>Esterilización y salud:</strong> Me comprometo a su esterilización obligatoria (a los 5-6 meses si es cachorro) y a mantener su cuadro de vacunas y desparasitación al día.
+                        </span>
+                      </label>
+
+                      <label class="flex items-start gap-2.5 cursor-pointer text-xs text-slate-700 dark:text-slate-300">
+                        <input
+                          type="checkbox"
+                          [(ngModel)]="adoptionForm.agreeFollowup"
+                          class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                        />
+                        <span class="text-[11px] leading-tight">
+                          <strong>Seguimiento de bienestar:</strong> Acepto compartir fotos y recibir seguimiento periódico (a las 2 semanas, 1 mes, 6 meses y al año) para constatar su adaptación.
+                        </span>
+                      </label>
+                    </div>
                   </div>
 
+                  @if (!isAdoptionFormValid()) {
+                    <p class="text-[11px] text-amber-600 dark:text-amber-400 font-medium text-center bg-amber-500/10 rounded-xl p-2 border border-amber-500/20">
+                      ⚠️ Responde las 5 preguntas y marca los 3 compromisos del convenio para habilitar el envío.
+                    </p>
+                  }
+
                   <!-- Submit Action -->
-                  <div class="pt-3 flex gap-2">
+                  <div class="pt-2 flex gap-2">
                     <button
                       (click)="submitAdoptionRequest()"
-                      [disabled]="isSubmittingAdoption()"
-                      class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                      [disabled]="isSubmittingAdoption() || !isAdoptionFormValid()"
+                      class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     >
                       @if (isSubmittingAdoption()) {
                         <div class="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Enviando...</span>
+                        <span>Enviando solicitud...</span>
                       } @else {
                         <span>🐾 Enviar Solicitud Formal</span>
                       }
@@ -1471,9 +1551,14 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   adoptionSubmittedSuccess = signal<boolean>(false);
   isSubmittingAdoption = signal<boolean>(false);
   adoptionForm = {
-    housingType: 'CASA_PROPIA',
+    housingType: 'CASA_PROPIA_PATIO',
+    familyAgreed: 'SI_FAMILIA',
     currentPets: '',
+    relocationPlan: '',
     reason: '',
+    agreeNoAbandon: false,
+    agreeSterilization: false,
+    agreeFollowup: false,
   };
 
   // Sighting modal state
@@ -2094,10 +2179,28 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.selectedPetForAdoption.set(pet);
     this.adoptionSubmittedSuccess.set(false);
     this.adoptionForm = {
-      housingType: 'CASA_PROPIA',
+      housingType: 'CASA_PROPIA_PATIO',
+      familyAgreed: 'SI_FAMILIA',
       currentPets: '',
+      relocationPlan: '',
       reason: '',
+      agreeNoAbandon: false,
+      agreeSterilization: false,
+      agreeFollowup: false,
     };
+  }
+
+  isAdoptionFormValid(): boolean {
+    return (
+      !!this.adoptionForm.housingType &&
+      (this.adoptionForm.familyAgreed === 'SI_FAMILIA' || this.adoptionForm.familyAgreed === 'VIVO_SOLO') &&
+      this.adoptionForm.currentPets.trim().length >= 3 &&
+      this.adoptionForm.relocationPlan.trim().length >= 4 &&
+      this.adoptionForm.reason.trim().length >= 10 &&
+      this.adoptionForm.agreeNoAbandon &&
+      this.adoptionForm.agreeSterilization &&
+      this.adoptionForm.agreeFollowup
+    );
   }
 
   closeAdoptionModal(): void {
@@ -2112,9 +2215,36 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     const pet = this.selectedPetForAdoption();
     if (!pet) return;
 
+    if (!this.isAdoptionFormValid()) {
+      this.notify.warning('Formulario incompleto', 'Por favor responde todas las preguntas y acepta los compromisos del convenio.');
+      return;
+    }
+
     this.isSubmittingAdoption.set(true);
 
-    const message = `[Solicitud Huellitas DH]\nVivienda: ${this.adoptionForm.housingType}\nOtras mascotas: ${this.adoptionForm.currentPets || 'Ninguna'}\nMotivo: ${this.adoptionForm.reason || 'Deseo brindarle un hogar seguro'}`;
+    const housingLabel =
+      this.adoptionForm.housingType === 'CASA_PROPIA_PATIO'
+        ? 'Casa propia con patio o jardín cercado y seguro'
+        : this.adoptionForm.housingType === 'CASA_PROPIA_SIN_PATIO'
+          ? 'Casa propia sin patio (espacio interior)'
+          : 'En renta (con permiso explícito confirmado del arrendador)';
+
+    const familyLabel =
+      this.adoptionForm.familyAgreed === 'SI_FAMILIA'
+        ? 'Toda la familia acepta y asume la responsabilidad'
+        : 'Vive solo(a) y asume la total responsabilidad';
+
+    const message = `📋 SOLICITUD DE ADOPCIÓN RESPONSABLE (Protocolo Huellitas DH)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏠 Vivienda: ${housingLabel}
+👨‍👩‍👧‍👦 Acuerdo familiar: ${familyLabel}
+🐾 Mascotas actuales / Esterilización: ${this.adoptionForm.currentPets.trim()}
+📦 Plan ante mudanza / imprevistos: ${this.adoptionForm.relocationPlan.trim()}
+❤️ Motivo y tiempo dedicado: ${this.adoptionForm.reason.trim()}
+📜 Compromisos Aceptados del Convenio:
+  ✅ Miembro de familia (sin cadenas/azoteas, no venta/regalo/abandono)
+  ✅ Compromiso de esterilización y atención veterinaria continua
+  ✅ Seguimiento con fotos y visitas (2 semanas, 1 mes, 6 meses y 1 año)`;
 
     this.adoptionService.createRequest(pet.id, message).subscribe({
       next: () => {
