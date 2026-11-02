@@ -554,9 +554,29 @@ interface FeedPost {
                       🎁 Recompensa: {{ post.rewardDetails || 'Ofrecida' }}
                     </span>
                   }
+                  @if (post.lostData?.status === 'REENCONTRADA') {
+                    <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-black">
+                      ✅ Caso Resuelto / Reencontrado
+                    </span>
+                  }
                   @if (post.lastSeenLocation) {
-                    <span class="px-2 py-0.5 rounded-lg bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-semibold truncate max-w-full">
-                      📍 Visto: {{ post.lastSeenLocation }}
+                    <span
+                      class="px-2 py-0.5 rounded-lg font-semibold truncate max-w-full border"
+                      [ngClass]="post.postType === 'CAMPANA_COMUNITARIA'
+                        ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30'
+                        : post.postType === 'EN_ADOPCION'
+                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30'"
+                    >
+                      @if (post.postType === 'CAMPANA_COMUNITARIA') {
+                        📍 Sede: {{ post.lastSeenLocation }}
+                      } @else if (post.postType === 'EN_ADOPCION' || post.postType === 'EN_RESGUARDO') {
+                        📍 Zona: {{ post.lastSeenLocation }}
+                      } @else if (post.postType === 'ANIMAL_HERIDO') {
+                        🚨 Ubicación: {{ post.lastSeenLocation }}
+                      } @else {
+                        📍 Visto en: {{ post.lastSeenLocation }}
+                      }
                     </span>
                   }
                   @if (post.reportsCount && post.reportsCount > 1) {
@@ -616,25 +636,98 @@ interface FeedPost {
                       <span class="hidden sm:inline">Ficha</span>
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
-                    <!-- CTA: ¡Lo he visto! -->
-                    <button
-                      (click)="openSightingModal(post.lostData)"
-                      class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
-                    >
-                      <span>👀</span>
-                      <span>¡Lo vi!</span>
-                    </button>
-
-                    <!-- Contact Owner WhatsApp -->
-                    @if (post.contactPhone) {
-                      <a
-                        [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la publicación de ' + post.title + ' en Huellitas Dolores Hidalgo')"
-                        target="_blank"
-                        class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                    @if (post.postType === 'CAMPANA_COMUNITARIA') {
+                      <!-- CTA para Campaña Comunitaria -->
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
+                          target="_blank"
+                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>📲</span>
+                          <span>Solicitar Informes</span>
+                        </a>
+                      } @else {
+                        <button
+                          (click)="toggleComments(post)"
+                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>📢</span>
+                          <span>Ver Detalles / Preguntar</span>
+                        </button>
+                      }
+                    } @else if (post.postType === 'EN_ADOPCION') {
+                      <!-- CTA para Mascota en Adopción reportada en muro -->
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo')"
+                          target="_blank"
+                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>💚</span>
+                          <span>Quiero Adoptar</span>
+                        </a>
+                      }
+                    } @else if (post.postType === 'ANIMAL_HERIDO') {
+                      <!-- CTA para Animal Herido -->
+                      <button
+                        (click)="openSightingModal(post.lostData)"
+                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-1"
                       >
-                        <span>📲</span>
-                        <span class="hidden sm:inline">WhatsApp</span>
-                      </a>
+                        <span>🚑</span>
+                        <span>Brindar Ayuda / Reportar</span>
+                      </button>
+
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la alerta de urgencia de ' + post.title + ' en Huellitas Dolores Hidalgo')"
+                          target="_blank"
+                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <span>📲</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
+                        </a>
+                      }
+                    } @else if (post.postType === 'EN_RESGUARDO') {
+                      <!-- CTA para Animal en Resguardo -->
+                      <button
+                        (click)="openSightingModal(post.lostData)"
+                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🏠</span>
+                        <span>Es mío / Apoyar</span>
+                      </button>
+
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo')"
+                          target="_blank"
+                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <span>📲</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
+                        </a>
+                      }
+                    } @else {
+                      <!-- CTA para Mascota Extraviada (Se Busca) -->
+                      <button
+                        (click)="openSightingModal(post.lostData)"
+                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <span>👀</span>
+                        <span>¡Lo vi!</span>
+                      </button>
+
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la publicación de ' + post.title + ' en Huellitas Dolores Hidalgo')"
+                          target="_blank"
+                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <span>📲</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
+                        </a>
+                      }
                     }
                   }
                 </div>
@@ -651,6 +744,24 @@ interface FeedPost {
                   </button>
 
                   @if (canDeletePost(post)) {
+                    @if (post.kind === 'LOST_PET' && post.lostData && post.postType !== 'CAMPANA_COMUNITARIA' && post.lostData.status !== 'REENCONTRADA') {
+                      <button
+                        (click)="markPostResolved(post)"
+                        class="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-500 hover:text-white border border-emerald-200 dark:border-emerald-900/60 text-emerald-600 dark:text-emerald-400 text-xs transition-colors cursor-pointer"
+                        title="Marcar caso como Resuelto / Reencontrado"
+                      >
+                        <span>✅</span>
+                      </button>
+                    }
+
+                    <button
+                      (click)="openEditPostModal(post)"
+                      class="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-slate-950 border border-amber-200 dark:border-amber-900/60 text-amber-600 dark:text-amber-400 text-xs transition-colors cursor-pointer"
+                      title="Editar mi publicación"
+                    >
+                      <span>✏️</span>
+                    </button>
+
                     <button
                       (click)="confirmDeactivatePost(post)"
                       class="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-500 hover:text-white border border-rose-200 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 text-xs transition-colors cursor-pointer"
@@ -1196,7 +1307,7 @@ interface FeedPost {
                   </div>
                   <div>
                     <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                      Crear Publicación en el Muro Comunitario
+                      {{ editingReportId() ? 'Editar Publicación del Muro' : 'Crear Publicación en el Muro Comunitario' }}
                     </h3>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
                       Bienestar animal, reportes y solidaridad en Dolores Hidalgo
@@ -1542,7 +1653,7 @@ interface FeedPost {
                         <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         <span>Publicando...</span>
                       } @else {
-                        <span>{{ currentCategoryConfig.submitButtonIcon }} {{ currentCategoryConfig.submitButtonText }}</span>
+                        <span>{{ editingReportId() ? '💾 Guardar Cambios' : currentCategoryConfig.submitButtonIcon + ' ' + currentCategoryConfig.submitButtonText }}</span>
                       }
                     </button>
                     <button
@@ -2152,15 +2263,21 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  editingReportId = signal<string | null>(null);
+
   openPublicationModal(defaultType?: LostPetType): void {
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
+    this.editingReportId.set(null);
     this.isReportLostModalOpen.set(true);
     this.reportLostSuccess.set(null);
     this.reportLostPhotoSource.set('FILE');
     this.reportLostPhotoPreview.set(null);
     this.reportLostSelectedFile.set(null);
+    this.reportLostForm.petName = '';
+    this.reportLostForm.lastSeenLocation = '';
+    this.reportLostForm.distinctiveFeatures = '';
     this.reportLostForm.photoUrl = '';
     this.reportLostForm.temperamentTags = [];
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
@@ -2169,6 +2286,69 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     } else {
       this.setModalPublicationType('ANIMAL_HERIDO');
     }
+  }
+
+  openEditPostModal(post: FeedPost): void {
+    if (post.kind === 'PET_ADOPTION' && post.petData) {
+      this.router.navigate(['/pets/edit', post.petData.id]);
+      return;
+    }
+    if (post.kind === 'LOST_PET' && post.lostData) {
+      const rep = post.lostData;
+      if (typeof document !== 'undefined') {
+        document.body.classList.add('modal-open');
+      }
+      this.editingReportId.set(rep.id);
+      this.reportLostSuccess.set(null);
+      this.reportLostForm.type = rep.type;
+      this.reportLostForm.petName = rep.petName || '';
+      this.reportLostForm.species = (rep.species as any) || 'Perro';
+      this.reportLostForm.gender = (rep.gender as any) || 'Desconocido';
+      this.reportLostForm.coloniaId = rep.coloniaId || '';
+      this.reportLostForm.lastSeenLocation = rep.lastSeenLocation || '';
+      this.reportLostForm.distinctiveFeatures = rep.distinctiveFeatures || '';
+      this.reportLostForm.contactPhone = rep.contactPhone || '';
+      this.reportLostForm.rewardOffered = !!rep.rewardOffered;
+      this.reportLostForm.rewardDetails = rep.rewardDetails || '';
+      this.reportLostForm.isInjured = !!rep.isInjured;
+      this.reportLostForm.temperamentTags = [...(rep.temperamentTags || [])];
+      const existingPhoto = (rep.photos && rep.photos[0]) || '';
+      this.reportLostForm.photoUrl = existingPhoto;
+      this.reportLostPhotoPreview.set(existingPhoto || null);
+      this.reportLostPhotoSource.set(existingPhoto ? 'URL' : 'FILE');
+      this.reportLostSelectedFile.set(null);
+      this.isReportLostModalOpen.set(true);
+    }
+  }
+
+  async markPostResolved(post: FeedPost): Promise<void> {
+    if (!post.lostData) return;
+    const confirmed = await this.confirmService.confirm({
+      title: '¿Marcar caso como Resuelto?',
+      message: `¿Confirmas que el caso de "${post.lostData.petName || post.title}" ya fue resuelto o reencontrado?`,
+      submessage: 'Se mostrará una insignia de Caso Resuelto en el muro para compartir la buena noticia con la comunidad.',
+      confirmText: 'Sí, marcar resuelto',
+      cancelText: 'Cancelar',
+      type: 'success',
+      icon: '✅',
+    });
+    if (!confirmed) return;
+
+    this.lostPetService.updateStatus(post.lostData.id, 'REENCONTRADA' as any).subscribe({
+      next: (updated) => {
+        this.allPosts.update((posts) =>
+          posts.map((p) =>
+            p.id === post.id
+              ? { ...p, lostData: { ...p.lostData!, status: updated.status } }
+              : p,
+          ),
+        );
+        this.notify.success('¡Excelente noticia! Caso marcado como resuelto');
+      },
+      error: (err) => {
+        this.notify.error(err.error?.message || 'No se pudo actualizar el estado');
+      },
+    });
   }
 
   openReportLostModal(): void {
@@ -2263,6 +2443,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.isSubmittingReportLost.set(true);
 
     const executeCreation = (finalPhotoUrl?: string) => {
+      const editId = this.editingReportId();
       const payload = {
         type: this.reportLostForm.type,
         species: this.reportLostForm.species,
@@ -2284,6 +2465,114 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           this.reportLostForm.temperamentTags.includes('Convive con gatos'),
       };
 
+      // Caso A: Edición de publicación existente
+      if (editId) {
+        this.lostPetService.update(editId, payload).subscribe({
+          next: (updatedReport) => {
+            this.isSubmittingReportLost.set(false);
+            const meta = this.getPostTypeMetadata(updatedReport);
+            this.allPosts.update((posts) =>
+              posts.map((p) =>
+                p.id === `lost-${editId}`
+                  ? {
+                      ...p,
+                      postType: updatedReport.type,
+                      title: meta.title,
+                      typeBadge: meta.typeBadge,
+                      badgeClass: meta.badgeClass,
+                      description: updatedReport.distinctiveFeatures,
+                      photoUrl: (updatedReport.photos && updatedReport.photos[0]) || p.photoUrl,
+                      photos: updatedReport.photos || p.photos,
+                      species: updatedReport.species,
+                      gender: updatedReport.gender,
+                      coloniaName: this.colonias().find((c) => c.id === updatedReport.coloniaId)?.name,
+                      lastSeenLocation: updatedReport.lastSeenLocation,
+                      contactPhone: updatedReport.contactPhone,
+                      rewardOffered: updatedReport.rewardOffered,
+                      rewardDetails: updatedReport.rewardDetails,
+                      isInjured: updatedReport.isInjured,
+                      temperamentTags: updatedReport.temperamentTags || [],
+                      lostData: updatedReport,
+                    }
+                  : p,
+              ),
+            );
+            this.notify.success('¡Publicación actualizada correctamente!');
+            this.closeReportLostModal();
+          },
+          error: (err) => {
+            this.isSubmittingReportLost.set(false);
+            this.notify.error(err.error?.message || 'Error al actualizar la publicación');
+          },
+        });
+        return;
+      }
+
+      // Caso B: Nueva publicación de "3. Dar en Adopción" -> Se registra en el catálogo de Adopciones con cuestionario activo
+      if (this.reportLostForm.type === 'EN_ADOPCION') {
+        const petPayload: any = {
+          name: this.reportLostForm.petName.trim(),
+          species: this.reportLostForm.species,
+          gender: this.reportLostForm.gender === 'Hembra' ? 'FEMALE' : 'MALE',
+          status: 'DISPONIBLE',
+          coloniaId: this.reportLostForm.coloniaId || undefined,
+          photoUrl: finalPhotoUrl || undefined,
+          rescueStory: `${this.reportLostForm.distinctiveFeatures.trim()} (Ubicación: ${this.reportLostForm.lastSeenLocation.trim()})`,
+          notes: `Tel. de contacto: ${this.reportLostForm.contactPhone.trim()}`,
+          temperamentTags: this.reportLostForm.temperamentTags,
+          isSterilized: this.reportLostForm.temperamentTags.includes('Esterilizado(a)'),
+          goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
+          goodWithOtherPets:
+            this.reportLostForm.temperamentTags.includes('Sociable con perros') ||
+            this.reportLostForm.temperamentTags.includes('Convive con gatos'),
+        };
+
+        this.petService.create(petPayload).subscribe({
+          next: (createdPet) => {
+            this.isSubmittingReportLost.set(false);
+            const coloniaName = this.colonias().find((c) => c.id === createdPet.coloniaId)?.name || 'Dolores Hidalgo';
+            const newAdoptionPost: FeedPost = {
+              id: `pet-${createdPet.id}`,
+              kind: 'PET_ADOPTION',
+              postType: 'EN_ADOPCION',
+              title: `${createdPet.name} busca una familia amorosa`,
+              authorName: this.authService.currentUser()?.fullName || 'Ciudadano Solidario',
+              authorPhotoUrl: this.authService.currentUser()?.profilePhotoUrl,
+              authorRole: 'Adopción Responsable',
+              authorColonia: coloniaName,
+              createdAt: createdPet.createdAt || new Date().toISOString(),
+              timeAgo: this.formatExactDateTime(createdPet.createdAt || new Date().toISOString()),
+              temperamentTags: createdPet.temperamentTags || this.reportLostForm.temperamentTags || [],
+              typeBadge: '💚 En Adopción',
+              badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+              description: createdPet.rescueStory || this.reportLostForm.distinctiveFeatures.trim(),
+              photoUrl: createdPet.photoUrl || finalPhotoUrl || '',
+              photos: createdPet.photoUrl ? [createdPet.photoUrl] : [],
+              species: createdPet.species,
+              gender: createdPet.gender,
+              coloniaName,
+              isSterilized: createdPet.isSterilized,
+              goodWithKids: createdPet.goodWithKids,
+              goodWithOtherPets: createdPet.goodWithOtherPets,
+              petData: createdPet,
+              comments: [],
+              showComments: false,
+              newCommentText: '',
+              isSubmittingComment: false,
+            };
+            this.allPosts.update((posts) => [newAdoptionPost, ...posts]);
+            this.notify.success('¡Mascota publicada en Adopción con Protocolo de Solicitud activo!');
+            this.closeReportLostModal();
+          },
+          error: (err) => {
+            this.isSubmittingReportLost.set(false);
+            this.notify.error(err.error?.message || 'No se pudo publicar la mascota en adopción');
+          },
+        });
+        return;
+      }
+
+      // Caso C: Reportes comunitarios (Animal Herido, En Resguardo, Se Busca, Campaña)
       this.lostPetService.create(payload).subscribe({
         next: (newReport) => {
           this.isSubmittingReportLost.set(false);

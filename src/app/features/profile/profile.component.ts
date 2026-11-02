@@ -269,9 +269,24 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                     <div class="absolute top-2.5 inset-x-2.5 flex items-center justify-between">
                       <span
                         class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm"
-                        [ngClass]="rep.type === 'EXTRAVIADA' ? 'bg-rose-500 text-white' : 'bg-sky-500 text-white'"
+                        [ngClass]="{
+                          'bg-rose-600 text-white': rep.type === 'ANIMAL_HERIDO',
+                          'bg-amber-500 text-slate-950': rep.type === 'EN_RESGUARDO',
+                          'bg-emerald-500 text-slate-950': rep.type === 'EN_ADOPCION',
+                          'bg-purple-600 text-white': rep.type === 'CAMPANA_COMUNITARIA',
+                          'bg-rose-500 text-white': rep.type === 'SE_BUSCA' || rep.type === 'EXTRAVIADA',
+                          'bg-sky-500 text-white': rep.type === 'ENCONTRADA_EN_CALLE'
+                        }"
                       >
-                        {{ rep.type === 'EXTRAVIADA' ? '🚨 Se Busca' : '📍 Encontrado' }}
+                        @switch (rep.type) {
+                          @case ('ANIMAL_HERIDO') { 🚨 Animal Herido }
+                          @case ('EN_RESGUARDO') { 🏠 En Resguardo }
+                          @case ('EN_ADOPCION') { 💚 En Adopción }
+                          @case ('CAMPANA_COMUNITARIA') { 📢 Campaña }
+                          @case ('SE_BUSCA') { 🔍 Se Busca }
+                          @case ('EXTRAVIADA') { 🔍 Se Busca }
+                          @default { 📍 Reporte }
+                        }
                       </span>
 
                       @if (rep.isInjured) {
@@ -344,31 +359,42 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
           } @else {
             <div class="space-y-3">
               @for (req of publications()!.adoptionRequests; track req.id) {
-                <div class="liquid-glass rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-200/80 dark:border-slate-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xl font-bold">
-                      🐾
+                <div class="liquid-glass rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-xl font-bold">
+                        🐾
+                      </div>
+                      <div>
+                        <h4 class="text-sm font-black text-slate-900 dark:text-white">
+                          Solicitud para adoptar a {{ req.pet?.name || 'Mascota' }}
+                        </h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                          Enviada el: {{ formatExactDateTime(req.createdAt) }}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 class="text-sm font-black text-slate-900 dark:text-white">
-                        Solicitud para adoptar a {{ req.pet?.name || 'Mascota' }}
-                      </h4>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Fecha: {{ formatDate(req.createdAt) }}
-                      </p>
-                    </div>
+
+                    <span
+                      class="px-3 py-1 rounded-full text-xs font-extrabold uppercase shadow-sm border"
+                      [ngClass]="req.status === 'PENDIENTE'
+                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30'
+                        : req.status === 'APROBADA'
+                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/30'"
+                    >
+                      @if (req.status === 'PENDIENTE') { ⏳ En Revisión (Pendiente) }
+                      @else if (req.status === 'APROBADA') { 🎉 ¡Solicitud Aprobada! }
+                      @else { ❌ {{ req.status }} }
+                    </span>
                   </div>
 
-                  <span
-                    class="px-3 py-1 rounded-full text-xs font-extrabold uppercase shadow-sm"
-                    [ngClass]="{
-                      'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30': req.status === 'PENDIENTE',
-                      'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30': req.status === 'APROBADA',
-                      'bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/30': req.status === 'RECHAZADA'
-                    }"
-                  >
-                    Estado: {{ req.status }}
-                  </span>
+                  @if (req.publisherNotes) {
+                    <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-700 dark:text-slate-300">
+                      <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">💬 Respuesta del rescatista / publicador:</span>
+                      {{ req.publisherNotes }}
+                    </div>
+                  }
                 </div>
               }
             </div>

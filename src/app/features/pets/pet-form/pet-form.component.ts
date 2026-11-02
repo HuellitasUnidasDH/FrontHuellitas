@@ -255,23 +255,17 @@ import { PetGroup } from '../../../core/models/group.model';
               </div>
             </div>
 
-            <!-- Adoption Distinction Card (Mis Mascotas vs En Adopción) -->
-            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20">
-              <label class="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  formControlName="isForAdoption"
-                  class="mt-1 w-5 h-5 rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                />
-                <div class="space-y-0.5">
-                  <span class="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    ¿Ofrecer a esta mascota en adopción comunitaria?
-                  </span>
-                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    <strong>Déjalo desmarcado</strong> si es tu mascota personal de casa (para llevar su carnet médico, vacunas y momentos familiares). No aparecerá en adopción comunitaria.
-                  </p>
-                </div>
-              </label>
+            <!-- Nota de Privacidad: Mis Mascotas es exclusivamente personal -->
+            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-start gap-3">
+              <span class="text-xl leading-none mt-0.5">🛡️</span>
+              <div class="space-y-0.5">
+                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Registro Personal en "Mis Mascotas"
+                </span>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Esta ficha es <strong>exclusivamente para tu mascota personal</strong> (expediente clínico y álbum de recuerdos). No se publicará en adopción. Si deseas publicar un animalito en adopción, hazlo desde el botón <strong>"3. Dar en Adopción"</strong> del Muro Comunitario.
+                </p>
+              </div>
             </div>
           </div>
 

@@ -44,6 +44,12 @@ export class LostPetService {
     return this.http.post<ApiResponse<LostPetReport>>(this.URL, payload).pipe(map((r) => r.data));
   }
 
+  update(id: string, payload: Partial<CreateLostPetPayload>): Observable<LostPetReport> {
+    return this.http
+      .patch<ApiResponse<LostPetReport>>(`${this.URL}/${id}`, payload)
+      .pipe(map((r) => r.data));
+  }
+
   updateStatus(id: string, status: LostPetStatus): Observable<LostPetReport> {
     return this.http
       .patch<ApiResponse<LostPetReport>>(`${this.URL}/${id}/status`, { status })
