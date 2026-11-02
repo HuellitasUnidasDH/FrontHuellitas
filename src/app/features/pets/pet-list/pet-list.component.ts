@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PetService } from '../../../core/services/pet.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { Pet } from '../../../core/models/pet.model';
@@ -170,21 +171,23 @@ import { Pet } from '../../../core/models/pet.model';
                   Expediente Clínico
                 </a>
 
-                <a
-                  [routerLink]="['/pets/edit', pet.id]"
-                  class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                  title="Editar mascota"
-                >
-                  ✏️
-                </a>
+                @if (canEditPet(pet)) {
+                  <a
+                    [routerLink]="['/pets/edit', pet.id]"
+                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    title="Editar mascota"
+                  >
+                    ✏️
+                  </a>
 
-                <button
-                  (click)="onDeletePet(pet)"
-                  class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-rose-500/20 border border-transparent text-xs text-rose-500 dark:text-rose-400 transition-colors cursor-pointer"
-                  title="Eliminar mascota"
-                >
-                  🗑️
-                </button>
+                  <button
+                    (click)="onDeletePet(pet)"
+                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-rose-500/20 border border-transparent text-xs text-rose-500 dark:text-rose-400 transition-colors cursor-pointer"
+                    title="Eliminar mascota"
+                  >
+                    🗑️
+                  </button>
+                }
               </div>
             </div>
           }
@@ -197,6 +200,14 @@ export class PetListComponent implements OnInit {
   private petService = inject(PetService);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
+  authService = inject(AuthService);
+
+  canEditPet(pet: Pet): boolean {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    return pet.ownerId === user.id;
+  }
 
   pets = signal<Pet[]>([]);
   isLoading = signal(true);

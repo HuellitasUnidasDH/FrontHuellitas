@@ -6,6 +6,7 @@ import { PetService } from '../../../core/services/pet.service';
 import { GroupService } from '../../../core/services/group.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { PetGender } from '../../../core/models/pet.model';
 import { PetGroup } from '../../../core/models/group.model';
 
@@ -319,6 +320,7 @@ export class PetFormComponent implements OnInit {
   private groupService = inject(GroupService);
   private notification = inject(NotificationService);
   private imageUploadService = inject(ImageUploadService);
+  private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -370,6 +372,17 @@ export class PetFormComponent implements OnInit {
   loadPetData(id: string): void {
     this.petService.getById(id).subscribe({
       next: (pet) => {
+        const user = this.authService.currentUser();
+        const canEdit = user && (user.role === 'ADMIN' || pet.ownerId === user.id);
+        if (!canEdit) {
+          this.notification.error(
+            'Acceso denegado',
+            'Solo el dueño registrado o un administrador pueden editar los datos de esta mascota',
+          );
+          this.router.navigate(['/pets']);
+          return;
+        }
+
         this.petForm.patchValue({
           name: pet.name,
           species: pet.species,

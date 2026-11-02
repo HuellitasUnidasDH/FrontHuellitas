@@ -86,19 +86,21 @@ import { UserRole } from '../../../core/models/user.model';
 
             <!-- Action Buttons -->
             <div class="flex flex-wrap items-center justify-center sm:justify-start lg:justify-end gap-2.5 w-full lg:w-auto pt-4 lg:pt-0 border-t lg:border-t-0 border-slate-200/60 dark:border-slate-800">
-              <button
-                (click)="openAddMomentModal()"
-                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-slate-950 text-xs font-bold shadow-md shadow-teal-500/20 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <span>📸</span> + Agregar Momento
-              </button>
+              @if (canEditPet) {
+                <button
+                  (click)="openAddMomentModal()"
+                  class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 hover:from-teal-400 hover:to-emerald-300 text-slate-950 text-xs font-bold shadow-md shadow-teal-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>📸</span> + Agregar Momento
+                </button>
 
-              <a
-                [routerLink]="['/pets/edit', pet()!.id]"
-                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
-              >
-                <span>✏️</span> Editar
-              </a>
+                <a
+                  [routerLink]="['/pets/edit', pet()!.id]"
+                  class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-300 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <span>✏️</span> Editar
+                </a>
+              }
 
               @if (isVetOrAdmin) {
                 <button
@@ -202,12 +204,14 @@ import { UserRole } from '../../../core/models/user.model';
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
                   Sube las fotos de tu mascota para construir su álbum de vida: su primer día, sus paseos favoritos o sus anécdotas más divertidas.
                 </p>
-                <button
-                  (click)="openAddMomentModal()"
-                  class="mt-6 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2"
-                >
-                  <span>📷</span> Subir la Primera Foto
-                </button>
+                @if (canEditPet) {
+                  <button
+                    (click)="openAddMomentModal()"
+                    class="mt-6 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <span>📷</span> Subir la Primera Foto
+                  </button>
+                }
               </div>
             } @else {
               <!-- Moments Grid -->
@@ -237,13 +241,15 @@ import { UserRole } from '../../../core/models/user.model';
                       </div>
 
                       <!-- Delete Button -->
-                      <button
-                        (click)="onDeleteMoment(moment, $event)"
-                        title="Eliminar recuerdo"
-                        class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500/90 hover:bg-rose-600 text-white flex items-center justify-center text-xs opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow cursor-pointer"
-                      >
-                        🗑️
-                      </button>
+                      @if (canEditPet) {
+                        <button
+                          (click)="onDeleteMoment(moment, $event)"
+                          title="Eliminar recuerdo"
+                          class="absolute top-3 right-3 w-8 h-8 rounded-full bg-rose-500/90 hover:bg-rose-600 text-white flex items-center justify-center text-xs opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow cursor-pointer"
+                        >
+                          🗑️
+                        </button>
+                      }
                     </div>
 
                     <!-- Card Body -->
@@ -716,6 +722,13 @@ export class PetDetailComponent implements OnInit {
   get isVetOrAdmin(): boolean {
     const role = this.authService.currentUser()?.role;
     return role === UserRole.VETERINARIAN || role === UserRole.ADMIN;
+  }
+
+  get canEditPet(): boolean {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === UserRole.ADMIN) return true;
+    return this.pet()?.ownerId === user.id;
   }
 
   recordForm = this.fb.group({
