@@ -47,10 +47,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </button>
 
             <a
-              routerLink="/pets/new"
+              routerLink="/adopciones"
               class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-1 hover:brightness-105 transition-all"
             >
-              <span>+</span> Publicar Mascota
+              <span>+</span> Publicar en Adopción
             </a>
           </div>
         </div>
