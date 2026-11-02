@@ -7,13 +7,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
   <meta name="description" content="Huellitas Unidas DH - Plataforma digital para el rescate, reporte de mascotas perdidas y adopción responsable de animales de compañía en Dolores Hidalgo, Guanajuato.">
   <meta name="theme-color" content="#10b981">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Huellitas">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3">
-  <link rel="icon" type="image/x-icon" href="favicon.ico?v=3">
-  <link rel="shortcut icon" href="favicon.svg?v=3">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=4">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=4">
+  <link rel="shortcut icon" href="favicon.svg?v=4">
+  <script>
+    // Capturar el evento beforeinstallprompt antes de que cargue Angular para no perderlo nunca
+    window.__deferredPwaPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window.__deferredPwaPrompt = e;
+      window.dispatchEvent(new CustomEvent('huellitas-pwa-ready'));
+    });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').catch(function() {});
+      });
+    }
+  </script>
 </head>
 <body>
   <app-root></app-root>

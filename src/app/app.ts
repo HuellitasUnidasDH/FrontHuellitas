@@ -4,6 +4,7 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { PrivacyNoticeModalComponent } from './shared/components/privacy-modal/privacy-modal.component';
 import { ConfirmationModalComponent } from './shared/components/confirm-modal/confirm-modal.component';
+import { PwaInstallComponent } from './shared/components/pwa-install/pwa-install.component';
 import { AuthService } from './core/services/auth.service';
 
 import { BRAND_CONFIG } from './core/constants/brand.constants';
@@ -17,6 +18,7 @@ import { BRAND_CONFIG } from './core/constants/brand.constants';
     ToastContainerComponent,
     PrivacyNoticeModalComponent,
     ConfirmationModalComponent,
+    PwaInstallComponent,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',

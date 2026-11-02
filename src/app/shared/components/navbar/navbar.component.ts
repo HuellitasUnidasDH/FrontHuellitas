@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
+import { PwaService } from '../../../core/services/pwa.service';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
@@ -123,6 +124,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <span class="text-sm">🩺</span>
                     <span>Aliados y Veterinarias</span>
                   </a>
+
+                  @if (!pwaService.isStandalone()) {
+                    <button
+                      type="button"
+                      (click)="closeAllDropdowns(); pwaService.installPwa()"
+                      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                    >
+                      <span class="text-sm">📲</span>
+                      <span>Instalar App en mi dispositivo</span>
+                    </button>
+                  }
 
                   @if (authService.isAuthenticated()) {
                     <div class="my-1 border-t border-slate-200/60 dark:border-slate-800/60"></div>
@@ -560,6 +572,24 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 </div>
               }
 
+              @if (!pwaService.isStandalone()) {
+                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                  <button
+                    type="button"
+                    (click)="closeMobileMenu(); pwaService.installPwa()"
+                    class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold transition-colors cursor-pointer"
+                  >
+                    <span class="flex items-center gap-3">
+                      <span class="text-base">📲</span>
+                      <span>Instalar App Huellitas</span>
+                    </span>
+                    <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950">
+                      Gratis
+                    </span>
+                  </button>
+                </div>
+              }
+
               <!-- Theme Toggle in Mobile Drawer -->
               <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
                 <button
@@ -734,6 +764,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 export class NavbarComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
+  pwaService = inject(PwaService);
   brand = BRAND_CONFIG;
 
   isScrolled = signal(false);

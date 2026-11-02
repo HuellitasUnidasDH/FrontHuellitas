@@ -1,8 +1,9 @@
 {
-  "name": "Huellitas Unidas DH - Adopción y Rescate",
+  "name": "Huellitas",
   "short_name": "Huellitas",
-  "description": "Plataforma comunitaria de adopción responsable, reporte de extravíos y directorio animal en Dolores Hidalgo Cuna de la Independencia Nacional, Guanajuato.",
+  "description": "Plataforma comunitaria de adopción responsable, reporte de extravíos y bienestar animal en Dolores Hidalgo, Guanajuato.",
   "start_url": "/",
+  "scope": "/",
   "id": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -12,38 +13,45 @@
   "categories": ["lifestyle", "social", "utilities"],
   "icons": [
     {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "favicon.ico",
-      "sizes": "48x48 32x32 16x16",
-      "type": "image/x-icon"
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
     {
       "name": "Muro Comunitario",
       "short_name": "Muro",
-      "description": "Ver publicaciones y adopciones en Dolores Hidalgo",
+      "description": "Ver publicaciones y alertas en Dolores Hidalgo",
       "url": "/",
-      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Adopciones",
+      "short_name": "Adoptar",
+      "description": "Peluditos en busca de hogar responsable",
+      "url": "/adopciones",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Mascotas Extraviadas",
       "short_name": "Perdidos",
       "description": "Reportes urgentes de mascotas extraviadas",
       "url": "/perdidas",
-      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
-    },
-    {
-      "name": "Aliados y Veterinarias",
-      "short_name": "Aliados",
-      "description": "Directorio de clínicas y tiendas aliadas con descuento",
-      "url": "/aliados",
-      "icons": [{ "src": "favicon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ]
 }
