@@ -19,10 +19,14 @@ export class ThemeService {
         const root = document.documentElement;
         if (isDark) {
           root.classList.add('dark');
-          localStorage.setItem(this.THEME_KEY, 'dark');
+          if (typeof localStorage !== 'undefined' && typeof localStorage?.setItem === 'function') {
+            localStorage.setItem(this.THEME_KEY, 'dark');
+          }
         } else {
           root.classList.remove('dark');
-          localStorage.setItem(this.THEME_KEY, 'light');
+          if (typeof localStorage !== 'undefined' && typeof localStorage?.setItem === 'function') {
+            localStorage.setItem(this.THEME_KEY, 'light');
+          }
         }
       }
     });
@@ -39,9 +43,15 @@ export class ThemeService {
   private getInitialTheme(): ThemeMode {
     if (typeof window === 'undefined') return 'dark';
 
-    const saved = localStorage.getItem(this.THEME_KEY) as ThemeMode | null;
-    if (saved === 'light' || saved === 'dark') {
-      return saved;
+    try {
+      if (typeof localStorage !== 'undefined' && typeof localStorage?.getItem === 'function') {
+        const saved = localStorage.getItem(this.THEME_KEY) as ThemeMode | null;
+        if (saved === 'light' || saved === 'dark') {
+          return saved;
+        }
+      }
+    } catch {
+      // Fallback if localStorage is unavailable
     }
 
     // Default to system preference, fallback to dark for premium aesthetic

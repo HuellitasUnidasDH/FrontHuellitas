@@ -4,6 +4,11 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PwaService } from '../../../core/services/pwa.service';
+import { SocialNotificationService } from '../../../core/services/social-notification.service';
+import {
+  SocialNotification,
+  SocialNotificationType,
+} from '../../../core/models/social-notification.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
@@ -139,6 +144,24 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   @if (authService.isAuthenticated()) {
                     <div class="my-1 border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
+                    <!-- Centro de Notificaciones -->
+                    <a
+                      routerLink="/notificaciones"
+                      routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      (click)="closeAllDropdowns()"
+                      class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <span class="flex items-center gap-2.5">
+                        <span class="text-sm">🔔</span>
+                        <span>Centro de Notificaciones</span>
+                      </span>
+                      @if (socialNotifications.unreadCount() > 0) {
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                          {{ socialNotifications.unreadCount() }}
+                        </span>
+                      }
+                    </a>
+
                     <!-- Panel de Rescatista (Sólo visible para Rescatistas y Admins) -->
                     @if (isRescuerOrAdmin()) {
                       <a
@@ -230,12 +253,152 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
 
         <!-- ======================================================== -->
-        <!-- Right Section: Clean User Avatar Dropdown (or Login)     -->
-        <!-- NO crowded buttons! Theme toggle & logout inside menu.   -->
+        <!-- Right Section: Notification Bell + User Avatar Dropdown  -->
         <!-- ======================================================== -->
-        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
           
           @if (authService.isAuthenticated()) {
+            <!-- ==================================================== -->
+            <!-- Notification Bell Pill + Floating Activity Popover   -->
+            <!-- ==================================================== -->
+            <div class="relative">
+              <button
+                type="button"
+                (click)="toggleNotifMenu($event)"
+                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/40 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/80 border border-slate-300/50 dark:border-slate-700/50 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/40 bg-white/80 dark:bg-slate-800/80': isNotifMenuOpen() }"
+                title="Notificaciones y Actividad"
+              >
+                <span class="text-base sm:text-lg group-hover:scale-110 transition-transform">🔔</span>
+
+                @if (socialNotifications.unreadCount() > 0) {
+                  <span
+                    class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md shadow-rose-500/40 ring-2 ring-white dark:ring-slate-900"
+                  >
+                    {{ socialNotifications.unreadCount() > 9 ? '9+' : socialNotifications.unreadCount() }}
+                  </span>
+                }
+              </button>
+
+              <!-- Floating Popover (Instagram / Facebook Notification Preview) -->
+              @if (isNotifMenuOpen()) {
+                <div
+                  (click)="$event.stopPropagation()"
+                  class="absolute right-0 mt-2.5 w-80 sm:w-96 liquid-glass rounded-3xl p-3.5 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-3 animate-fadeIn"
+                >
+                  <!-- Popover Header -->
+                  <div class="flex items-center justify-between px-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm">🔔</span>
+                      <h3 class="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                        Notificaciones
+                      </h3>
+                      @if (socialNotifications.unreadCount() > 0) {
+                        <span
+                          class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                        >
+                          {{ socialNotifications.unreadCount() }} nuevas
+                        </span>
+                      }
+                    </div>
+
+                    @if (socialNotifications.unreadCount() > 0) {
+                      <button
+                        type="button"
+                        (click)="socialNotifications.markAllAsRead().subscribe()"
+                        class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        ✓ Marcar leídas
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Recent Notifications Mini-List -->
+                  @if (socialNotifications.recentNotifications().length === 0) {
+                    <div class="py-8 text-center space-y-1.5">
+                      <span class="text-2xl block">✨</span>
+                      <p class="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Sin notificaciones pendientes
+                      </p>
+                      <p class="text-[11px] text-slate-500">
+                        Aquí verás cuando comenten tus publicaciones o reporten avistamientos.
+                      </p>
+                    </div>
+                  } @else {
+                    <div class="max-h-80 overflow-y-auto space-y-1.5 pr-0.5">
+                      @for (notif of socialNotifications.recentNotifications(); track notif.id) {
+                        <div
+                          (click)="openNotificationFromPopover(notif)"
+                          class="p-2.5 rounded-2xl flex items-start gap-2.5 transition-all cursor-pointer border"
+                          [ngClass]="
+                            !notif.isRead
+                              ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15'
+                              : 'bg-white/40 dark:bg-slate-900/40 border-transparent hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                          "
+                        >
+                          <!-- Actor Avatar + Mini Icon -->
+                          <div class="relative flex-shrink-0">
+                            <div class="w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5">
+                              @if (notif.actor?.profilePhotoUrl) {
+                                <img
+                                  [src]="notif.actor!.profilePhotoUrl"
+                                  [alt]="notif.actor?.fullName || 'Usuario'"
+                                  class="w-full h-full object-cover rounded-[10px]"
+                                />
+                              } @else {
+                                <div class="w-full h-full rounded-[10px] bg-white dark:bg-slate-900 flex items-center justify-center text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                  {{ (notif.actor?.fullName || notif.actorNameFallback || 'H').charAt(0) }}
+                                </div>
+                              }
+                            </div>
+                            <span class="absolute -bottom-1 -right-1 text-[10px] bg-white dark:bg-slate-900 rounded-md px-0.5 shadow">
+                              {{ getNotifIcon(notif.type) }}
+                            </span>
+                          </div>
+
+                          <!-- Text Summary -->
+                          <div class="flex-1 min-w-0">
+                            <p class="text-[11px] text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">
+                              <strong class="font-bold">
+                                {{ notif.actor?.fullName || notif.actorNameFallback || 'Ciudadano DH' }}
+                              </strong>
+                              {{ ' ' + notif.title }}
+                            </p>
+                            @if (notif.message) {
+                              <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                {{ notif.message }}
+                              </p>
+                            }
+                          </div>
+
+                          <!-- Right Thumbnail or Unread Dot -->
+                          @if (notif.previewImageUrl) {
+                            <img
+                              [src]="notif.previewImageUrl"
+                              alt=""
+                              class="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-slate-200/60 dark:border-slate-700"
+                            />
+                          } @else if (!notif.isRead) {
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 self-center flex-shrink-0"></span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Footer CTA: Dedicated Full Screen -->
+                  <a
+                    routerLink="/notificaciones"
+                    (click)="closeAllDropdowns()"
+                    class="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black text-center flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                  >
+                    <span>Ver todas en pantalla completa</span>
+                    <span>→</span>
+                  </a>
+                </div>
+              }
+            </div>
+
             <!-- User Profile Avatar Pill with Arrow -->
             <div class="relative">
               <button
@@ -313,6 +476,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <span>Mi Perfil y Datos</span>
                   </a>
 
+                  <!-- Option: Mis Notificaciones -->
+                  <a
+                    routerLink="/notificaciones"
+                    (click)="closeAllDropdowns()"
+                    class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="flex items-center gap-2.5">
+                      <span class="text-sm">🔔</span>
+                      <span>Mis Notificaciones</span>
+                    </span>
+                    @if (socialNotifications.unreadCount() > 0) {
+                      <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                        {{ socialNotifications.unreadCount() }}
+                      </span>
+                    }
+                  </a>
+
                   <!-- Option: Mis Publicaciones -->
                   <a
                     routerLink="/perfil"
@@ -326,7 +506,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                   <div class="border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
-                  <!-- Option: Dark / Light Mode Switch (Hidden from main bar as requested!) -->
+                  <!-- Option: Dark / Light Mode Switch -->
                   <button
                     type="button"
                     (click)="themeService.toggleTheme()"
@@ -343,7 +523,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                   <div class="border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
-                  <!-- Option: Cerrar Sesión (Hidden from main bar as requested!) -->
+                  <!-- Option: Cerrar Sesión -->
                   <button
                     type="button"
                     (click)="logoutAndClose()"
@@ -504,9 +684,25 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   </span>
 
                   <a
+                    routerLink="/notificaciones"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-600 dark:text-emerald-400"
+                  >
+                    <span class="flex items-center gap-3">
+                      <span class="text-base">🔔</span>
+                      <span>Centro de Notificaciones</span>
+                    </span>
+                    @if (socialNotifications.unreadCount() > 0) {
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                        {{ socialNotifications.unreadCount() }} nuevas
+                      </span>
+                    }
+                  </a>
+
+                  <a
                     routerLink="/perfil"
                     (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-600 dark:text-emerald-400"
+                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <span class="text-base">👤</span>
                     <span>Mi Perfil y Publicaciones</span>
@@ -661,6 +857,19 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       </a>
 
       @if (authService.isAuthenticated()) {
+        <!-- Alertas / Notificaciones -->
+        <a
+          routerLink="/notificaciones"
+          routerLinkActive="mobile-dock-active"
+          class="relative flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        >
+          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🔔</span>
+          <span class="text-[10px] font-bold mt-0.5">Alertas</span>
+          @if (socialNotifications.unreadCount() > 0) {
+            <span class="absolute top-0.5 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>
+          }
+        </a>
+
         <!-- Mi Perfil -->
         <a
           routerLink="/perfil"
@@ -669,18 +878,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         >
           <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👤</span>
           <span class="text-[10px] font-bold mt-0.5">Perfil</span>
-        </a>
-
-        <!-- Nueva Mascota Action Pill -->
-        <a
-          routerLink="/pets/new"
-          routerLinkActive="mobile-dock-active-add"
-          class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-emerald-600 dark:text-emerald-400 transition-colors group flex-1"
-        >
-          <div class="w-6 h-6 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-sm font-black text-emerald-600 dark:text-emerald-400 group-[.mobile-dock-active-add]:bg-emerald-500 group-[.mobile-dock-active-add]:text-slate-950 transition-colors">
-            +
-          </div>
-          <span class="text-[9px] font-bold mt-0.5">Nueva</span>
         </a>
       } @else {
         <!-- Ingresar (Guest) -->
@@ -765,12 +962,15 @@ export class NavbarComponent implements OnInit {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
   pwaService = inject(PwaService);
+  socialNotifications = inject(SocialNotificationService);
+  private router = inject(Router);
   brand = BRAND_CONFIG;
 
   isScrolled = signal(false);
   isMobileMenuOpen = signal(false);
   isMoreMenuOpen = signal(false);
   isUserMenuOpen = signal(false);
+  isNotifMenuOpen = signal(false);
 
   isRescuerOrAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
@@ -780,18 +980,60 @@ export class NavbarComponent implements OnInit {
   toggleMoreMenu(event: Event): void {
     event.stopPropagation();
     this.isUserMenuOpen.set(false);
+    this.isNotifMenuOpen.set(false);
     this.isMoreMenuOpen.update((v) => !v);
   }
 
   toggleUserMenu(event: Event): void {
     event.stopPropagation();
     this.isMoreMenuOpen.set(false);
+    this.isNotifMenuOpen.set(false);
     this.isUserMenuOpen.update((v) => !v);
+  }
+
+  toggleNotifMenu(event: Event): void {
+    event.stopPropagation();
+    this.isMoreMenuOpen.set(false);
+    this.isUserMenuOpen.set(false);
+    const nextState = !this.isNotifMenuOpen();
+    this.isNotifMenuOpen.set(nextState);
+    if (nextState) {
+      this.socialNotifications.loadNotifications().subscribe();
+    }
+  }
+
+  openNotificationFromPopover(notif: SocialNotification): void {
+    if (!notif.isRead) {
+      this.socialNotifications.markAsRead(notif.id).subscribe();
+    }
+    this.closeAllDropdowns();
+    this.router.navigateByUrl(notif.targetUrl || '/notificaciones');
+  }
+
+  getNotifIcon(type: SocialNotificationType): string {
+    switch (type) {
+      case SocialNotificationType.COMMENT_ON_POST:
+      case SocialNotificationType.COMMENT_ON_PET:
+        return '💬';
+      case SocialNotificationType.SIGHTING_REPORTED:
+        return '🚨';
+      case SocialNotificationType.ADOPTION_REQUEST_RECEIVED:
+        return '🏠';
+      case SocialNotificationType.ADOPTION_REQUEST_STATUS:
+        return '🎉';
+      case SocialNotificationType.FOLLOWUP_PROOF_SUBMITTED:
+        return '📸';
+      case SocialNotificationType.GROUP_ACTIVITY:
+        return '👨‍👩‍👧‍👦';
+      default:
+        return '🔔';
+    }
   }
 
   closeAllDropdowns(): void {
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
+    this.isNotifMenuOpen.set(false);
   }
 
   logoutAndClose(): void {
@@ -850,4 +1092,3 @@ export class NavbarComponent implements OnInit {
     }
   }
 }
-

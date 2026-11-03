@@ -8,7 +8,7 @@ export class StorageService {
 
   setItem(key: string, value: string): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (typeof window !== 'undefined' && typeof localStorage?.setItem === 'function') {
         localStorage.setItem(this.PREFIX + key, value);
       }
     } catch (e) {
@@ -18,7 +18,7 @@ export class StorageService {
 
   getItem(key: string): string | null {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (typeof window !== 'undefined' && typeof localStorage?.getItem === 'function') {
         return localStorage.getItem(this.PREFIX + key);
       }
     } catch (e) {
@@ -29,7 +29,7 @@ export class StorageService {
 
   removeItem(key: string): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (typeof window !== 'undefined' && typeof localStorage?.removeItem === 'function') {
         localStorage.removeItem(this.PREFIX + key);
       }
     } catch (e) {
@@ -39,7 +39,7 @@ export class StorageService {
 
   clear(): void {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
+      if (typeof window !== 'undefined' && typeof localStorage?.removeItem === 'function') {
         localStorage.removeItem(this.PREFIX + 'token');
         localStorage.removeItem(this.PREFIX + 'refresh_token');
         localStorage.removeItem(this.PREFIX + 'user');
