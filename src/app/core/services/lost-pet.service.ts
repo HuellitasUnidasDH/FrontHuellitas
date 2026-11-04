@@ -9,6 +9,7 @@ import {
   CreateLostPetPayload,
   PetSighting,
   CreateSightingPayload,
+  PublicationComment,
 } from '../models/lost-pet.model';
 import { ApiResponse } from '../models/api-response.model';
 
@@ -59,6 +60,12 @@ export class LostPetService {
   addSighting(id: string, payload: CreateSightingPayload): Observable<PetSighting> {
     return this.http
       .post<ApiResponse<PetSighting>>(`${this.URL}/${id}/sightings`, payload)
+      .pipe(map((r) => r.data));
+  }
+
+  getComments(id: string): Observable<PublicationComment[]> {
+    return this.http
+      .get<ApiResponse<PublicationComment[]>>(`${this.URL}/${id}/comments`)
       .pipe(map((r) => r.data));
   }
 

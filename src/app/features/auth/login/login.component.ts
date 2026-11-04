@@ -77,14 +77,29 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">La contraseña es requerida</p>
             }
 
-            <div class="flex justify-end pt-1">
+            <!-- Fila Recuérdame + Olvidaste tu contraseña -->
+            <div class="flex items-center justify-between gap-2 pt-2.5">
+              <label class="flex items-center gap-2 cursor-pointer select-none group">
+                <input
+                  type="checkbox"
+                  formControlName="rememberMe"
+                  class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  Recuérdame (No cerrar sesión)
+                </span>
+              </label>
+
               <a
                 routerLink="/auth/forgot-password"
-                class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:underline transition-colors cursor-pointer"
+                class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 hover:underline transition-colors cursor-pointer flex-shrink-0"
               >
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">
+              Si no activas "Recuérdame", tu sesión se cerrará automáticamente al salir de la aplicación.
+            </p>
           </div>
 
           <!-- Botón de Envío -->
@@ -144,6 +159,7 @@ export class LoginComponent {
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
+    rememberMe: [true],
   });
 
   get emailField() {
@@ -169,16 +185,18 @@ export class LoginComponent {
     }
 
     this.isLoading.set(true);
-    const { email, password } = this.loginForm.value;
+    const { email, password, rememberMe } = this.loginForm.value;
 
-    this.authService.login({ email: email!, password: password! }).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.router.navigate(['/dashboard']);
-      },
-      error: () => {
-        this.isLoading.set(false);
-      },
-    });
+    this.authService
+      .login({ email: email!, password: password!, rememberMe: Boolean(rememberMe) })
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.router.navigate(['/dashboard']);
+        },
+        error: () => {
+          this.isLoading.set(false);
+        },
+      });
   }
 }

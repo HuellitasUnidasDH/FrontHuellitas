@@ -19,28 +19,31 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
   template: `
     <!-- ======================================================== -->
     <!-- Top Floating Navbar (Desktop & Mobile Header)            -->
+    <!-- Sin transform/scale en <header> para no atrapar fixed    -->
     <!-- ======================================================== -->
     <header
-      class="fixed top-2.5 sm:top-4 inset-x-0 mx-auto w-[96%] max-w-7xl z-40 transition-all duration-300"
-      [ngClass]="{
-        'scale-[0.99]': isScrolled(),
-        'scale-100': !isScrolled()
-      }"
+      class="fixed top-2 sm:top-4 inset-x-0 mx-auto w-[96%] max-w-7xl z-50 transition-shadow duration-300"
     >
       <div
-        class="liquid-glass rounded-2xl sm:rounded-3xl px-3.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between shadow-xl transition-all duration-300 relative"
+        class="rounded-2xl sm:rounded-3xl px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between shadow-xl transition-all duration-300 relative"
       >
+        <!-- Capa Liquid Glass separada para no crear containing block sobre menús móviles -->
+        <div
+          class="absolute inset-0 liquid-glass rounded-2xl sm:rounded-3xl pointer-events-none -z-10"
+          [ngClass]="{ 'shadow-2xl': isScrolled() }"
+        ></div>
+
         <!-- Brand / Logo -->
-        <div class="flex items-center gap-3 sm:gap-6 min-w-0">
+        <div class="flex items-center gap-2.5 sm:gap-6 min-w-0">
           <a routerLink="/" (click)="closeAllDropdowns()" class="flex items-center gap-2 group flex-shrink-0">
             <div
               class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-slate-950 font-black shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform cursor-pointer text-lg"
             >
               🐾
             </div>
-            <div class="flex flex-col">
+            <div class="flex flex-col min-w-0">
               <span
-                class="text-base sm:text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-emerald-800 to-teal-700 dark:from-white dark:via-emerald-200 dark:to-teal-300 bg-clip-text text-transparent"
+                class="text-sm sm:text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-emerald-800 to-teal-700 dark:from-white dark:via-emerald-200 dark:to-teal-300 bg-clip-text text-transparent truncate"
               >
                 {{ brand.name }}
               </span>
@@ -93,7 +96,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <span>Perdidos</span>
             </a>
 
-            <!-- Desplegable Bonito: "Más secciones ▾" -->
+            <!-- Desplegable Bonito: "Explorar ▾" -->
             <div class="relative">
               <button
                 type="button"
@@ -113,18 +116,18 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 </svg>
               </button>
 
-              <!-- Dropdown Menu de Más Secciones -->
+              <!-- Dropdown Menu de Más Secciones (Desktop) -->
               @if (isMoreMenuOpen()) {
                 <div
                   (click)="$event.stopPropagation()"
-                  class="absolute left-0 mt-2.5 w-60 liquid-glass rounded-2xl p-2 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-1 animate-fadeIn"
+                  class="absolute left-0 mt-2.5 w-64 bg-white/95 dark:bg-[#0d1526]/95 rounded-2xl p-2.5 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-1 animate-fadeIn"
                 >
                   <!-- Aliados de Dolores Hidalgo -->
                   <a
                     routerLink="/aliados"
                     routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     (click)="closeAllDropdowns()"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <span class="text-sm">🩺</span>
                     <span>Aliados y Veterinarias</span>
@@ -134,7 +137,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <button
                       type="button"
                       (click)="closeAllDropdowns(); pwaService.installPwa()"
-                      class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                      class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer"
                     >
                       <span class="text-sm">📲</span>
                       <span>Instalar App en mi dispositivo</span>
@@ -149,7 +152,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       routerLink="/notificaciones"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
-                      class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="flex items-center gap-2.5">
                         <span class="text-sm">🔔</span>
@@ -162,13 +165,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       }
                     </a>
 
-                    <!-- Panel de Rescatista (Sólo visible para Rescatistas y Admins) -->
+                    <!-- Panel de Rescatista -->
                     @if (isRescuerOrAdmin()) {
                       <a
                         routerLink="/panel-rescatista"
                         routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         (click)="closeAllDropdowns()"
-                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                        class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                       >
                         <span class="text-sm">📋</span>
                         <span>Panel de Rescatista</span>
@@ -180,7 +183,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       routerLink="/verificacion"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="text-sm">🛡️</span>
                       <span>Verificación de Adoptante</span>
@@ -191,7 +194,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       routerLink="/dashboard"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="text-sm">📊</span>
                       <span>Dashboard Clínico</span>
@@ -202,7 +205,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       routerLink="/pets"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="text-sm">🐾</span>
                       <span>Mis Mascotas</span>
@@ -213,7 +216,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       routerLink="/groups"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
-                      class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="text-sm">👨‍👩‍👧‍👦</span>
                       <span>Familias / Grupos</span>
@@ -226,7 +229,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                         routerLink="/admin"
                         routerLinkActive="bg-rose-500/10 text-rose-600 dark:text-rose-400"
                         (click)="closeAllDropdowns()"
-                        class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors"
                       >
                         <span class="text-sm">🛡️</span>
                         <span>Panel Administrador</span>
@@ -238,7 +241,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <button
                       type="button"
                       (click)="themeService.toggleTheme()"
-                      class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                      class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                     >
                       <span class="flex items-center gap-2.5">
                         <span>{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
@@ -253,7 +256,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
 
         <!-- ======================================================== -->
-        <!-- Right Section: Notification Bell + User Avatar Dropdown  -->
+        <!-- Right Section: Notification Bell + User Avatar + Burger  -->
         <!-- ======================================================== -->
         <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
           
@@ -265,8 +268,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="toggleNotifMenu($event)"
-                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/40 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/80 border border-slate-300/50 dark:border-slate-700/50 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
-                [ngClass]="{ 'ring-2 ring-emerald-500/40 bg-white/80 dark:bg-slate-800/80': isNotifMenuOpen() }"
+                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800': isNotifMenuOpen() }"
                 title="Notificaciones y Actividad"
               >
                 <span class="text-base sm:text-lg group-hover:scale-110 transition-transform">🔔</span>
@@ -280,17 +283,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 }
               </button>
 
-              <!-- Floating Popover (Instagram / Facebook Notification Preview) -->
+              <!-- Floating Popover (Responsive: Full width on mobile, anchored right on sm+) -->
               @if (isNotifMenuOpen()) {
                 <div
                   (click)="$event.stopPropagation()"
-                  class="absolute right-0 mt-2.5 w-80 sm:w-96 liquid-glass rounded-3xl p-3.5 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-3 animate-fadeIn"
+                  class="fixed left-3 right-3 top-[4.25rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2.5 sm:w-96 bg-white/95 dark:bg-[#0d1526]/95 rounded-3xl p-4 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-3 animate-fadeIn"
                 >
                   <!-- Popover Header -->
                   <div class="flex items-center justify-between px-1">
                     <div class="flex items-center gap-2">
                       <span class="text-sm">🔔</span>
-                      <h3 class="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                      <h3 class="text-sm font-black text-slate-900 dark:text-white">
                         Notificaciones
                       </h3>
                       @if (socialNotifications.unreadCount() > 0) {
@@ -306,7 +309,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       <button
                         type="button"
                         (click)="socialNotifications.markAllAsRead().subscribe()"
-                        class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                       >
                         ✓ Marcar leídas
                       </button>
@@ -325,15 +328,15 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </p>
                     </div>
                   } @else {
-                    <div class="max-h-80 overflow-y-auto space-y-1.5 pr-0.5">
+                    <div class="max-h-[55dvh] sm:max-h-80 overflow-y-auto overscroll-contain space-y-2 pr-0.5">
                       @for (notif of socialNotifications.recentNotifications(); track notif.id) {
                         <div
                           (click)="openNotificationFromPopover(notif)"
-                          class="p-2.5 rounded-2xl flex items-start gap-2.5 transition-all cursor-pointer border"
+                          class="p-3 rounded-2xl flex items-start gap-2.5 transition-all cursor-pointer border"
                           [ngClass]="
                             !notif.isRead
                               ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15'
-                              : 'bg-white/40 dark:bg-slate-900/40 border-transparent hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                              : 'bg-slate-100/70 dark:bg-slate-900/60 border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
                           "
                         >
                           <!-- Actor Avatar + Mini Icon -->
@@ -358,14 +361,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                           <!-- Text Summary -->
                           <div class="flex-1 min-w-0">
-                            <p class="text-[11px] text-slate-800 dark:text-slate-100 leading-tight line-clamp-2">
+                            <p class="text-xs text-slate-800 dark:text-slate-100 leading-snug line-clamp-2">
                               <strong class="font-bold">
                                 {{ notif.actor?.fullName || notif.actorNameFallback || 'Ciudadano DH' }}
                               </strong>
                               {{ ' ' + notif.title }}
                             </p>
                             @if (notif.message) {
-                              <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                              <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                                 {{ notif.message }}
                               </p>
                             }
@@ -379,7 +382,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                               class="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-slate-200/60 dark:border-slate-700"
                             />
                           } @else if (!notif.isRead) {
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 self-center flex-shrink-0"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 self-center flex-shrink-0"></span>
                           }
                         </div>
                       }
@@ -404,8 +407,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="toggleUserMenu($event)"
-                class="flex items-center gap-2 p-1 sm:pr-3 rounded-2xl bg-white/40 dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-800/80 border border-slate-300/50 dark:border-slate-700/50 shadow-sm transition-all cursor-pointer group"
-                [ngClass]="{ 'ring-2 ring-emerald-500/40 bg-white/80 dark:bg-slate-800/80': isUserMenuOpen() }"
+                class="flex items-center gap-2 p-1 sm:pr-3 rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800': isUserMenuOpen() }"
                 title="Menú de usuario"
               >
                 <!-- Avatar image or initial circle -->
@@ -445,22 +448,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 </svg>
               </button>
 
-              <!-- User Dropdown Menu Card -->
+              <!-- User Dropdown Menu Card (Responsive on mobile & desktop) -->
               @if (isUserMenuOpen()) {
                 <div
                   (click)="$event.stopPropagation()"
-                  class="absolute right-0 mt-2.5 w-64 liquid-glass rounded-2xl p-2.5 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-1.5 animate-fadeIn"
+                  class="fixed left-3 right-3 top-[4.25rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2.5 sm:w-68 bg-white/95 dark:bg-[#0d1526]/95 rounded-3xl sm:rounded-2xl p-3 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-1.5 animate-fadeIn max-h-[75dvh] overflow-y-auto"
                 >
                   <!-- Header: User Info -->
-                  <div class="p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50">
-                    <p class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                  <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/60">
+                    <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
                       {{ authService.currentUser()?.fullName }}
                     </p>
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
                       {{ authService.currentUser()?.email }}
                     </p>
-                    <div class="mt-1 flex items-center gap-1.5">
-                      <span class="px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                    <div class="mt-1.5 flex items-center gap-1.5">
+                      <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                         {{ getRoleBadge(authService.currentUser()?.role) }}
                       </span>
                     </div>
@@ -470,9 +473,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <a
                     routerLink="/perfil"
                     (click)="closeAllDropdowns()"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-sm">👤</span>
+                    <span class="text-base">👤</span>
                     <span>Mi Perfil y Datos</span>
                   </a>
 
@@ -480,14 +483,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <a
                     routerLink="/notificaciones"
                     (click)="closeAllDropdowns()"
-                    class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="flex items-center gap-2.5">
-                      <span class="text-sm">🔔</span>
+                    <span class="flex items-center gap-3">
+                      <span class="text-base">🔔</span>
                       <span>Mis Notificaciones</span>
                     </span>
                     @if (socialNotifications.unreadCount() > 0) {
-                      <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
                         {{ socialNotifications.unreadCount() }}
                       </span>
                     }
@@ -498,9 +501,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     routerLink="/perfil"
                     [queryParams]="{ tab: 'publications' }"
                     (click)="closeAllDropdowns()"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-sm">📝</span>
+                    <span class="text-base">📝</span>
                     <span>Mis Publicaciones</span>
                   </a>
 
@@ -510,10 +513,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <button
                     type="button"
                     (click)="themeService.toggleTheme()"
-                    class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                    class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                   >
-                    <span class="flex items-center gap-2.5">
-                      <span>{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+                    <span class="flex items-center gap-3">
+                      <span class="text-base">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
                       <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
                     </span>
                     <span class="text-[10px] uppercase font-bold text-slate-400">
@@ -527,9 +530,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <button
                     type="button"
                     (click)="logoutAndClose()"
-                    class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   >
-                    <span>🚪</span>
+                    <span class="text-base">🚪</span>
                     <span>Cerrar Sesión</span>
                   </button>
                 </div>
@@ -555,10 +558,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
           <!-- Mobile Hamburger / Drawer Toggle Button (Visible only on mobile) -->
           <button
-            (click)="toggleMobileMenu()"
+            (click)="toggleMobileMenu($event)"
             type="button"
-            class="md:hidden w-9 h-9 rounded-xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/80 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700/60 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-sm text-base"
-            aria-label="Abrir menú"
+            class="md:hidden w-9 h-9 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-300/70 dark:border-slate-700/70 flex items-center justify-center text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-sm text-base font-bold"
+            [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400': isMobileMenuOpen() }"
+            aria-label="Abrir menú de navegación"
           >
             @if (isMobileMenuOpen()) {
               <span>✕</span>
@@ -568,269 +572,291 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           </button>
         </div>
       </div>
+    </header>
 
-      <!-- ======================================================== -->
-      <!-- Mobile Sliding Navigation Drawer                         -->
-      <!-- ======================================================== -->
-      @if (isMobileMenuOpen()) {
+    <!-- ======================================================== -->
+    <!-- Mobile Full-Viewport Navigation Drawer (Outside <header>)-->
+    <!-- Ahora usa 100dvh reales sin quedar aplastado por header  -->
+    <!-- ======================================================== -->
+    @if (isMobileMenuOpen()) {
+      <div
+        class="md:hidden fixed inset-0 z-[60] bg-slate-950/75 backdrop-blur-md flex flex-col pt-[4.5rem] pb-24 px-3 animate-fadeIn"
+        (click)="closeMobileMenu()"
+      >
         <div
-          class="md:hidden fixed inset-0 top-16 z-50 bg-slate-950/70 backdrop-blur-md flex flex-col p-4 animate-fadeIn"
-          (click)="closeMobileMenu()"
+          class="w-full max-w-lg mx-auto bg-white/95 dark:bg-[#0b1324]/95 rounded-3xl p-4 sm:p-5 shadow-2xl border border-emerald-500/35 flex flex-col max-h-[calc(100dvh-6.5rem)] overflow-hidden"
+          (click)="$event.stopPropagation()"
         >
-          <div
-            class="liquid-glass rounded-3xl p-5 shadow-2xl border border-emerald-500/30 space-y-4 max-h-[80vh] overflow-y-auto"
-            (click)="$event.stopPropagation()"
-          >
-            <!-- User Status in Drawer -->
+          <!-- Top Fixed Header inside Drawer: User Status -->
+          @if (authService.isAuthenticated()) {
+            <div class="flex items-center justify-between gap-2 pb-3.5 mb-2 border-b border-slate-200/80 dark:border-slate-800/80 flex-shrink-0">
+              <a
+                routerLink="/perfil"
+                (click)="closeMobileMenu()"
+                class="flex items-center gap-3 min-w-0 group"
+              >
+                <div class="w-11 h-11 rounded-2xl overflow-hidden bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md flex-shrink-0">
+                  @if (authService.currentUser()?.profilePhotoUrl) {
+                    <img
+                      [src]="authService.currentUser()!.profilePhotoUrl"
+                      [alt]="authService.currentUser()!.fullName"
+                      class="w-full h-full object-cover rounded-[14px]"
+                    />
+                  } @else {
+                    <div class="w-full h-full rounded-[14px] bg-white dark:bg-slate-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-base">
+                      {{ authService.currentUser()?.fullName?.charAt(0) }}
+                    </div>
+                  }
+                </div>
+                <div class="min-w-0">
+                  <h4 class="text-sm font-black text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors truncate">
+                    {{ authService.currentUser()?.fullName }}
+                  </h4>
+                  <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 block truncate">
+                    {{ getRoleBadge(authService.currentUser()?.role) }} • Ver mi perfil →
+                  </span>
+                </div>
+              </a>
+
+              <button
+                type="button"
+                (click)="authService.logout(); closeMobileMenu()"
+                class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-extrabold flex-shrink-0 cursor-pointer"
+                title="Cerrar sesión"
+              >
+                🚪 Salir
+              </button>
+            </div>
+          } @else {
+            <div class="grid grid-cols-2 gap-2.5 pb-3.5 mb-2 border-b border-slate-200/80 dark:border-slate-800/80 flex-shrink-0">
+              <a
+                routerLink="/auth/login"
+                (click)="closeMobileMenu()"
+                class="py-2.5 px-3 text-center text-xs sm:text-sm font-extrabold rounded-xl bg-slate-200/90 dark:bg-slate-800 text-slate-800 dark:text-white"
+              >
+                Iniciar Sesión
+              </a>
+              <a
+                routerLink="/auth/register"
+                (click)="closeMobileMenu()"
+                class="py-2.5 px-3 text-center text-xs sm:text-sm font-extrabold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md"
+              >
+                Registrarme
+              </a>
+            </div>
+          }
+
+          <!-- Scrollable Navigation Links List (Generous Touch Targets & Clear Typography) -->
+          <div class="flex-1 overflow-y-auto overscroll-contain space-y-1.5 pr-1 text-sm font-bold text-slate-800 dark:text-slate-100">
+            <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3 pt-1">
+              Secciones Principales
+            </span>
+
+            <a
+              routerLink="/"
+              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              [routerLinkActiveOptions]="{ exact: true }"
+              (click)="closeMobileMenu()"
+              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+            >
+              <span class="text-lg">📰</span>
+              <span>Muro Comunitario</span>
+            </a>
+
+            <a
+              routerLink="/adopciones"
+              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              (click)="closeMobileMenu()"
+              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+            >
+              <span class="text-lg">🏠</span>
+              <span>Peluditos en Adopción</span>
+            </a>
+
+            <a
+              routerLink="/perdidas"
+              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              (click)="closeMobileMenu()"
+              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+            >
+              <span class="text-lg">🚨</span>
+              <span>Mascotas Extraviadas / Encontradas</span>
+            </a>
+
+            <a
+              routerLink="/aliados"
+              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              (click)="closeMobileMenu()"
+              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+            >
+              <span class="text-lg">🩺</span>
+              <span>Directorio de Aliados (Dolores Hidalgo)</span>
+            </a>
+
             @if (authService.isAuthenticated()) {
-              <div class="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+              <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1.5">
+                <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3">
+                  Mi Cuenta y Servicios
+                </span>
+
+                <a
+                  routerLink="/notificaciones"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
+                >
+                  <span class="flex items-center gap-3.5">
+                    <span class="text-lg">🔔</span>
+                    <span>Centro de Notificaciones</span>
+                  </span>
+                  @if (socialNotifications.unreadCount() > 0) {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white">
+                      {{ socialNotifications.unreadCount() }} nuevas
+                    </span>
+                  }
+                </a>
+
                 <a
                   routerLink="/perfil"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-2.5 group"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <div class="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-md">
-                    @if (authService.currentUser()?.profilePhotoUrl) {
-                      <img
-                        [src]="authService.currentUser()!.profilePhotoUrl"
-                        [alt]="authService.currentUser()!.fullName"
-                        class="w-full h-full object-cover rounded-[10px]"
-                      />
-                    } @else {
-                      <div class="w-full h-full rounded-[10px] bg-white dark:bg-slate-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                        {{ authService.currentUser()?.fullName?.charAt(0) }}
-                      </div>
-                    }
-                  </div>
-                  <div>
-                    <h4 class="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors">
-                      {{ authService.currentUser()?.fullName }}
-                    </h4>
-                    <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      {{ getRoleBadge(authService.currentUser()?.role) }} • Ver perfil →
-                    </span>
-                  </div>
+                  <span class="text-lg">👤</span>
+                  <span>Mi Perfil y Publicaciones</span>
                 </a>
 
-                <button
-                  (click)="authService.logout(); closeMobileMenu()"
-                  class="p-2 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-bold"
-                  title="Salir"
-                >
-                  🚪 Salir
-                </button>
-              </div>
-            } @else {
-              <div class="flex gap-2 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
                 <a
-                  routerLink="/auth/login"
+                  routerLink="/verificacion"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                   (click)="closeMobileMenu()"
-                  class="flex-1 py-2 text-center text-xs font-bold rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-white"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  Iniciar Sesión
+                  <span class="text-lg">🛡️</span>
+                  <span>Verificación de Adoptante</span>
                 </a>
+
+                @if (isRescuerOrAdmin()) {
+                  <a
+                    routerLink="/panel-rescatista"
+                    routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400 font-extrabold"
+                  >
+                    <span class="text-lg">📋</span>
+                    <span>Panel de Rescatista (Seguimiento)</span>
+                  </a>
+                }
+
                 <a
-                  routerLink="/auth/register"
+                  routerLink="/dashboard"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
                   (click)="closeMobileMenu()"
-                  class="flex-1 py-2 text-center text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-md"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  Registrarme
+                  <span class="text-lg">📊</span>
+                  <span>Dashboard Clínico</span>
                 </a>
+
+                <a
+                  routerLink="/pets"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                >
+                  <span class="text-lg">🐾</span>
+                  <span>Mis Mascotas</span>
+                </a>
+
+                <a
+                  routerLink="/groups"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                >
+                  <span class="text-lg">👨‍👩‍👧‍👦</span>
+                  <span>Familias / Grupos</span>
+                </a>
+
+                @if (authService.isAdmin()) {
+                  <a
+                    routerLink="/admin"
+                    routerLinkActive="bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                    (click)="closeMobileMenu()"
+                    class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors font-extrabold"
+                  >
+                    <span class="text-lg">🛡️</span>
+                    <span>Panel Administrador</span>
+                  </a>
+                }
               </div>
             }
 
-            <!-- Navigation Links List -->
-            <div class="space-y-1 text-xs font-bold text-slate-700 dark:text-slate-200">
-              <a
-                routerLink="/"
-                (click)="closeMobileMenu()"
-                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-              >
-                <span class="text-base">📰</span>
-                <span>Muro Comunitario</span>
-              </a>
-
-              <a
-                routerLink="/adopciones"
-                (click)="closeMobileMenu()"
-                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-              >
-                <span class="text-base">🏠</span>
-                <span>Peluditos en Adopción</span>
-              </a>
-
-              <a
-                routerLink="/perdidas"
-                (click)="closeMobileMenu()"
-                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-              >
-                <span class="text-base">🚨</span>
-                <span>Mascotas Extraviadas / Encontradas</span>
-              </a>
-
-              <a
-                routerLink="/aliados"
-                (click)="closeMobileMenu()"
-                class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-              >
-                <span class="text-base">🩺</span>
-                <span>Directorio de Aliados (Dolores Hidalgo)</span>
-              </a>
-
-              @if (authService.isAuthenticated()) {
-                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 space-y-1">
-                  <span class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 px-2.5">
-                    Mi Cuenta y Servicios
-                  </span>
-
-                  <a
-                    routerLink="/notificaciones"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-600 dark:text-emerald-400"
-                  >
-                    <span class="flex items-center gap-3">
-                      <span class="text-base">🔔</span>
-                      <span>Centro de Notificaciones</span>
-                    </span>
-                    @if (socialNotifications.unreadCount() > 0) {
-                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
-                        {{ socialNotifications.unreadCount() }} nuevas
-                      </span>
-                    }
-                  </a>
-
-                  <a
-                    routerLink="/perfil"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">👤</span>
-                    <span>Mi Perfil y Publicaciones</span>
-                  </a>
-
-                  <a
-                    routerLink="/verificacion"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">🛡️</span>
-                    <span>Verificación de Adoptante</span>
-                  </a>
-
-                  @if (isRescuerOrAdmin()) {
-                    <a
-                      routerLink="/panel-rescatista"
-                      (click)="closeMobileMenu()"
-                      class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors text-emerald-700 dark:text-emerald-400 font-semibold"
-                    >
-                      <span class="text-base">📋</span>
-                      <span>Panel de Rescatista (Seguimiento 7, 30, 90)</span>
-                    </a>
-                  }
-
-                  <a
-                    routerLink="/dashboard"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">📊</span>
-                    <span>Dashboard Clínico</span>
-                  </a>
-
-                  <a
-                    routerLink="/pets"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">🐾</span>
-                    <span>Mis Mascotas</span>
-                  </a>
-
-                  <a
-                    routerLink="/groups"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <span class="text-base">👨‍👩‍👧‍👦</span>
-                    <span>Familias / Grupos</span>
-                  </a>
-
-                  @if (authService.isAdmin()) {
-                    <a
-                      routerLink="/admin"
-                      (click)="closeMobileMenu()"
-                      class="flex items-center gap-3 p-2.5 rounded-xl hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors"
-                    >
-                      <span class="text-base">🛡️</span>
-                      <span>Panel Administrador</span>
-                    </a>
-                  }
-                </div>
-              }
-
-              @if (!pwaService.isStandalone()) {
-                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                  <button
-                    type="button"
-                    (click)="closeMobileMenu(); pwaService.installPwa()"
-                    class="w-full flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold transition-colors cursor-pointer"
-                  >
-                    <span class="flex items-center gap-3">
-                      <span class="text-base">📲</span>
-                      <span>Instalar App Huellitas</span>
-                    </span>
-                    <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950">
-                      Gratis
-                    </span>
-                  </button>
-                </div>
-              }
-
-              <!-- Theme Toggle in Mobile Drawer -->
-              <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+            @if (!pwaService.isStandalone()) {
+              <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80">
                 <button
                   type="button"
-                  (click)="themeService.toggleTheme()"
-                  class="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  (click)="closeMobileMenu(); pwaService.installPwa()"
+                  class="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold transition-colors cursor-pointer"
                 >
-                  <span class="flex items-center gap-3">
-                    <span class="text-base">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
-                    <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+                  <span class="flex items-center gap-3.5">
+                    <span class="text-lg">📲</span>
+                    <span>Instalar App Huellitas</span>
                   </span>
-                  <span class="text-[10px] uppercase font-bold text-slate-400">
-                    Cambiar
+                  <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950">
+                    Gratis
                   </span>
                 </button>
               </div>
-            </div>
+            }
 
-            <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
-              <span>{{ brand.name }} • {{ brand.city }}</span>
+            <!-- Theme Toggle in Mobile Drawer -->
+            <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80">
               <button
-                (click)="closeMobileMenu()"
-                class="px-3 py-1.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 font-bold"
+                type="button"
+                (click)="themeService.toggleTheme()"
+                class="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
               >
-                Cerrar
+                <span class="flex items-center gap-3.5">
+                  <span class="text-lg">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+                  <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+                </span>
+                <span class="text-xs uppercase font-extrabold text-emerald-600 dark:text-emerald-400">
+                  Cambiar
+                </span>
               </button>
             </div>
           </div>
+
+          <!-- Drawer Footer -->
+          <div class="pt-3 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 flex-shrink-0">
+            <span class="font-semibold">{{ brand.name }} • {{ brand.city }}</span>
+            <button
+              type="button"
+              (click)="closeMobileMenu()"
+              class="px-4 py-2 rounded-xl bg-slate-200/90 dark:bg-slate-800 text-slate-800 dark:text-white font-extrabold cursor-pointer"
+            >
+              Cerrar menú
+            </button>
+          </div>
         </div>
-      }
-    </header>
+      </div>
+    }
 
     <!-- ======================================================== -->
     <!-- Mobile Bottom Navigation Dock (Native App Style)         -->
     <!-- Visible ONLY on mobile (< md), thumb-friendly, sleek     -->
     <!-- ======================================================== -->
     <nav
-      class="md:hidden fixed bottom-3 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
+      class="md:hidden fixed bottom-2.5 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
     >
       <!-- Muro (Public) -->
       <a
         routerLink="/"
         routerLinkActive="mobile-dock-active"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        (click)="closeAllDropdowns()"
+        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
       >
         <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">📰</span>
         <span class="text-[10px] font-bold mt-0.5">Muro</span>
@@ -840,7 +866,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       <a
         routerLink="/adopciones"
         routerLinkActive="mobile-dock-active"
-        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        (click)="closeAllDropdowns()"
+        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
       >
         <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🏠</span>
         <span class="text-[10px] font-bold mt-0.5">Adoptar</span>
@@ -850,7 +877,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       <a
         routerLink="/perdidas"
         routerLinkActive="mobile-dock-active"
-        class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        (click)="closeAllDropdowns()"
+        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
       >
         <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🚨</span>
         <span class="text-[10px] font-bold mt-0.5">Perdidos</span>
@@ -861,30 +889,33 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <a
           routerLink="/notificaciones"
           routerLinkActive="mobile-dock-active"
-          class="relative flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          (click)="closeAllDropdowns()"
+          class="relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
         >
           <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🔔</span>
           <span class="text-[10px] font-bold mt-0.5">Alertas</span>
           @if (socialNotifications.unreadCount() > 0) {
-            <span class="absolute top-0.5 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>
+            <span class="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>
           }
         </a>
 
-        <!-- Mi Perfil -->
-        <a
-          routerLink="/perfil"
-          routerLinkActive="mobile-dock-active"
-          class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        <!-- Menú Completo en Dock Móvil -->
+        <button
+          type="button"
+          (click)="toggleMobileMenu($event)"
+          [ngClass]="{ 'mobile-dock-active': isMobileMenuOpen() }"
+          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 cursor-pointer"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👤</span>
-          <span class="text-[10px] font-bold mt-0.5">Perfil</span>
-        </a>
+          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">☰</span>
+          <span class="text-[10px] font-bold mt-0.5">Opciones</span>
+        </button>
       } @else {
         <!-- Ingresar (Guest) -->
         <a
           routerLink="/auth/login"
           routerLinkActive="mobile-dock-active"
-          class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          (click)="closeAllDropdowns()"
+          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
         >
           <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👤</span>
           <span class="text-[10px] font-bold mt-0.5">Entrar</span>
@@ -981,6 +1012,7 @@ export class NavbarComponent implements OnInit {
     event.stopPropagation();
     this.isUserMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
     this.isMoreMenuOpen.update((v) => !v);
   }
 
@@ -988,6 +1020,7 @@ export class NavbarComponent implements OnInit {
     event.stopPropagation();
     this.isMoreMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
     this.isUserMenuOpen.update((v) => !v);
   }
 
@@ -995,6 +1028,7 @@ export class NavbarComponent implements OnInit {
     event.stopPropagation();
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
     const nextState = !this.isNotifMenuOpen();
     this.isNotifMenuOpen.set(nextState);
     if (nextState) {
@@ -1034,6 +1068,7 @@ export class NavbarComponent implements OnInit {
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
   }
 
   logoutAndClose(): void {
@@ -1046,7 +1081,13 @@ export class NavbarComponent implements OnInit {
     this.closeAllDropdowns();
   }
 
-  toggleMobileMenu(): void {
+  toggleMobileMenu(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isMoreMenuOpen.set(false);
+    this.isUserMenuOpen.set(false);
+    this.isNotifMenuOpen.set(false);
     this.isMobileMenuOpen.update((v) => !v);
   }
 

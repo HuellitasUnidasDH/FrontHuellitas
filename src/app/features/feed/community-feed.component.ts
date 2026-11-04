@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -78,6 +78,7 @@ interface FeedPost {
   showComments?: boolean;
   newCommentText?: string;
   isSubmittingComment?: boolean;
+  activePhotoIndex?: number;
 }
 
 @Component({
@@ -88,19 +89,55 @@ interface FeedPost {
     <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-5 space-y-6">
 
       <!-- ======================================================== -->
+      <!-- Píldora Flotante FIJA en Pantalla (Visible aunque bajes) -->
+      <!-- ======================================================== -->
+      @if (pendingNewPostsCount() > 0) {
+        <div class="fixed top-[4.5rem] sm:top-20 inset-x-0 z-40 flex justify-center px-3 pointer-events-none animate-fadeIn">
+          <button
+            type="button"
+            (click)="applyPendingFeedRefresh()"
+            class="pointer-events-auto px-4 sm:px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-2xl shadow-emerald-500/40 border-2 border-white/70 dark:border-slate-900/60 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 max-w-full"
+          >
+            <span class="relative flex h-2.5 w-2.5 flex-shrink-0">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-950"></span>
+            </span>
+            <span class="truncate">🐾 {{ pendingNewPostsCount() }} nueva(s) publicación(es) — Toca para actualizar</span>
+            <span class="flex-shrink-0">🔄</span>
+          </button>
+        </div>
+      }
+
+      <!-- ======================================================== -->
+      <!-- Botón Flotante Inferior para Subir al Inicio del Muro    -->
+      <!-- ======================================================== -->
+      @if (isScrolledDown()) {
+        <div class="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-40 animate-fadeIn">
+          <button
+            type="button"
+            (click)="scrollToTop()"
+            class="w-10 h-10 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-800 dark:text-emerald-400 font-black text-sm shadow-2xl border border-emerald-500/40 dark:border-emerald-500/40 backdrop-blur-xl flex items-center justify-center cursor-pointer hover:scale-110 active:scale-95 transition-all"
+            title="Volver arriba"
+          >
+            ↑
+          </button>
+        </div>
+      }
+
+      <!-- ======================================================== -->
       <!-- Top Hero Header / Dolores Hidalgo Brand Banner           -->
       <!-- ======================================================== -->
-      <section class="liquid-glass rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
+      <section class="liquid-glass rounded-3xl p-4 sm:p-7 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
         <div class="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-gradient-to-br from-emerald-500/20 via-teal-400/10 to-transparent blur-2xl pointer-events-none"></div>
 
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
           <div class="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
-            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/25 flex-shrink-0 animate-bounce duration-1000">
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-emerald-500/25 flex-shrink-0 animate-bounce duration-1000">
               🐾
             </div>
             <div>
               <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                <h1 class="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                   Muro {{ brand.name }}
                 </h1>
                 <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
@@ -114,10 +151,20 @@ interface FeedPost {
           </div>
 
           <!-- Quick Action Buttons -->
-          <div class="flex items-center gap-2 w-full sm:w-auto">
+          <div class="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
+            <button
+              (click)="refreshFeedSilently(true)"
+              [disabled]="isRefreshingFeed()"
+              title="Actualizar publicaciones manteniendo tu posición en el muro"
+              class="px-3 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-emerald-500/20 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <span [ngClass]="{ 'animate-spin': isRefreshingFeed() }">🔄</span>
+              <span>Actualizar</span>
+            </button>
+
             <button
               (click)="openPublicationModal()"
-              class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+              class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
             >
               <span>✍️</span> Crear Publicación
             </button>
@@ -125,14 +172,14 @@ interface FeedPost {
             @if (authService.isAuthenticated()) {
               <a
                 routerLink="/pets/new"
-                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
               >
                 <span>🐾</span> Mis Mascotas
               </a>
             } @else {
               <a
                 routerLink="/auth/register"
-                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
               >
                 <span>✨</span> Unirme
               </a>
@@ -318,6 +365,25 @@ interface FeedPost {
       </section>
 
       <!-- ======================================================== -->
+      <!-- Botón Móvil para Mostrar/Ocultar Búsqueda y Colonias     -->
+      <!-- ======================================================== -->
+      <div class="sm:hidden flex items-center justify-between gap-2">
+        <button
+          type="button"
+          (click)="toggleFiltersPanel()"
+          class="flex-1 py-2.5 px-3.5 rounded-xl liquid-glass text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center justify-between border border-slate-300/60 dark:border-slate-700/60 cursor-pointer"
+        >
+          <span class="flex items-center gap-2">
+            <span>🔍</span>
+            <span>Buscar por nombre, colonia o especie</span>
+          </span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-black">
+            {{ showFiltersPanel() ? 'Ocultar ▲' : 'Abrir ▼' }}
+          </span>
+        </button>
+      </div>
+
+      <!-- ======================================================== -->
       <!-- Tactical Search & Colonias Filter Row                    -->
       <!-- ======================================================== -->
       <section
@@ -483,18 +549,55 @@ interface FeedPost {
                 </p>
               </div>
 
-              <!-- 3. Post Image (Optimal 16:10 / Compact Height with Floating Specular Badges) -->
-              @if (post.photoUrl) {
-                <div class="relative w-full h-44 sm:h-52 rounded-2xl overflow-hidden bg-slate-950/20 group my-2.5 flex-shrink-0 border border-black/5 dark:border-white/10">
+              <!-- 3. Post Image Gallery (Interactive Carousel + Click to Open Fullscreen Lightbox) -->
+              @if (post.photoUrl || (post.photos && post.photos.length > 0)) {
+                <div class="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden bg-slate-950/20 group my-2.5 flex-shrink-0 border border-black/5 dark:border-white/10">
                   <img
-                    [src]="post.photoUrl"
+                    [src]="getPostCurrentPhoto(post)"
                     [alt]="post.title"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    (click)="openLightbox(post, post.activePhotoIndex || 0)"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-zoom-in"
                     loading="lazy"
+                    title="Toca para ver la imagen completa"
                   />
 
+                  <!-- Top-Right Photo Counter & Zoom Pill -->
+                  <button
+                    type="button"
+                    (click)="openLightbox(post, post.activePhotoIndex || 0)"
+                    class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-slate-950/75 hover:bg-slate-950/90 backdrop-blur-md text-white text-[10px] font-bold flex items-center gap-1 shadow-md cursor-pointer transition-all"
+                    title="Ampliar galería fotográfica"
+                  >
+                    <span>🔍</span>
+                    @if (post.photos && post.photos.length > 1) {
+                      <span>{{ (post.activePhotoIndex || 0) + 1 }} / {{ post.photos.length }} fotos</span>
+                    } @else {
+                      <span>Ver foto</span>
+                    }
+                  </button>
+
+                  <!-- Multi-photo Navigation Arrows on Card -->
+                  @if (post.photos && post.photos.length > 1) {
+                    <button
+                      type="button"
+                      (click)="prevPostPhoto(post, $event)"
+                      class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/70 hover:bg-emerald-500 text-white hover:text-slate-950 flex items-center justify-center text-sm font-black shadow-lg transition-all cursor-pointer opacity-85 sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Foto anterior"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      (click)="nextPostPhoto(post, $event)"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/70 hover:bg-emerald-500 text-white hover:text-slate-950 flex items-center justify-center text-sm font-black shadow-lg transition-all cursor-pointer opacity-85 sm:opacity-0 sm:group-hover:opacity-100"
+                      title="Siguiente foto"
+                    >
+                      ›
+                    </button>
+                  }
+
                   <!-- Floating attributes badge overlay on image -->
-                  <div class="absolute bottom-2 inset-x-2 flex flex-wrap items-center gap-1 p-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md text-white text-[10px]">
+                  <div class="absolute bottom-2 inset-x-2 flex flex-wrap items-center gap-1 p-1.5 rounded-xl bg-slate-950/75 backdrop-blur-md text-white text-[10px] pointer-events-none">
                     @if (post.postType !== 'CAMPANA_COMUNITARIA') {
                       <span class="font-bold">🐾 {{ post.species }}</span>
                       @if (post.breed) {
@@ -514,6 +617,23 @@ interface FeedPost {
                     }
                   </div>
                 </div>
+
+                <!-- Mini Thumbnail Strip when post has multiple photos -->
+                @if (post.photos && post.photos.length > 1) {
+                  <div class="flex items-center gap-1.5 overflow-x-auto pb-1 mb-1.5 scrollbar-none">
+                    @for (imgUrl of post.photos; track $index) {
+                      <button
+                        type="button"
+                        (click)="selectPostPhoto(post, $index, $event)"
+                        (dblclick)="openLightbox(post, $index)"
+                        class="w-11 h-11 rounded-xl overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0"
+                        [ngClass]="(post.activePhotoIndex || 0) === $index ? 'border-emerald-500 scale-105 shadow-sm' : 'border-transparent opacity-65 hover:opacity-100'"
+                      >
+                        <img [src]="imgUrl" alt="Miniatura" class="w-full h-full object-cover" />
+                      </button>
+                    }
+                  </div>
+                }
               }
 
               <!-- 4. Tactical Attribute Tags (Health, Behavior, Rewards) -->
@@ -579,22 +699,25 @@ interface FeedPost {
                       }
                     </span>
                   }
-                  @if (post.reportsCount && post.reportsCount > 1) {
+                  @if (post.postType === 'ANIMAL_HERIDO' && post.reportsCount && post.reportsCount > 1) {
                     <span class="px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-bold">
-                      📑 {{ post.reportsCount }} reportes agrupados
+                      📑 {{ post.reportsCount }} reportes de urgencia agrupados
                     </span>
                   }
                 }
               </div>
 
-              <!-- 4.1. Cascading Incident Reports (Deduplication / Agrupación Comunitaria) -->
-              @if (post.kind === 'LOST_PET' && post.sightings && post.sightings.length > 0) {
+              <!-- 4.1. Cascading Incident Reports (Solo para Animal Herido o Avistamientos de Extravío) -->
+              @if (post.kind === 'LOST_PET' && (post.postType === 'ANIMAL_HERIDO' || post.postType === 'SE_BUSCA' || post.postType === 'EXTRAVIADA') && post.sightings && post.sightings.length > 0) {
                 <div class="rounded-xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/30 p-2.5 my-1.5 space-y-2">
                   <div class="flex items-center justify-between gap-1 text-[11px]">
                     <span class="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                      <span>📍</span> Cascada vecinal ({{ post.sightings.length }} reportes)
+                      <span>📍</span>
+                      <span>{{ post.postType === 'ANIMAL_HERIDO' ? 'Cascada vecinal de urgencia' : 'Avistamientos reportados' }} ({{ post.sightings.length }})</span>
                     </span>
-                    <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">Consolidado</span>
+                    <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">
+                      {{ post.postType === 'ANIMAL_HERIDO' ? 'Consolidado' : 'Seguimiento' }}
+                    </span>
                   </div>
                   <div class="space-y-1.5 max-h-32 overflow-y-auto pr-1">
                     @for (sighting of post.sightings; track sighting.id) {
@@ -1525,66 +1648,113 @@ interface FeedPost {
                     </div>
                   }
 
-                  <!-- Fotografía / Afiche -->
-                  <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                      {{ currentCategoryConfig.photoLabel }}
-                    </label>
-
-                    <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2 gap-1 text-xs font-bold max-w-sm">
-                      <button
-                        type="button"
-                        (click)="reportLostPhotoSource.set('FILE')"
-                        [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'FILE' }"
-                        class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                  <!-- Fotografía / Galería Multi-Imagen (Límite por Rol: 3 Usuario / 6 Rescatista-Admin) -->
+                  <div class="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                      <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase text-[11px]">
+                        {{ currentCategoryConfig.photoLabel }}
+                      </label>
+                      <span
+                        class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border"
+                        [ngClass]="reportLostPhotosList().length >= authService.maxPhotosAllowed()
+                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                          : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'"
                       >
-                        📁 Desde mi dispositivo
-                      </button>
-                      <button
-                        type="button"
-                        (click)="reportLostPhotoSource.set('URL')"
-                        [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
-                        class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
-                      >
-                        🔗 Pegar enlace URL
-                      </button>
+                        📷 {{ reportLostPhotosList().length }} / {{ authService.maxPhotosAllowed() }} fotos
+                      </span>
                     </div>
 
-                    @if (reportLostPhotoSource() === 'FILE') {
-                      <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all text-center">
-                        <span class="text-2xl mb-1">📷</span>
-                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para seleccionar imagen desde celular o PC</span>
-                        <span class="text-[10px] text-slate-500 dark:text-slate-400">{{ currentCategoryConfig.photoPlaceholder }}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          (change)="onReportLostFileSelected($event)"
-                          class="hidden"
-                        />
-                      </label>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                      Puedes subir hasta <strong>{{ authService.maxPhotosAllowed() }} fotografías</strong> ({{ authService.maxPhotosAllowed() === 6 ? 'Límite ampliado para Rescatistas / Admin' : 'Hasta 3 fotos para usuarios y 6 para rescatistas/admin' }}).
+                    </p>
+
+                    @if (reportLostPhotosList().length < authService.maxPhotosAllowed()) {
+                      <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 gap-1 text-xs font-bold max-w-sm">
+                        <button
+                          type="button"
+                          (click)="reportLostPhotoSource.set('FILE')"
+                          [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'FILE' }"
+                          class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                        >
+                          📁 Desde mi dispositivo
+                        </button>
+                        <button
+                          type="button"
+                          (click)="reportLostPhotoSource.set('URL')"
+                          [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
+                          class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                        >
+                          🔗 Pegar enlace URL
+                        </button>
+                      </div>
+
+                      @if (reportLostPhotoSource() === 'FILE') {
+                        <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all text-center">
+                          <span class="text-2xl mb-1">📷</span>
+                          <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            Toca para agregar {{ reportLostPhotosList().length > 0 ? 'más fotos' : 'imágenes' }} desde celular o PC
+                          </span>
+                          <span class="text-[10px] text-slate-500 dark:text-slate-400">
+                            Disponibles: {{ authService.maxPhotosAllowed() - reportLostPhotosList().length }} foto(s) más
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            (change)="onReportLostFileSelected($event)"
+                            class="hidden"
+                          />
+                        </label>
+                      } @else {
+                        <div class="flex items-center gap-2">
+                          <input
+                            type="url"
+                            [(ngModel)]="reportLostForm.photoUrl"
+                            (keyup.enter)="addPhotoUrlToList()"
+                            placeholder="https://... pega el enlace de la imagen"
+                            class="flex-1 px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            (click)="addPhotoUrlToList()"
+                            [disabled]="!reportLostForm.photoUrl.trim()"
+                            class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-40 cursor-pointer transition-all"
+                          >
+                            + Agregar
+                          </button>
+                        </div>
+                      }
                     } @else {
-                      <input
-                        type="url"
-                        [(ngModel)]="reportLostForm.photoUrl"
-                        (ngModelChange)="reportLostPhotoPreview.set($event)"
-                        placeholder="https://... o pega enlace directo de imagen"
-                        class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
-                      />
+                      <div class="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-700 dark:text-amber-300 font-semibold text-center">
+                        Has alcanzado el límite máximo de {{ authService.maxPhotosAllowed() }} fotografías para esta publicación.
+                      </div>
                     }
 
-                    @if (reportLostPhotoPreview() || reportLostForm.photoUrl) {
-                      <div class="mt-2 p-2 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-emerald-500/30 flex items-center gap-3">
-                        <img
-                          [src]="reportLostPhotoPreview() || reportLostForm.photoUrl"
-                          alt="Vista previa"
-                          class="w-14 h-14 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
-                        />
-                        <div class="text-xs">
-                          <span class="font-bold block text-slate-900 dark:text-white">Imagen lista para difusión</span>
-                          <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {{ reportLostPhotoSource() === 'FILE' ? 'Archivo cargado desde tu dispositivo' : 'Enlace web válido' }}
-                          </span>
-                        </div>
+                    <!-- Cuadrícula de Miniaturas Cargadas -->
+                    @if (reportLostPhotosList().length > 0) {
+                      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+                        @for (item of reportLostPhotosList(); track $index) {
+                          <div class="relative group rounded-xl overflow-hidden aspect-square border-2 border-emerald-500/40 bg-slate-900/40 shadow-sm">
+                            <img
+                              [src]="item.previewUrl"
+                              alt="Foto cargada"
+                              class="w-full h-full object-cover"
+                            />
+                            @if ($index === 0) {
+                              <span class="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[8px] uppercase shadow">
+                                Portada
+                              </span>
+                            }
+                            <button
+                              type="button"
+                              (click)="removeReportLostPhoto($index)"
+                              class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow cursor-pointer"
+                              title="Quitar esta foto"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        }
                       </div>
                     }
                   </div>
@@ -1636,7 +1806,7 @@ interface FeedPost {
                           }
                         </span>
                         <span class="text-slate-600 dark:text-slate-400 text-[11px] block mt-0.5 leading-tight">
-                          Al marcar esta opción se eleva la prioridad comunitaria, se alerta a la red de rescate y se agruparán reportes en la misma zona de Dolores Hidalgo en cascada para no duplicar publicaciones.
+                          Al tratarse de un Animal Herido, se eleva la prioridad comunitaria y solo se agrupará en cascada si otro vecino reporta exactamente al mismo animal herido (misma colonia, especie, género, ubicación y señas).
                         </span>
                       </label>
                     </div>
@@ -1667,6 +1837,81 @@ interface FeedPost {
               </div>
             }
           </div>
+        </div>
+      }
+
+      <!-- ======================================================== -->
+      <!-- MODAL LIGHTBOX: VISOR DE IMÁGENES A PANTALLA COMPLETA    -->
+      <!-- ======================================================== -->
+      @if (lightboxPost()) {
+        <div
+          class="fixed inset-0 z-[70] bg-slate-950/92 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6 animate-fadeIn select-none"
+          (click)="closeLightbox()"
+        >
+          <!-- Top Bar -->
+          <div class="w-full max-w-5xl flex items-center justify-between gap-4 text-white z-10" (click)="$event.stopPropagation()">
+            <div class="min-w-0">
+              <h3 class="text-sm sm:text-base font-black truncate">{{ lightboxPost()!.title }}</h3>
+              <p class="text-[11px] text-slate-300 truncate">
+                📍 {{ lightboxPost()!.coloniaName || 'Dolores Hidalgo' }} • Foto {{ lightboxIndex() + 1 }} de {{ lightboxPost()!.photos.length }}
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="closeLightbox()"
+              class="w-9 h-9 rounded-full bg-white/15 hover:bg-rose-600 text-white flex items-center justify-center text-sm font-black transition-colors cursor-pointer flex-shrink-0"
+              title="Cerrar visor"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Main Fullscreen Image Area -->
+          <div class="relative flex-1 w-full max-w-5xl flex items-center justify-center my-2 overflow-hidden" (click)="$event.stopPropagation()">
+            @if (lightboxPost()!.photos.length > 1) {
+              <button
+                type="button"
+                (click)="prevLightboxPhoto()"
+                class="absolute left-2 sm:left-4 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900/80 hover:bg-emerald-500 text-white hover:text-slate-950 flex items-center justify-center text-xl font-black shadow-xl transition-all cursor-pointer"
+                title="Foto anterior"
+              >
+                ‹
+              </button>
+            }
+
+            <img
+              [src]="lightboxPost()!.photos[lightboxIndex()]"
+              [alt]="lightboxPost()!.title"
+              class="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10 transition-all"
+            />
+
+            @if (lightboxPost()!.photos.length > 1) {
+              <button
+                type="button"
+                (click)="nextLightboxPhoto()"
+                class="absolute right-2 sm:right-4 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900/80 hover:bg-emerald-500 text-white hover:text-slate-950 flex items-center justify-center text-xl font-black shadow-xl transition-all cursor-pointer"
+                title="Siguiente foto"
+              >
+                ›
+              </button>
+            }
+          </div>
+
+          <!-- Bottom Thumbnails Strip -->
+          @if (lightboxPost()!.photos.length > 1) {
+            <div class="flex items-center justify-center gap-2 overflow-x-auto max-w-full py-1 z-10" (click)="$event.stopPropagation()">
+              @for (img of lightboxPost()!.photos; track $index) {
+                <button
+                  type="button"
+                  (click)="lightboxIndex.set($index)"
+                  class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0"
+                  [ngClass]="lightboxIndex() === $index ? 'border-emerald-400 scale-105 shadow-lg' : 'border-transparent opacity-50 hover:opacity-90'"
+                >
+                  <img [src]="img" alt="Miniatura galería" class="w-full h-full object-cover" />
+                </button>
+              }
+            </div>
+          }
         </div>
       }
 
@@ -1791,6 +2036,32 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   allPosts = signal<FeedPost[]>([]);
   colonias = signal<Colonia[]>([]);
   isLoading = signal<boolean>(true);
+  isRefreshingFeed = signal<boolean>(false);
+  pendingNewPostsCount = signal<number>(0);
+  isScrolledDown = signal<boolean>(false);
+  private bufferedFreshPosts: FeedPost[] | null = null;
+  private commentsPollingTimer: any = null;
+  private feedPollingTimer: any = null;
+
+  @HostListener('window:scroll', [])
+  onWindowScroll(): void {
+    if (typeof window !== 'undefined') {
+      this.isScrolledDown.set(window.scrollY > 280);
+    }
+  }
+
+  scrollToTop(): void {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  // Lightbox Gallery state
+  lightboxPost = signal<FeedPost | null>(null);
+  lightboxIndex = signal<number>(0);
+
+  // Multi-photo upload list for publication modal
+  reportLostPhotosList = signal<Array<{ previewUrl: string; file?: File; existingUrl?: string }>>([]);
 
   // Filters
   activeFilter = signal<FeedFilterType>('ALL');
@@ -2000,6 +2271,64 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.syncFilterFromRoute();
     this.loadColonias();
     this.loadFeed();
+    this.startAutoPolling();
+  }
+
+  private startAutoPolling(): void {
+    if (typeof window === 'undefined') return;
+
+    // 1. Recarga automática EXCLUSIVA para comentarios de publicaciones que tengan abierta su sección de comentarios (cada 8s)
+    this.commentsPollingTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      this.pollOpenComments();
+    }, 8000);
+
+    // 2. Verificación silenciosa en segundo plano para avisar si hay nuevas publicaciones sin recargar ni mover el scroll (cada 35s)
+    this.feedPollingTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      this.checkForNewPostsSilently();
+    }, 35000);
+  }
+
+  private pollOpenComments(): void {
+    const openPosts = this.allPosts().filter((p) => p.showComments && !p.isSubmittingComment);
+    if (openPosts.length === 0) return;
+
+    for (const post of openPosts) {
+      this.refreshPostComments(post);
+    }
+  }
+
+  refreshPostComments(post: FeedPost): void {
+    const obs =
+      post.kind === 'LOST_PET' && post.lostData
+        ? this.lostPetService.getComments(post.lostData.id)
+        : post.kind === 'PET_ADOPTION' && post.petData
+        ? this.petService.getComments(post.petData.id)
+        : null;
+
+    if (!obs) return;
+
+    obs.subscribe({
+      next: (freshComments) => {
+        if (!Array.isArray(freshComments)) return;
+        this.allPosts.update((posts) =>
+          posts.map((p) => {
+            if (p.id !== post.id) return p;
+            const currentIds = (p.comments || []).map((c) => c.id).join(',');
+            const freshIds = freshComments.map((c) => c.id).join(',');
+            if (currentIds === freshIds && (p.comments || []).length === freshComments.length) {
+              return p;
+            }
+            return {
+              ...p,
+              comments: freshComments,
+            };
+          }),
+        );
+      },
+      error: () => {},
+    });
   }
 
   syncFilterFromRoute(): void {
@@ -2069,91 +2398,122 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  private normalizePhotosList(primaryUrl?: string, photosArr?: string[]): string[] {
+    const set = new Set<string>();
+    if (primaryUrl && primaryUrl.trim()) set.add(primaryUrl.trim());
+    if (Array.isArray(photosArr)) {
+      for (const p of photosArr) {
+        if (p && p.trim()) set.add(p.trim());
+      }
+    }
+    return Array.from(set);
+  }
+
+  private buildFeedPosts(pets: Pet[], reports: LostPetReport[]): FeedPost[] {
+    const existingMap = new Map<string, FeedPost>();
+    for (const oldPost of this.allPosts()) {
+      existingMap.set(oldPost.id, oldPost);
+    }
+
+    const petPosts: FeedPost[] = (pets || []).map((pet) => {
+      const id = `pet-${pet.id}`;
+      const prev = existingMap.get(id);
+      const photos = this.normalizePhotosList(pet.photoUrl, pet.photos);
+      return {
+        id,
+        kind: 'PET_ADOPTION',
+        postType: 'EN_ADOPCION',
+        title: `${pet.name} busca una familia amorosa`,
+        authorName: pet.owner?.fullName || 'Rescatista Huellitas',
+        authorPhotoUrl: pet.owner?.profilePhotoUrl,
+        authorRole: 'Rescatista Verificado',
+        authorColonia: pet.colonia?.name || 'Dolores Hidalgo',
+        createdAt: pet.createdAt,
+        timeAgo: this.formatExactDateTime(pet.createdAt),
+        temperamentTags: pet.temperamentTags || [],
+        typeBadge: '💚 En Adopción',
+        badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+        description:
+          pet.rescueStory ||
+          `Conoce a ${pet.name}, un hermoso peludito de talla ${pet.size || 'mediana'} que está listo para llenar tu hogar de amor en Dolores Hidalgo.`,
+        photoUrl: photos[0] || '',
+        photos,
+        activePhotoIndex: prev?.activePhotoIndex || 0,
+        species: pet.species,
+        breed: pet.breed,
+        approxAge: pet.approximateAge,
+        size: pet.size,
+        gender: pet.gender === 'FEMALE' ? 'Hembra' : 'Macho',
+        coloniaName: pet.colonia?.name,
+        isSterilized: pet.isSterilized,
+        isVaccinated: Boolean(pet.vaccinesList && pet.vaccinesList.length > 0),
+        goodWithKids: pet.goodWithKids,
+        goodWithOtherPets: pet.goodWithOtherPets,
+        petData: pet,
+        comments: pet.comments || prev?.comments || [],
+        showComments: prev?.showComments ?? false,
+        newCommentText: prev?.newCommentText ?? '',
+        isSubmittingComment: prev?.isSubmittingComment ?? false,
+      };
+    });
+
+    const lostPosts: FeedPost[] = (reports || []).map((rep) => {
+      const id = `lost-${rep.id}`;
+      const prev = existingMap.get(id);
+      const meta = this.getPostTypeMetadata(rep);
+      const photos = this.normalizePhotosList(rep.photos?.[0], rep.photos);
+      return {
+        id,
+        kind: 'LOST_PET',
+        postType: rep.type,
+        title: meta.title,
+        authorName: rep.reporter?.fullName || 'Ciudadano Solidario',
+        authorPhotoUrl: rep.reporter?.profilePhotoUrl,
+        authorRole: meta.authorRole,
+        authorColonia: rep.colonia?.name || 'Dolores Hidalgo',
+        createdAt: rep.createdAt,
+        timeAgo: this.formatExactDateTime(rep.createdAt),
+        temperamentTags: rep.temperamentTags || [],
+        typeBadge: meta.typeBadge,
+        badgeClass: meta.badgeClass,
+        description: rep.distinctiveFeatures || `Visto en ${rep.lastSeenLocation}. Por favor ayuda compartiendo este reporte.`,
+        photoUrl: photos[0] || '',
+        photos,
+        activePhotoIndex: prev?.activePhotoIndex || 0,
+        species: rep.species,
+        gender: rep.gender,
+        coloniaName: rep.colonia?.name,
+        lostData: rep,
+        lastSeenLocation: rep.lastSeenLocation,
+        contactPhone: rep.contactPhone,
+        rewardOffered: rep.rewardOffered,
+        rewardDetails: rep.rewardDetails,
+        isInjured: rep.isInjured,
+        reportsCount: rep.reportsCount || (rep.sightings ? rep.sightings.length : 1),
+        sightings: rep.sightings || [],
+        comments: rep.comments || prev?.comments || [],
+        showComments: prev?.showComments ?? false,
+        newCommentText: prev?.newCommentText ?? '',
+        isSubmittingComment: prev?.isSubmittingComment ?? false,
+      };
+    });
+
+    return [...petPosts, ...lostPosts].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+
   loadFeed(): void {
     this.isLoading.set(true);
 
-    // Fetch both adoption pets and community publications concurrently
     this.petService.getAdoptionCatalog().subscribe({
       next: (pets) => {
         this.lostPetService.getAll().subscribe({
           next: (reports) => {
-            const petPosts: FeedPost[] = (pets || []).map((pet) => ({
-              id: `pet-${pet.id}`,
-              kind: 'PET_ADOPTION',
-              postType: 'EN_ADOPCION',
-              title: `${pet.name} busca una familia amorosa`,
-              authorName: pet.owner?.fullName || 'Rescatista Huellitas',
-              authorPhotoUrl: pet.owner?.profilePhotoUrl,
-              authorRole: 'Rescatista Verificado',
-              authorColonia: pet.colonia?.name || 'Dolores Hidalgo',
-              createdAt: pet.createdAt,
-              timeAgo: this.formatExactDateTime(pet.createdAt),
-              temperamentTags: pet.temperamentTags || [],
-              typeBadge: '💚 En Adopción',
-              badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-              description: pet.rescueStory || `Conoce a ${pet.name}, un hermoso peludito de talla ${pet.size || 'mediana'} que está listo para llenar tu hogar de amor en Dolores Hidalgo.`,
-              photoUrl: pet.photoUrl || (pet.photos && pet.photos[0]) || '',
-              photos: pet.photos || [],
-              species: pet.species,
-              breed: pet.breed,
-              approxAge: pet.approximateAge,
-              size: pet.size,
-              gender: pet.gender === 'FEMALE' ? 'Hembra' : 'Macho',
-              coloniaName: pet.colonia?.name,
-              isSterilized: pet.isSterilized,
-              isVaccinated: Boolean(pet.vaccinesList && pet.vaccinesList.length > 0),
-              goodWithKids: pet.goodWithKids,
-              goodWithOtherPets: pet.goodWithOtherPets,
-              petData: pet,
-              comments: pet.comments || [],
-              showComments: false,
-              newCommentText: '',
-              isSubmittingComment: false,
-            }));
-
-            const lostPosts: FeedPost[] = (reports || []).map((rep) => {
-              const meta = this.getPostTypeMetadata(rep);
-              return {
-                id: `lost-${rep.id}`,
-                kind: 'LOST_PET',
-                postType: rep.type,
-                title: meta.title,
-                authorName: rep.reporter?.fullName || 'Ciudadano Solidario',
-                authorPhotoUrl: rep.reporter?.profilePhotoUrl,
-                authorRole: meta.authorRole,
-                authorColonia: rep.colonia?.name || 'Dolores Hidalgo',
-                createdAt: rep.createdAt,
-                timeAgo: this.formatExactDateTime(rep.createdAt),
-                temperamentTags: rep.temperamentTags || [],
-                typeBadge: meta.typeBadge,
-                badgeClass: meta.badgeClass,
-                description: rep.distinctiveFeatures || `Visto en ${rep.lastSeenLocation}. Por favor ayuda compartiendo este reporte.`,
-                photoUrl: (rep.photos && rep.photos[0]) || '',
-                photos: rep.photos || [],
-                species: rep.species,
-                gender: rep.gender,
-                coloniaName: rep.colonia?.name,
-                lostData: rep,
-                lastSeenLocation: rep.lastSeenLocation,
-                contactPhone: rep.contactPhone,
-                rewardOffered: rep.rewardOffered,
-                rewardDetails: rep.rewardDetails,
-                isInjured: rep.isInjured,
-                reportsCount: rep.reportsCount || (rep.sightings ? rep.sightings.length : 1),
-                sightings: rep.sightings || [],
-                comments: rep.comments || [],
-                showComments: false,
-                newCommentText: '',
-                isSubmittingComment: false,
-              };
-            });
-
-            // Combine and sort by createdAt descending
-            const combined = [...petPosts, ...lostPosts].sort(
-              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-            );
-
+            const combined = this.buildFeedPosts(pets || [], reports || []);
             this.allPosts.set(combined);
+            this.pendingNewPostsCount.set(0);
+            this.bufferedFreshPosts = null;
             this.isLoading.set(false);
           },
           error: () => {
@@ -2165,6 +2525,146 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         this.isLoading.set(false);
       },
     });
+  }
+
+  private checkForNewPostsSilently(): void {
+    if (this.isLoading() || this.isRefreshingFeed()) return;
+
+    this.petService.getAdoptionCatalog().subscribe({
+      next: (pets) => {
+        this.lostPetService.getAll().subscribe({
+          next: (reports) => {
+            const fresh = this.buildFeedPosts(pets || [], reports || []);
+            const currentIds = new Set(this.allPosts().map((p) => p.id));
+            const newCount = fresh.filter((p) => !currentIds.has(p.id)).length;
+            if (newCount > 0) {
+              this.bufferedFreshPosts = fresh;
+              this.pendingNewPostsCount.set(newCount);
+            } else {
+              // Actualiza contadores de cascada/avistamientos sin alterar scroll ni cerrar comentarios
+              this.allPosts.set(fresh);
+            }
+          },
+          error: () => {},
+        });
+      },
+      error: () => {},
+    });
+  }
+
+  applyPendingFeedRefresh(): void {
+    const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+    if (this.bufferedFreshPosts) {
+      this.allPosts.set(this.bufferedFreshPosts);
+      this.bufferedFreshPosts = null;
+      this.pendingNewPostsCount.set(0);
+      if (typeof window !== 'undefined') {
+        requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior }));
+      }
+      this.notify.info('Muro actualizado con las publicaciones más recientes');
+    } else {
+      this.refreshFeedSilently(true);
+    }
+  }
+
+  refreshFeedSilently(showToast = false): void {
+    if (this.isRefreshingFeed()) return;
+    this.isRefreshingFeed.set(true);
+    const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
+
+    this.petService.getAdoptionCatalog().subscribe({
+      next: (pets) => {
+        this.lostPetService.getAll().subscribe({
+          next: (reports) => {
+            const fresh = this.buildFeedPosts(pets || [], reports || []);
+            this.allPosts.set(fresh);
+            this.bufferedFreshPosts = null;
+            this.pendingNewPostsCount.set(0);
+            this.isRefreshingFeed.set(false);
+            if (typeof window !== 'undefined') {
+              requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior }));
+            }
+            if (showToast) {
+              this.notify.success('Muro actualizado sin perder tu posición');
+            }
+          },
+          error: () => {
+            this.isRefreshingFeed.set(false);
+          },
+        });
+      },
+      error: () => {
+        this.isRefreshingFeed.set(false);
+      },
+    });
+  }
+
+  // ==========================================
+  // MULTI-PHOTO CARD CAROUSEL & LIGHTBOX
+  // ==========================================
+  getPostCurrentPhoto(post: FeedPost): string {
+    if (post.photos && post.photos.length > 0) {
+      const idx = post.activePhotoIndex || 0;
+      return post.photos[idx] || post.photos[0] || post.photoUrl;
+    }
+    return post.photoUrl;
+  }
+
+  prevPostPhoto(post: FeedPost, event: Event): void {
+    event.stopPropagation();
+    if (!post.photos || post.photos.length <= 1) return;
+    const current = post.activePhotoIndex || 0;
+    const nextIdx = (current - 1 + post.photos.length) % post.photos.length;
+    this.allPosts.update((posts) =>
+      posts.map((p) => (p.id === post.id ? { ...p, activePhotoIndex: nextIdx } : p)),
+    );
+  }
+
+  nextPostPhoto(post: FeedPost, event: Event): void {
+    event.stopPropagation();
+    if (!post.photos || post.photos.length <= 1) return;
+    const current = post.activePhotoIndex || 0;
+    const nextIdx = (current + 1) % post.photos.length;
+    this.allPosts.update((posts) =>
+      posts.map((p) => (p.id === post.id ? { ...p, activePhotoIndex: nextIdx } : p)),
+    );
+  }
+
+  selectPostPhoto(post: FeedPost, index: number, event: Event): void {
+    event.stopPropagation();
+    this.allPosts.update((posts) =>
+      posts.map((p) => (p.id === post.id ? { ...p, activePhotoIndex: index } : p)),
+    );
+  }
+
+  openLightbox(post: FeedPost, index = 0): void {
+    const photos = post.photos && post.photos.length > 0 ? post.photos : post.photoUrl ? [post.photoUrl] : [];
+    if (photos.length === 0) return;
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
+    this.lightboxPost.set({ ...post, photos });
+    this.lightboxIndex.set(Math.max(0, Math.min(index, photos.length - 1)));
+  }
+
+  closeLightbox(): void {
+    if (typeof document !== 'undefined' && !this.isReportLostModalOpen() && !this.selectedPetForAdoption() && !this.selectedLostPetForSighting()) {
+      document.body.classList.remove('modal-open');
+    }
+    this.lightboxPost.set(null);
+    this.lightboxIndex.set(0);
+  }
+
+  prevLightboxPhoto(): void {
+    const post = this.lightboxPost();
+    if (!post || !post.photos || post.photos.length <= 1) return;
+    this.lightboxIndex.update((i) => (i - 1 + post.photos.length) % post.photos.length);
+  }
+
+  nextLightboxPhoto(): void {
+    const post = this.lightboxPost();
+    if (!post || !post.photos || post.photos.length <= 1) return;
+    this.lightboxIndex.update((i) => (i + 1) % post.photos.length);
   }
 
   setFilter(filter: FeedFilterType): void {
@@ -2275,6 +2775,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.reportLostPhotoSource.set('FILE');
     this.reportLostPhotoPreview.set(null);
     this.reportLostSelectedFile.set(null);
+    this.reportLostPhotosList.set([]);
     this.reportLostForm.petName = '';
     this.reportLostForm.lastSeenLocation = '';
     this.reportLostForm.distinctiveFeatures = '';
@@ -2312,10 +2813,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.reportLostForm.rewardDetails = rep.rewardDetails || '';
       this.reportLostForm.isInjured = !!rep.isInjured;
       this.reportLostForm.temperamentTags = [...(rep.temperamentTags || [])];
-      const existingPhoto = (rep.photos && rep.photos[0]) || '';
-      this.reportLostForm.photoUrl = existingPhoto;
-      this.reportLostPhotoPreview.set(existingPhoto || null);
-      this.reportLostPhotoSource.set(existingPhoto ? 'URL' : 'FILE');
+      const existingPhotos = rep.photos && rep.photos.length > 0 ? rep.photos : [];
+      this.reportLostForm.photoUrl = '';
+      this.reportLostPhotosList.set(
+        existingPhotos.map((url) => ({ previewUrl: url, existingUrl: url })),
+      );
+      this.reportLostPhotoPreview.set(existingPhotos[0] || null);
+      this.reportLostPhotoSource.set('FILE');
       this.reportLostSelectedFile.set(null);
       this.isReportLostModalOpen.set(true);
     }
@@ -2361,22 +2865,28 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
     this.isReportLostModalOpen.set(false);
     this.reportLostSuccess.set(null);
+    this.reportLostPhotosList.set([]);
   }
 
   toggleComments(post: FeedPost): void {
-    post.showComments = !post.showComments;
+    const willOpen = !post.showComments;
+    this.allPosts.update((posts) =>
+      posts.map((p) => (p.id === post.id ? { ...p, showComments: willOpen } : p)),
+    );
+    if (willOpen) {
+      this.refreshPostComments(post);
+    }
   }
 
   submitComment(post: FeedPost): void {
-    if (!post.newCommentText || !post.newCommentText.trim()) return;
+    const rawText = post.newCommentText || '';
+    if (!rawText.trim()) return;
     if (!this.authService.isAuthenticated()) {
       this.notify.warning('Inicia sesión para dejar un comentario');
       return;
     }
 
-    const text = post.newCommentText.trim();
-    post.isSubmittingComment = true;
-
+    const text = rawText.trim();
     const commentObs =
       post.kind === 'LOST_PET' && post.lostData
         ? this.lostPetService.addComment(post.lostData.id, text)
@@ -2385,29 +2895,74 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         : null;
 
     if (!commentObs) {
-      post.isSubmittingComment = false;
       this.notify.error('No se pudo identificar la publicación');
       return;
     }
 
+    // UI Optimista e inmutable con Signals:
+    // Limpiamos de inmediato el input y mostramos el comentario en 0ms sin dejar animación colgada
+    const tempId = `temp-${Date.now()}`;
+    const currentUser = this.authService.currentUser();
+    const optimisticComment: PublicationComment = {
+      id: tempId,
+      reportId: post.id,
+      authorId: currentUser?.id || 'me',
+      author: currentUser || undefined,
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.allPosts.update((posts) =>
+      posts.map((p) =>
+        p.id === post.id
+          ? {
+              ...p,
+              newCommentText: '',
+              isSubmittingComment: false,
+              showComments: true,
+              comments: [...(p.comments || []), optimisticComment],
+            }
+          : p,
+      ),
+    );
+
     commentObs.subscribe({
       next: (comment) => {
-        post.isSubmittingComment = false;
-        post.newCommentText = '';
-        if (!post.comments) post.comments = [];
         const enrichedComment: PublicationComment = {
           id: comment.id,
           reportId: (comment as any).reportId || (comment as any).petId || post.id,
           authorId: comment.authorId,
-          author: comment.author || this.authService.currentUser() || undefined,
+          author: comment.author || currentUser || undefined,
           content: comment.content,
           createdAt: comment.createdAt || new Date().toISOString(),
         };
-        post.comments.push(enrichedComment);
-        this.notify.success('¡Comentario publicado!');
+
+        this.allPosts.update((posts) =>
+          posts.map((p) =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  isSubmittingComment: false,
+                  comments: (p.comments || []).map((c) => (c.id === tempId ? enrichedComment : c)),
+                }
+              : p,
+          ),
+        );
       },
       error: (err) => {
-        post.isSubmittingComment = false;
+        // Revertir el comentario optimista y restaurar el texto para que no se pierda
+        this.allPosts.update((posts) =>
+          posts.map((p) =>
+            p.id === post.id
+              ? {
+                  ...p,
+                  isSubmittingComment: false,
+                  newCommentText: text,
+                  comments: (p.comments || []).filter((c) => c.id !== tempId),
+                }
+              : p,
+          ),
+        );
         const msg = err.error?.message || 'Error al enviar el comentario';
         this.notify.error(msg);
       },
@@ -2416,13 +2971,56 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   onReportLostFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      this.reportLostSelectedFile.set(file);
+    if (!input.files || input.files.length === 0) return;
+
+    const maxAllowed = this.authService.maxPhotosAllowed();
+    const currentList = this.reportLostPhotosList();
+    const remainingSlots = maxAllowed - currentList.length;
+
+    if (remainingSlots <= 0) {
+      this.notify.warning(
+        `Has alcanzado el límite máximo de ${maxAllowed} fotos para tu cuenta.`,
+      );
+      input.value = '';
+      return;
+    }
+
+    const selectedFiles = Array.from(input.files);
+    if (selectedFiles.length > remainingSlots) {
+      this.notify.info(
+        `Solo se agregaron ${remainingSlots} foto(s) para respetar el límite de ${maxAllowed} fotos según tu rol.`,
+      );
+    }
+
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    for (const file of filesToAdd) {
       this.imageUploadService.fileToDataUrl(file).then((preview) => {
-        this.reportLostPhotoPreview.set(preview);
+        this.reportLostPhotosList.update((list) => {
+          if (list.length >= maxAllowed) return list;
+          return [...list, { previewUrl: preview, file }];
+        });
       });
     }
+
+    input.value = '';
+  }
+
+  addPhotoUrlToList(): void {
+    const url = (this.reportLostForm.photoUrl || '').trim();
+    if (!url) return;
+
+    const maxAllowed = this.authService.maxPhotosAllowed();
+    if (this.reportLostPhotosList().length >= maxAllowed) {
+      this.notify.warning(`Solo puedes adjuntar hasta ${maxAllowed} fotos.`);
+      return;
+    }
+
+    this.reportLostPhotosList.update((list) => [...list, { previewUrl: url, existingUrl: url }]);
+    this.reportLostForm.photoUrl = '';
+  }
+
+  removeReportLostPhoto(index: number): void {
+    this.reportLostPhotosList.update((list) => list.filter((_, idx) => idx !== index));
   }
 
   submitReportLost(): void {
@@ -2440,10 +3038,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Si escribió una URL en el input pero no pulsó "+ Agregar", agregarla automáticamente si hay espacio
+    if (
+      this.reportLostPhotoSource() === 'URL' &&
+      this.reportLostForm.photoUrl.trim() &&
+      this.reportLostPhotosList().length < this.authService.maxPhotosAllowed()
+    ) {
+      this.addPhotoUrlToList();
+    }
+
+    const maxAllowed = this.authService.maxPhotosAllowed();
+    const photoItems = this.reportLostPhotosList().slice(0, maxAllowed);
+
     this.isSubmittingReportLost.set(true);
 
-    const executeCreation = (finalPhotoUrl?: string) => {
+    const executeCreation = (finalPhotos: string[]) => {
       const editId = this.editingReportId();
+      const primaryPhoto = finalPhotos[0] || undefined;
       const payload = {
         type: this.reportLostForm.type,
         species: this.reportLostForm.species,
@@ -2456,7 +3067,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         contactPhone: this.reportLostForm.contactPhone.trim() || '4181234567',
         rewardOffered: this.reportLostForm.rewardOffered,
         rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
-        photos: finalPhotoUrl ? [finalPhotoUrl] : [],
+        photos: finalPhotos,
         isInjured: this.reportLostForm.isInjured,
         temperamentTags: this.reportLostForm.temperamentTags,
         goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
@@ -2471,6 +3082,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           next: (updatedReport) => {
             this.isSubmittingReportLost.set(false);
             const meta = this.getPostTypeMetadata(updatedReport);
+            const updatedPhotos = this.normalizePhotosList(updatedReport.photos?.[0], updatedReport.photos);
             this.allPosts.update((posts) =>
               posts.map((p) =>
                 p.id === `lost-${editId}`
@@ -2481,8 +3093,9 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
                       typeBadge: meta.typeBadge,
                       badgeClass: meta.badgeClass,
                       description: updatedReport.distinctiveFeatures,
-                      photoUrl: (updatedReport.photos && updatedReport.photos[0]) || p.photoUrl,
-                      photos: updatedReport.photos || p.photos,
+                      photoUrl: updatedPhotos[0] || p.photoUrl,
+                      photos: updatedPhotos.length > 0 ? updatedPhotos : p.photos,
+                      activePhotoIndex: 0,
                       species: updatedReport.species,
                       gender: updatedReport.gender,
                       coloniaName: this.colonias().find((c) => c.id === updatedReport.coloniaId)?.name,
@@ -2516,7 +3129,8 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           gender: this.reportLostForm.gender === 'Hembra' ? 'FEMALE' : 'MALE',
           status: 'DISPONIBLE',
           coloniaId: this.reportLostForm.coloniaId || undefined,
-          photoUrl: finalPhotoUrl || undefined,
+          photoUrl: primaryPhoto,
+          photos: finalPhotos,
           rescueStory: `${this.reportLostForm.distinctiveFeatures.trim()} (Ubicación: ${this.reportLostForm.lastSeenLocation.trim()})`,
           notes: `Tel. de contacto: ${this.reportLostForm.contactPhone.trim()}`,
           temperamentTags: this.reportLostForm.temperamentTags,
@@ -2531,6 +3145,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           next: (createdPet) => {
             this.isSubmittingReportLost.set(false);
             const coloniaName = this.colonias().find((c) => c.id === createdPet.coloniaId)?.name || 'Dolores Hidalgo';
+            const photosList = this.normalizePhotosList(createdPet.photoUrl || primaryPhoto, createdPet.photos || finalPhotos);
             const newAdoptionPost: FeedPost = {
               id: `pet-${createdPet.id}`,
               kind: 'PET_ADOPTION',
@@ -2546,8 +3161,9 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
               typeBadge: '💚 En Adopción',
               badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
               description: createdPet.rescueStory || this.reportLostForm.distinctiveFeatures.trim(),
-              photoUrl: createdPet.photoUrl || finalPhotoUrl || '',
-              photos: createdPet.photoUrl ? [createdPet.photoUrl] : [],
+              photoUrl: photosList[0] || '',
+              photos: photosList,
+              activePhotoIndex: 0,
               species: createdPet.species,
               gender: createdPet.gender,
               coloniaName,
@@ -2577,29 +3193,31 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         next: (newReport) => {
           this.isSubmittingReportLost.set(false);
           this.reportLostSuccess.set(newReport);
-          this.notify.success('¡Publicación realizada exitosamente en el Muro!');
-          
+
           const meta = this.getPostTypeMetadata(newReport);
+          const photosList = this.normalizePhotosList(newReport.photos?.[0], newReport.photos);
+          const postId = `lost-${newReport.id}`;
           const newPost: FeedPost = {
-            id: `lost-${newReport.id}`,
+            id: postId,
             kind: 'LOST_PET',
             postType: newReport.type,
             title: meta.title,
-            authorName: this.authService.currentUser()?.fullName || 'Ciudadano Solidario',
-            authorPhotoUrl: this.authService.currentUser()?.profilePhotoUrl,
+            authorName: newReport.reporter?.fullName || this.authService.currentUser()?.fullName || 'Ciudadano Solidario',
+            authorPhotoUrl: newReport.reporter?.profilePhotoUrl || this.authService.currentUser()?.profilePhotoUrl,
             authorRole: meta.authorRole,
-            authorColonia: this.colonias().find(c => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
+            authorColonia: this.colonias().find((c) => c.id === newReport.coloniaId)?.name || 'Dolores Hidalgo',
             createdAt: newReport.createdAt || new Date().toISOString(),
             timeAgo: this.formatExactDateTime(newReport.createdAt || new Date().toISOString()),
             temperamentTags: newReport.temperamentTags || this.reportLostForm.temperamentTags || [],
             typeBadge: meta.typeBadge,
             badgeClass: meta.badgeClass,
             description: newReport.distinctiveFeatures,
-            photoUrl: (newReport.photos && newReport.photos[0]) || '',
-            photos: newReport.photos || [],
+            photoUrl: photosList[0] || '',
+            photos: photosList,
+            activePhotoIndex: 0,
             species: newReport.species,
             gender: newReport.gender,
-            coloniaName: this.colonias().find(c => c.id === newReport.coloniaId)?.name,
+            coloniaName: this.colonias().find((c) => c.id === newReport.coloniaId)?.name,
             lostData: newReport,
             lastSeenLocation: newReport.lastSeenLocation,
             contactPhone: newReport.contactPhone,
@@ -2608,12 +3226,21 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
             isInjured: newReport.isInjured,
             reportsCount: newReport.reportsCount || (newReport.sightings ? newReport.sightings.length : 1),
             sightings: newReport.sightings || [],
-            comments: [],
+            comments: newReport.comments || [],
             showComments: false,
             newCommentText: '',
             isSubmittingComment: false,
           };
-          this.allPosts.update(posts => [newPost, ...posts]);
+
+          const alreadyExists = this.allPosts().some((p) => p.id === postId);
+          if (alreadyExists) {
+            // Se agrupó en cascada con un reporte existente de Animal Herido
+            this.allPosts.update((posts) => posts.map((p) => (p.id === postId ? newPost : p)));
+            this.notify.success('¡Tu reporte de emergencia se sumó en cascada al caso activo para priorizar su rescate!');
+          } else {
+            this.allPosts.update((posts) => [newPost, ...posts]);
+            this.notify.success('¡Publicación realizada exitosamente en el Muro!');
+          }
         },
         error: (err) => {
           this.isSubmittingReportLost.set(false);
@@ -2623,14 +3250,30 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       });
     };
 
-    if (this.reportLostPhotoSource() === 'FILE' && this.reportLostSelectedFile()) {
-      this.imageUploadService.uploadImage(this.reportLostSelectedFile()!, 'lost-pets').subscribe({
-        next: (uploadedUrl) => executeCreation(uploadedUrl),
-        error: () => executeCreation(this.reportLostPhotoPreview() || undefined),
+    const filesToUpload = photoItems.filter((item) => !!item.file).map((item) => item.file!);
+    if (filesToUpload.length > 0) {
+      this.imageUploadService.uploadMultipleImages(filesToUpload, 'lost-pets').subscribe({
+        next: (uploadedUrls) => {
+          let uploadIdx = 0;
+          const finalUrls: string[] = [];
+          for (const item of photoItems) {
+            if (item.file) {
+              const url = uploadedUrls[uploadIdx++] || item.previewUrl;
+              if (url) finalUrls.push(url);
+            } else if (item.existingUrl) {
+              finalUrls.push(item.existingUrl);
+            }
+          }
+          executeCreation(finalUrls);
+        },
+        error: () => {
+          const fallbackUrls = photoItems.map((item) => item.existingUrl || item.previewUrl).filter(Boolean);
+          executeCreation(fallbackUrls);
+        },
       });
     } else {
-      const url = this.reportLostForm.photoUrl?.trim() || this.reportLostPhotoPreview() || undefined;
-      executeCreation(url);
+      const existingUrls = photoItems.map((item) => item.existingUrl || item.previewUrl).filter(Boolean);
+      executeCreation(existingUrls);
     }
   }
 
@@ -2877,6 +3520,14 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.commentsPollingTimer) {
+      clearInterval(this.commentsPollingTimer);
+      this.commentsPollingTimer = null;
+    }
+    if (this.feedPollingTimer) {
+      clearInterval(this.feedPollingTimer);
+      this.feedPollingTimer = null;
+    }
     if (typeof document !== 'undefined') {
       document.body.classList.remove('modal-open');
     }

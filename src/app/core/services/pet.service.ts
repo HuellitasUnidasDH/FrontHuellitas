@@ -120,6 +120,12 @@ export class PetService {
   // COMENTARIOS COMUNITARIOS EN ADOPCIONES
   // ==========================================
 
+  getComments(petId: string): Observable<PublicationComment[]> {
+    return this.http
+      .get<ApiResponse<PublicationComment[]>>(`${this.PETS_URL}/${petId}/comments`)
+      .pipe(map((res) => res.data));
+  }
+
   addComment(petId: string, content: string): Observable<PublicationComment> {
     return this.http
       .post<ApiResponse<PublicationComment>>(`${this.PETS_URL}/${petId}/comments`, { content })

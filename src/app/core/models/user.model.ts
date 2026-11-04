@@ -31,12 +31,14 @@ export interface User {
 export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
+  rememberMe?: boolean;
   user: User;
 }
 
 export interface LoginDto {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterDto {

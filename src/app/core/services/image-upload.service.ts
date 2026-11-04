@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, from, switchMap, catchError, of, map } from 'rxjs';
+import { Observable, from, switchMap, catchError, of, map, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import { compressAndResizeImage } from '../utils/image-compressor.util';
@@ -41,6 +41,16 @@ export class ImageUploadService {
           );
       }),
     );
+  }
+
+  /**
+   * Sube múltiples imágenes simultáneamente preservando su orden.
+   */
+  uploadMultipleImages(files: File[], folder = 'general'): Observable<string[]> {
+    if (!files || files.length === 0) {
+      return of([]);
+    }
+    return forkJoin(files.map((file) => this.uploadImage(file, folder)));
   }
 
   /**

@@ -1,6 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 
@@ -20,17 +20,42 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
-      switch (error.status) {
-        case 401:
-          // Unauthorized: Avoid loop if failing on login/refresh
-          if (!req.url.includes('/auth/login') && !req.url.includes('/auth/refresh')) {
-            notification.error('Sesión caducada', 'Por favor inicia sesión nuevamente');
-            authService.logout();
-          } else {
-            notification.error('Error de autenticación', errorMessage);
-          }
-          break;
+      if (error.status === 401) {
+        const isAuthEndpoint =
+          req.url.includes('/auth/login') ||
+          req.url.includes('/auth/register') ||
+          req.url.includes('/auth/refresh') ||
+          req.url.includes('/auth/logout');
 
+        if (!isAuthEndpoint) {
+          // Intentar renovación transparente (Silent Refresh) si el usuario tiene refreshToken válido
+          if (authService.canAttemptRefresh()) {
+            return authService.refreshToken().pipe(
+              switchMap((tokens) => {
+                const retriedReq = req.clone({
+                  setHeaders: {
+                    Authorization: `Bearer ${tokens.accessToken}`,
+                  },
+                });
+                return next(retriedReq);
+              }),
+              catchError((refreshErr) => {
+                notification.error('Sesión caducada', 'Por favor inicia sesión nuevamente');
+                authService.logout(false);
+                return throwError(() => refreshErr);
+              }),
+            );
+          }
+
+          notification.error('Sesión caducada', 'Por favor inicia sesión nuevamente');
+          authService.logout(false);
+        } else if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
+          notification.error('Error de autenticación', errorMessage);
+        }
+        return throwError(() => error);
+      }
+
+      switch (error.status) {
         case 403:
           notification.error('Acceso denegado', 'No posees los permisos necesarios para esta acción');
           break;
