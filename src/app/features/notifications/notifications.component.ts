@@ -544,8 +544,24 @@ export class NotificationsComponent implements OnInit {
     if (!item.isRead) {
       this.socialNotifications.markAsRead(item.id).subscribe();
     }
-    const rawUrl = item.targetUrl || '/';
+    const rawUrl = this.resolveNotificationTargetUrl(item);
     this.router.navigateByUrl(rawUrl);
+  }
+
+  private resolveNotificationTargetUrl(item: SocialNotification): string {
+    if (item.entityId) {
+      if (
+        item.type === SocialNotificationType.COMMENT_ON_POST ||
+        item.type === SocialNotificationType.SIGHTING_REPORTED ||
+        item.targetUrl === '/perdidas'
+      ) {
+        return `/?postId=lost-${item.entityId}`;
+      }
+      if (item.type === SocialNotificationType.COMMENT_ON_PET) {
+        return `/?postId=pet-${item.entityId}`;
+      }
+    }
+    return item.targetUrl || '/';
   }
 
   onMarkSingleRead(event: Event, item: SocialNotification): void {

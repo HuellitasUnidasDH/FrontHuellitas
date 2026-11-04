@@ -79,12 +79,35 @@ FrontHuellitas/
 - **Dock de Navegación Inferior**: Barra flotante inferior tipo app móvil ergonómica para interacción con el pulgar.
 - **Cajón Lateral Deslizable (Drawer)**: Menú completo con información del usuario, acceso a su perfil, cambio de tema y cierre de sesión.
 
-### 4. 📰 Muro Comunitario Social
-- Feed dinámico con publicaciones de ciudadanos y rescatistas.
-- Caja de comentarios en tiempo real y reacciones afectivas.
-- Modal de reporte ciudadano contra spam, venta ilegal de animales o contenido ofensivo.
+### 4. 📰 Muro Comunitario Social Reactivo (Angular 22 Zoneless)
+- **Búsqueda Instantánea con Signals**: Filtro reactivo en tiempo real con normalización Unicode (`normalize('NFD')`) que busca a través de título, historia, especie, raza, colonia, ubicación y temperamento.
+- **Filtros Rápidos Flexibles**: Botones de un toque para *"Bueno con niños"* y *"Convive con mascotas"* compatibles tanto con catálogo de adopciones como reportes vecinales.
+- **Títulos Completos en Móviles**: Eliminación de truncamiento forzado (`line-clamp-1` -> `leading-snug break-words`) para lectura clara en pantallas pequeñas.
+- **Comentarios Optimistas en 0ms**: Publicación visual inmediata con rollback defensivo si ocurre un fallo de red.
+- **Recarga Silenciosa**: Polling de comentarios cada 8s únicamente en tarjetas abiertas y verificación de nuevos posts cada 35s manteniendo la posición exacta del scroll.
 
-### 5. 🔑 Recuperación de Contraseña Intuitiva
+### 5. ⚡ Carga Multimedia Ultra-Rápida y Galería Lightbox (3 a 6 Fotos)
+- **Cero Lag en Móviles**: Sustitución de cadenas Base64 pesadas por `URL.createObjectURL(file)` en una única actualización atómica de Signals.
+- **Liberación de Memoria**: Invocación automática de `URL.revokeObjectURL()` al remover miniaturas o cerrar modales.
+- **Límites por Rol**: Soporte de hasta 3 fotografías para usuarios generales y hasta 6 fotografías para rescatistas y administradores.
+- **Visor Lightbox a Pantalla Completa**: Interfaz inmersiva con navegación táctil, teclas de flechas y miniaturas inferiores.
+
+### 6. 🛡️ Aprobación de Verificación de Adoptantes (Niveles 2 y 3)
+- **Pestaña en Panel de Rescatista**: Interfaz dedicada para que Rescatistas Verificados y Administradores revisen cuestionarios y autoricen o rechacen solicitudes de Nivel 2 y 3.
+- **Bloqueo Defensivo del Nivel 3**: Candado interactivo que impide enviar o activar Nivel 3 mientras Nivel 2 permanezca en revisión o sin aprobar.
+
+### 7. 📍 Catálogo Territorial Inteligente (138 Colonias con Consumo Único)
+- **Ahorro Extremo de Datos**: Implementación de triple nivel (memoria + `localStorage` con clave `huellitas_colonias_dh_cache_v4` + `shareReplay(1)`).
+- **Filtro por Código Postal en Modales**: Permite escribir el C.P. (ej. 37800, 37804, 37806) o el nombre para autocompletar la colonia en segundos.
+
+### 8. 🔔 Enlace Profundo (Deep-Linking) desde Notificaciones
+- Al pulsar cualquier notificación de comentario o avistamiento, la app navega a `/?postId=lost-{id}` o `/?postId=pet-{id}`, abre los comentarios y hace scroll automático con un anillo de resalte esmeralda.
+
+### 9. 🔒 Protección de Creación de Publicaciones para Invitados
+- Ocultamiento de la barra de redacción y botones de publicación cuando no se tiene sesión activa.
+- Guardas en TypeScript en `openPublicationModal()`, `openAdoptionModal()` y `openSightingModal()` que impiden abrir formularios sin login, evitando pérdida de tiempo.
+
+### 10. 🔑 Recuperación de Contraseña Intuitiva
 - Flujo guiado de dos pasos (`/auth/forgot-password` y `/auth/reset-password`).
 - Verificación de coincidencias de contraseña en tiempo real e indicadores de seguridad.
 
@@ -141,3 +164,4 @@ npm run build
 npm start
 ```
 El servidor local iniciará en `http://localhost:4200/`.
+

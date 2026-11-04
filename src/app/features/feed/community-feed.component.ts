@@ -162,14 +162,14 @@ interface FeedPost {
               <span>Actualizar</span>
             </button>
 
-            <button
-              (click)="openPublicationModal()"
-              class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
-            >
-              <span>✍️</span> Crear Publicación
-            </button>
-
             @if (authService.isAuthenticated()) {
+              <button
+                (click)="openPublicationModal()"
+                class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span>✍️</span> Crear Publicación
+              </button>
+
               <a
                 routerLink="/pets/new"
                 class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
@@ -178,10 +178,17 @@ interface FeedPost {
               </a>
             } @else {
               <a
-                routerLink="/auth/register"
+                routerLink="/auth/login"
                 class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
               >
-                <span>✨</span> Unirme
+                <span>🔑</span> Iniciar Sesión para Publicar
+              </a>
+
+              <a
+                routerLink="/auth/register"
+                class="flex-1 sm:flex-none justify-center px-3.5 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <span>✨</span> Registrarme
               </a>
             }
           </div>
@@ -306,63 +313,65 @@ interface FeedPost {
       </section>
 
       <!-- ======================================================== -->
-      <!-- Interactive Composer Box (Facebook Feed Style)           -->
+      <!-- Interactive Composer Box (Solo Visible con Sesión Iniciada) -->
       <!-- ======================================================== -->
-      <section class="liquid-glass rounded-2xl p-4 shadow-xl border border-slate-200/80 dark:border-slate-800/80">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full overflow-hidden shadow-sm bg-slate-200 dark:bg-slate-800 flex-shrink-0">
-            @if (authService.currentUser()?.profilePhotoUrl) {
-              <img [src]="authService.currentUser()?.profilePhotoUrl" [alt]="authService.currentUser()?.fullName" class="w-full h-full object-cover" />
-            } @else {
-              <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm">
-                {{ authService.currentUser()?.fullName ? authService.currentUser()?.fullName?.charAt(0)?.toUpperCase() : '🐾' }}
-              </div>
-            }
+      @if (authService.isAuthenticated()) {
+        <section class="liquid-glass rounded-2xl p-4 shadow-xl border border-slate-200/80 dark:border-slate-800/80 animate-fadeIn">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full overflow-hidden shadow-sm bg-slate-200 dark:bg-slate-800 flex-shrink-0">
+              @if (authService.currentUser()?.profilePhotoUrl) {
+                <img [src]="authService.currentUser()?.profilePhotoUrl" [alt]="authService.currentUser()?.fullName" class="w-full h-full object-cover" />
+              } @else {
+                <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-sm">
+                  {{ authService.currentUser()?.fullName ? authService.currentUser()?.fullName?.charAt(0)?.toUpperCase() : '🐾' }}
+                </div>
+              }
+            </div>
+
+            <div
+              (click)="openPublicationModal()"
+              class="flex-1 bg-slate-100 dark:bg-slate-950/60 hover:bg-slate-200/80 dark:hover:bg-slate-900 px-4 py-2.5 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 cursor-pointer transition-colors border border-slate-200/70 dark:border-slate-800 flex items-center justify-between"
+            >
+              <span>¿Viste un animal herido, en resguardo o buscas a tu mascota en Dolores Hidalgo?</span>
+              <span class="text-emerald-500 font-bold text-xs hidden sm:inline">Publicar ✍️</span>
+            </div>
           </div>
 
-          <div
-            (click)="openPublicationModal()"
-            class="flex-1 bg-slate-100 dark:bg-slate-950/60 hover:bg-slate-200/80 dark:hover:bg-slate-900 px-4 py-2.5 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 cursor-pointer transition-colors border border-slate-200/70 dark:border-slate-800 flex items-center justify-between"
-          >
-            <span>¿Viste un animal herido, en resguardo o buscas a tu mascota en Dolores Hidalgo?</span>
-            <span class="text-emerald-500 font-bold text-xs hidden sm:inline">Publicar ✍️</span>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+            <button
+              (click)="openPublicationModal('ANIMAL_HERIDO')"
+              class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
+            >
+              <span>🚨</span>
+              <span class="truncate">Animal Herido</span>
+            </button>
+
+            <button
+              (click)="openPublicationModal('EN_RESGUARDO')"
+              class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-amber-500/10"
+            >
+              <span>🏠</span>
+              <span class="truncate">En Resguardo</span>
+            </button>
+
+            <button
+              (click)="openPublicationModal('EN_ADOPCION')"
+              class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-emerald-500/10"
+            >
+              <span>💚</span>
+              <span class="truncate">Dar en Adopción</span>
+            </button>
+
+            <button
+              (click)="openPublicationModal('SE_BUSCA')"
+              class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
+            >
+              <span>🔍</span>
+              <span class="truncate">Se Busca</span>
+            </button>
           </div>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1 pt-3 mt-3 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
-          <button
-            (click)="openPublicationModal('ANIMAL_HERIDO')"
-            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
-          >
-            <span>🚨</span>
-            <span class="truncate">Animal Herido</span>
-          </button>
-
-          <button
-            (click)="openPublicationModal('EN_RESGUARDO')"
-            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-amber-500/10"
-          >
-            <span>🏠</span>
-            <span class="truncate">En Resguardo</span>
-          </button>
-
-          <button
-            (click)="openPublicationModal('EN_ADOPCION')"
-            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-emerald-500/10"
-          >
-            <span>💚</span>
-            <span class="truncate">Dar en Adopción</span>
-          </button>
-
-          <button
-            (click)="openPublicationModal('SE_BUSCA')"
-            class="py-1.5 px-2 flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-semibold transition-colors cursor-pointer rounded-lg hover:bg-rose-500/10"
-          >
-            <span>🔍</span>
-            <span class="truncate">Se Busca</span>
-          </button>
-        </div>
-      </section>
+        </section>
+      }
 
       <!-- ======================================================== -->
       <!-- Botón Móvil para Mostrar/Ocultar Búsqueda y Colonias     -->
@@ -396,9 +405,9 @@ interface FeedPost {
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
             <input
               type="text"
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchChange()"
-              placeholder="Buscar por nombre, raza o seña..."
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Buscar por nombre, raza, colonia, C.P. o seña..."
               class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -406,13 +415,13 @@ interface FeedPost {
           <!-- Colonia Filter (Dolores Hidalgo) -->
           <div class="relative">
             <select
-              [(ngModel)]="selectedColoniaId"
-              (ngModelChange)="onColoniaChange()"
+              [ngModel]="selectedColoniaId()"
+              (ngModelChange)="selectedColoniaId.set($event)"
               class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
             >
               <option value="">📍 Todas las colonias de Dolores Hgo.</option>
               @for (colonia of colonias(); track colonia.id) {
-                <option [value]="colonia.id">{{ colonia.name }} ({{ colonia.zoneType }})</option>
+                <option [value]="colonia.id">{{ colonia.postalCode ? '[' + colonia.postalCode + '] ' : '' }}{{ colonia.name }} ({{ colonia.zoneType }})</option>
               }
             </select>
           </div>
@@ -420,8 +429,8 @@ interface FeedPost {
           <!-- Species Filter -->
           <div class="relative">
             <select
-              [(ngModel)]="selectedSpecies"
-              (ngModelChange)="onSpeciesChange()"
+              [ngModel]="selectedSpecies()"
+              (ngModelChange)="selectedSpecies.set($event)"
               class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
             >
               <option value="">🐾 Todas las especies</option>
@@ -491,7 +500,11 @@ interface FeedPost {
       } @else {
         <section class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
           @for (post of filteredPosts(); track post.id) {
-            <article class="liquid-glass-card liquid-glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg hover:shadow-2xl flex flex-col justify-between border border-slate-200/80 dark:border-white/10 transition-all duration-300 hover:-translate-y-1">
+            <article
+              [id]="'post-' + post.id"
+              [ngClass]="highlightedPostId() === post.id ? 'ring-4 ring-emerald-500 border-emerald-500 shadow-2xl shadow-emerald-500/30' : 'border-slate-200/80 dark:border-white/10'"
+              class="liquid-glass-card liquid-glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-lg hover:shadow-2xl flex flex-col justify-between border transition-all duration-300 hover:-translate-y-1"
+            >
               
               <!-- 1. Post Header (Author, Badge, Timestamp) -->
               <div class="flex items-start justify-between gap-2.5">
@@ -539,12 +552,12 @@ interface FeedPost {
                 </div>
               </div>
 
-              <!-- 2. Post Body / Title & Story (Compact & High Contrast) -->
+              <!-- 2. Post Body / Title & Story (Compact & High Contrast, sin cortar título en móvil) -->
               <div class="mt-2.5 space-y-1">
-                <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight line-clamp-1 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-snug break-words hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                   {{ post.title }}
                 </h2>
-                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
+                <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
                   {{ post.description }}
                 </p>
               </div>
@@ -1380,8 +1393,8 @@ interface FeedPost {
       <!-- MODAL: REPORTAR MASCOTA EXTRAVIADA / ENCONTRADA EN DH    -->
       <!-- ======================================================== -->
       @if (isReportLostModalOpen()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
-          <div class="liquid-glass rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 animate-fadeIn">
+          <div class="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-4 max-h-[92vh] overflow-y-auto">
             
             <button
               (click)="closeReportLostModal()"
@@ -1565,16 +1578,25 @@ interface FeedPost {
 
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                        Colonia en Dolores Hidalgo
-                      </label>
+                      <div class="flex items-center justify-between gap-1 mb-1">
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                          Colonia en Dolores Hidalgo
+                        </label>
+                        <input
+                          type="text"
+                          [ngModel]="modalPostalFilter()"
+                          (ngModelChange)="modalPostalFilter.set($event)"
+                          placeholder="Filtrar C.P. (ej. 37800)"
+                          class="w-32 px-2 py-0.5 text-[10px] rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
                       <select
                         [(ngModel)]="reportLostForm.coloniaId"
                         class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
                       >
                         <option value="">Selecciona la colonia...</option>
-                        @for (col of colonias(); track col.id) {
-                          <option [value]="col.id">{{ col.name }}</option>
+                        @for (col of filteredModalColonias(); track col.id) {
+                          <option [value]="col.id">{{ col.postalCode ? '[' + col.postalCode + '] ' : '' }}{{ col.name }}</option>
                         }
                       </select>
                     </div>
@@ -1733,11 +1755,12 @@ interface FeedPost {
                     <!-- Cuadrícula de Miniaturas Cargadas -->
                     @if (reportLostPhotosList().length > 0) {
                       <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
-                        @for (item of reportLostPhotosList(); track $index) {
+                        @for (item of reportLostPhotosList(); track item.previewUrl) {
                           <div class="relative group rounded-xl overflow-hidden aspect-square border-2 border-emerald-500/40 bg-slate-900/40 shadow-sm">
                             <img
                               [src]="item.previewUrl"
                               alt="Foto cargada"
+                              decoding="async"
                               class="w-full h-full object-cover"
                             />
                             @if ($index === 0) {
@@ -2063,14 +2086,35 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // Multi-photo upload list for publication modal
   reportLostPhotosList = signal<Array<{ previewUrl: string; file?: File; existingUrl?: string }>>([]);
 
-  // Filters
+  // Filters (Signals reactivos para Zoneless Angular 22)
   activeFilter = signal<FeedFilterType>('ALL');
-  searchQuery = '';
-  selectedColoniaId = '';
-  selectedSpecies = '';
+  searchQuery = signal<string>('');
+  selectedColoniaId = signal<string>('');
+  selectedSpecies = signal<string>('');
+  modalPostalFilter = signal<string>('');
+  highlightedPostId = signal<string | null>(null);
   filterGoodWithKids = signal<boolean>(false);
   filterGoodWithPets = signal<boolean>(false);
   showFiltersPanel = signal<boolean>(false);
+
+  filteredModalColonias = computed(() => {
+    const q = this.normalizeText(this.modalPostalFilter());
+    const all = this.colonias();
+    if (!q) return all;
+    return all.filter(
+      (c) =>
+        this.normalizeText(c.name).includes(q) ||
+        (c.postalCode || '').includes(q),
+    );
+  });
+
+  private normalizeText(value?: string): string {
+    return (value || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
 
   // Adoption modal state (Item #2)
   selectedPetForAdoption = signal<Pet | null>(null);
@@ -2103,9 +2147,9 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   filteredPosts = computed(() => {
     let posts = this.allPosts();
     const filter = this.activeFilter();
-    const query = this.searchQuery.toLowerCase().trim();
-    const coloniaId = this.selectedColoniaId;
-    const species = this.selectedSpecies.toLowerCase().trim();
+    const query = this.normalizeText(this.searchQuery());
+    const coloniaId = this.selectedColoniaId();
+    const species = this.normalizeText(this.selectedSpecies());
     const kids = this.filterGoodWithKids();
     const pets = this.filterGoodWithPets();
 
@@ -2124,16 +2168,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       posts = posts.filter((p) => p.postType === 'EN_RESGUARDO' || p.postType === 'ENCONTRADA_EN_CALLE');
     }
 
-    // 2. Search query
+    // 2. Search query (busca en título, descripción, especie, raza, colonia, ubicación, autor y temperamento)
     if (query) {
-      posts = posts.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.species.toLowerCase().includes(query) ||
-          (p.breed && p.breed.toLowerCase().includes(query)) ||
-          (p.coloniaName && p.coloniaName.toLowerCase().includes(query)),
-      );
+      posts = posts.filter((p) => {
+        const haystack = [
+          p.title,
+          p.description,
+          p.species,
+          p.breed,
+          p.coloniaName,
+          p.lastSeenLocation,
+          p.authorName,
+          ...(p.temperamentTags || []),
+        ]
+          .map((item) => this.normalizeText(item))
+          .join(' ');
+        return haystack.includes(query);
+      });
     }
 
     // 3. Colonia
@@ -2149,15 +2200,28 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
     // 4. Species
     if (species) {
-      posts = posts.filter((p) => p.species.toLowerCase() === species);
+      posts = posts.filter((p) => this.normalizeText(p.species) === species);
     }
 
-    // 5. Behavioral
+    // 5. Behavioral / Quick filters (aplica tanto a adopciones como a reportes con etiquetas de temperamento)
     if (kids) {
-      posts = posts.filter((p) => p.kind === 'PET_ADOPTION' && p.goodWithKids === true);
+      posts = posts.filter(
+        (p) =>
+          p.goodWithKids === true ||
+          (p.temperamentTags || []).some((t) => this.normalizeText(t).includes('ninos')),
+      );
     }
     if (pets) {
-      posts = posts.filter((p) => p.kind === 'PET_ADOPTION' && p.goodWithOtherPets === true);
+      posts = posts.filter(
+        (p) =>
+          p.goodWithOtherPets === true ||
+          (p.temperamentTags || []).some(
+            (t) =>
+              this.normalizeText(t).includes('perros') ||
+              this.normalizeText(t).includes('gatos') ||
+              this.normalizeText(t).includes('mascotas'),
+          ),
+      );
     }
 
     return posts;
@@ -2272,6 +2336,12 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.loadColonias();
     this.loadFeed();
     this.startAutoPolling();
+    this.route.queryParamMap.subscribe((params) => {
+      const postId = params.get('postId');
+      if (postId && this.allPosts().length > 0) {
+        this.focusTargetPost(postId);
+      }
+    });
   }
 
   private startAutoPolling(): void {
@@ -2332,6 +2402,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   syncFilterFromRoute(): void {
+    const postId = this.route.snapshot.queryParamMap.get('postId');
+    if (postId) {
+      this.activeFilter.set('ALL');
+      return;
+    }
     const url = this.router.url;
     if (url.includes('perdidas')) {
       this.activeFilter.set('SE_BUSCA');
@@ -2339,6 +2414,53 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.activeFilter.set('EN_ADOPCION');
     } else {
       this.activeFilter.set('ALL');
+    }
+  }
+
+  private focusTargetPost(rawPostId: string): void {
+    const cleanId = rawPostId.trim();
+    if (!cleanId) return;
+
+    const posts = this.allPosts();
+    const matched = posts.find(
+      (p) =>
+        p.id === cleanId ||
+        p.id === `lost-${cleanId}` ||
+        p.id === `pet-${cleanId}` ||
+        p.lostData?.id === cleanId ||
+        p.petData?.id === cleanId,
+    );
+
+    if (!matched) return;
+
+    // Mostrar todo el muro y limpiar filtros para garantizar que la publicación sea visible
+    this.activeFilter.set('ALL');
+    this.searchQuery.set('');
+    this.selectedColoniaId.set('');
+    this.selectedSpecies.set('');
+    this.filterGoodWithKids.set(false);
+    this.filterGoodWithPets.set(false);
+
+    // Abrir sección de comentarios y resaltarla
+    this.highlightedPostId.set(matched.id);
+    this.allPosts.update((list) =>
+      list.map((p) => (p.id === matched.id ? { ...p, showComments: true } : p)),
+    );
+    this.refreshPostComments(matched);
+
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      setTimeout(() => {
+        const el = document.getElementById(`post-${matched.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+
+      setTimeout(() => {
+        if (this.highlightedPostId() === matched.id) {
+          this.highlightedPostId.set(null);
+        }
+      }, 6500);
     }
   }
 
@@ -2515,6 +2637,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
             this.pendingNewPostsCount.set(0);
             this.bufferedFreshPosts = null;
             this.isLoading.set(false);
+
+            const targetPostId = this.route.snapshot.queryParamMap.get('postId');
+            if (targetPostId) {
+              this.focusTargetPost(targetPostId);
+            }
           },
           error: () => {
             this.isLoading.set(false);
@@ -2698,18 +2825,18 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   hasActiveFilters(): boolean {
     return (
-      Boolean(this.searchQuery) ||
-      Boolean(this.selectedColoniaId) ||
-      Boolean(this.selectedSpecies) ||
+      Boolean(this.searchQuery().trim()) ||
+      Boolean(this.selectedColoniaId()) ||
+      Boolean(this.selectedSpecies()) ||
       this.filterGoodWithKids() ||
       this.filterGoodWithPets()
     );
   }
 
   clearFilters(): void {
-    this.searchQuery = '';
-    this.selectedColoniaId = '';
-    this.selectedSpecies = '';
+    this.searchQuery.set('');
+    this.selectedColoniaId.set('');
+    this.selectedSpecies.set('');
     this.filterGoodWithKids.set(false);
     this.filterGoodWithPets.set(false);
     this.activeFilter.set('ALL');
@@ -2720,6 +2847,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   onSpeciesChange(): void {}
 
   onComposerClick(): void {
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para crear una publicación en el muro');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
+      return;
+    }
     this.openPublicationModal();
   }
 
@@ -2766,6 +2898,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   editingReportId = signal<string | null>(null);
 
   openPublicationModal(defaultType?: LostPetType): void {
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para crear una publicación en el muro');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
+      return;
+    }
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
@@ -2863,9 +3000,24 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     if (typeof document !== 'undefined') {
       document.body.classList.remove('modal-open');
     }
+    this.revokeObjectUrls(this.reportLostPhotosList());
     this.isReportLostModalOpen.set(false);
     this.reportLostSuccess.set(null);
     this.reportLostPhotosList.set([]);
+    this.modalPostalFilter.set('');
+  }
+
+  private revokeObjectUrls(items: Array<{ previewUrl: string; file?: File }>): void {
+    if (typeof URL === 'undefined' || !URL.revokeObjectURL) return;
+    for (const item of items) {
+      if (item.file && item.previewUrl && item.previewUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(item.previewUrl);
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 
   toggleComments(post: FeedPost): void {
@@ -2993,14 +3145,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
 
     const filesToAdd = selectedFiles.slice(0, remainingSlots);
-    for (const file of filesToAdd) {
-      this.imageUploadService.fileToDataUrl(file).then((preview) => {
-        this.reportLostPhotosList.update((list) => {
-          if (list.length >= maxAllowed) return list;
-          return [...list, { previewUrl: preview, file }];
-        });
-      });
-    }
+    const newEntries = filesToAdd.map((file) => ({
+      previewUrl: typeof URL !== 'undefined' ? URL.createObjectURL(file) : '',
+      file,
+    }));
+
+    // Actualización atómica única con ObjectURL en 0ms sin bloquear memoria ni CPU en móviles
+    this.reportLostPhotosList.update((list) => [...list, ...newEntries].slice(0, maxAllowed));
 
     input.value = '';
   }
@@ -3020,6 +3171,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   removeReportLostPhoto(index: number): void {
+    const current = this.reportLostPhotosList();
+    const removed = current[index];
+    if (removed) {
+      this.revokeObjectUrls([removed]);
+    }
     this.reportLostPhotosList.update((list) => list.filter((_, idx) => idx !== index));
   }
 
@@ -3288,6 +3444,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // ITEM #2: FLUJO "QUIERO ADOPTAR"
   // ==========================================
   openAdoptionModal(pet: Pet): void {
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para postularte a la adopción de una mascota');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
+      return;
+    }
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
@@ -3397,6 +3558,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // SIGHTINGS MODAL
   // ==========================================
   openSightingModal(report: LostPetReport): void {
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para reportar el avistamiento de esta mascota');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
+      return;
+    }
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
