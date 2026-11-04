@@ -31,16 +31,24 @@ export class PwaService {
 
   private checkStandaloneMode(): void {
     const isStandaloneMatch =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      (typeof window.matchMedia === 'function' &&
+        window.matchMedia('(display-mode: standalone)').matches) ||
+      (window.navigator as any)?.standalone === true;
     this.isStandalone.set(isStandaloneMatch);
 
-    const dismissed = sessionStorage.getItem('huellitas_pwa_banner_dismissed') === '1';
-    this.bannerDismissed.set(dismissed);
+    try {
+      const dismissed =
+        typeof sessionStorage !== 'undefined' &&
+        typeof sessionStorage?.getItem === 'function' &&
+        sessionStorage.getItem('huellitas_pwa_banner_dismissed') === '1';
+      this.bannerDismissed.set(dismissed);
+    } catch {
+      this.bannerDismissed.set(false);
+    }
   }
 
   private detectPlatform(): void {
-    const ua = window.navigator.userAgent.toLowerCase();
+    const ua = (window.navigator?.userAgent || '').toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(ua);
     this.isIos.set(isIosDevice);
   }
@@ -104,8 +112,12 @@ export class PwaService {
 
   dismissBanner(): void {
     this.bannerDismissed.set(true);
-    if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('huellitas_pwa_banner_dismissed', '1');
+    try {
+      if (typeof sessionStorage !== 'undefined' && typeof sessionStorage?.setItem === 'function') {
+        sessionStorage.setItem('huellitas_pwa_banner_dismissed', '1');
+      }
+    } catch {
+      // Ignore storage error
     }
   }
 

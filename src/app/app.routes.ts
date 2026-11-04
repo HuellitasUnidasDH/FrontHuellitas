@@ -33,6 +33,14 @@ export const routes: Routes = [
       import('./features/allies/allies-directory.component').then((m) => m.AlliesDirectoryComponent),
   },
   {
+    path: 'notificaciones',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notifications.component').then(
+        (m) => m.NotificationsComponent,
+      ),
+  },
+  {
     path: 'verificacion',
     canActivate: [authGuard],
     loadComponent: () =>
