@@ -7,7 +7,6 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
-import { AdoptionRequest, AdoptionFollowup, AdoptionRequestStatus } from '../../../core/models/adoption.model';
 import {
   AdoptionRequest,
   AdoptionFollowup,
@@ -401,7 +400,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                           <span>💬</span> Pedir Foto por Huellitas
                         </button>
                       }
-                    <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2">
                       <a
                         [href]="fol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(fol)"
                         target="_blank"
