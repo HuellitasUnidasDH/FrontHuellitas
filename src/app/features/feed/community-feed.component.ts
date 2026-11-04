@@ -8,6 +8,7 @@ import { ColoniaService } from '../../core/services/colonia.service';
 import { AdoptionService } from '../../core/services/adoption.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { DirectMessageService } from '../../core/services/direct-message.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
@@ -763,6 +764,18 @@ interface FeedPost {
                       <span>Adoptar</span>
                     </button>
 
+                    @if (canMessagePostAuthor(post)) {
+                      <button
+                        type="button"
+                        (click)="contactAuthorInApp(post, '¡Hola! Vi la ficha de ' + post.title + ' en adopción y me gustaría pedir más información 🐾')"
+                        class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        title="Enviar mensaje directo en Huellitas"
+                      >
+                        <span>✉️</span>
+                        <span class="hidden sm:inline">Mensaje</span>
+                      </button>
+                    }
+
                     <!-- Ver Ficha Completa -->
                     <a
                       [routerLink]="['/adopciones', post.petData.id]"
@@ -773,17 +786,17 @@ interface FeedPost {
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
                     @if (post.postType === 'CAMPANA_COMUNITARIA') {
-                      <!-- CTA para Campaña Comunitaria -->
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
-                          target="_blank"
+                      <!-- CTA para Campaña Comunitaria: Mensaje en Huellitas + WhatsApp Extra -->
+                      @if (canMessagePostAuthor(post)) {
+                        <button
+                          type="button"
+                          (click)="contactAuthorInApp(post, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
                           class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>📲</span>
+                          <span>✉️</span>
                           <span>Solicitar Informes</span>
-                        </a>
-                      } @else {
+                        </button>
+                      } @else if (!post.contactPhone) {
                         <button
                           (click)="toggleComments(post)"
                           class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
@@ -792,16 +805,39 @@ interface FeedPost {
                           <span>Ver Detalles / Preguntar</span>
                         </button>
                       }
-                    } @else if (post.postType === 'EN_ADOPCION') {
-                      <!-- CTA para Mascota en Adopción reportada en muro -->
+
                       @if (post.contactPhone) {
                         <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo')"
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
                           target="_blank"
+                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Contactar también por WhatsApp"
+                        >
+                          <span>📲</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
+                        </a>
+                      }
+                    } @else if (post.postType === 'EN_ADOPCION') {
+                      <!-- CTA para Mascota en Adopción reportada en muro: Mensaje Directo + WhatsApp Extra -->
+                      @if (canMessagePostAuthor(post)) {
+                        <button
+                          type="button"
+                          (click)="contactAuthorInApp(post, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo 💚')"
                           class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           <span>💚</span>
                           <span>Quiero Adoptar</span>
+                        </button>
+                      }
+                      @if (post.contactPhone) {
+                        <a
+                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo')"
+                          target="_blank"
+                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Contactar también por WhatsApp"
+                        >
+                          <span>📲</span>
+                          <span class="hidden sm:inline">WhatsApp</span>
                         </a>
                       }
                     } @else if (post.postType === 'ANIMAL_HERIDO') {
@@ -811,14 +847,27 @@ interface FeedPost {
                         class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-1"
                       >
                         <span>🚑</span>
-                        <span>Brindar Ayuda / Reportar</span>
+                        <span>Brindar Ayuda</span>
                       </button>
+
+                      @if (canMessagePostAuthor(post)) {
+                        <button
+                          type="button"
+                          (click)="contactAuthorInApp(post, 'Hola, vi la alerta de urgencia de ' + post.title + ' y quiero apoyar 🚑')"
+                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Enviar mensaje directo en Huellitas"
+                        >
+                          <span>✉️</span>
+                          <span class="hidden sm:inline">Mensaje</span>
+                        </button>
+                      }
 
                       @if (post.contactPhone) {
                         <a
                           [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la alerta de urgencia de ' + post.title + ' en Huellitas Dolores Hidalgo')"
                           target="_blank"
                           class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Contactar por WhatsApp"
                         >
                           <span>📲</span>
                           <span class="hidden sm:inline">WhatsApp</span>
@@ -834,11 +883,24 @@ interface FeedPost {
                         <span>Es mío / Apoyar</span>
                       </button>
 
+                      @if (canMessagePostAuthor(post)) {
+                        <button
+                          type="button"
+                          (click)="contactAuthorInApp(post, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo 🏠')"
+                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Enviar mensaje directo en Huellitas"
+                        >
+                          <span>✉️</span>
+                          <span class="hidden sm:inline">Mensaje</span>
+                        </button>
+                      }
+
                       @if (post.contactPhone) {
                         <a
                           [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo')"
                           target="_blank"
                           class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Contactar por WhatsApp"
                         >
                           <span>📲</span>
                           <span class="hidden sm:inline">WhatsApp</span>
@@ -854,11 +916,24 @@ interface FeedPost {
                         <span>¡Lo vi!</span>
                       </button>
 
+                      @if (canMessagePostAuthor(post)) {
+                        <button
+                          type="button"
+                          (click)="contactAuthorInApp(post, 'Hola, vi tu alerta de búsqueda de ' + post.title + ' en Huellitas Dolores Hidalgo 📍')"
+                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Enviar mensaje directo en Huellitas"
+                        >
+                          <span>✉️</span>
+                          <span class="hidden sm:inline">Mensaje</span>
+                        </button>
+                      }
+
                       @if (post.contactPhone) {
                         <a
                           [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la publicación de ' + post.title + ' en Huellitas Dolores Hidalgo')"
                           target="_blank"
                           class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          title="Contactar por WhatsApp"
                         >
                           <span>📲</span>
                           <span class="hidden sm:inline">WhatsApp</span>
@@ -1060,19 +1135,31 @@ interface FeedPost {
                   ¡Solicitud Enviada con Éxito!
                 </h4>
                 <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  Tu interés por <strong class="text-emerald-500">{{ selectedPetForAdoption()!.name }}</strong> ha sido registrado. Para agilizar el proceso y conocerlo(a) en persona, envíale un mensaje directo por WhatsApp al rescatista.
+                  Tu interés por <strong class="text-emerald-500">{{ selectedPetForAdoption()!.name }}</strong> ha sido registrado. Escríbele por el chat directo de Huellitas o por WhatsApp al rescatista para agendar una visita.
                 </p>
 
-                <!-- WhatsApp Button prefilled -->
-                <a
-                  [href]="getAdoptionWhatsAppUrl()"
-                  target="_blank"
-                  (click)="closeAdoptionModal()"
-                  class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
-                >
-                  <span>💬</span>
-                  <span>Abrir WhatsApp con el Rescatista</span>
-                </a>
+                <div class="space-y-2.5">
+                  <!-- Direct In-App Message Button (Primary) -->
+                  <button
+                    type="button"
+                    (click)="contactSelectedAdoptionPetOwnerInApp()"
+                    class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <span>💬</span>
+                    <span>Enviar Mensaje Directo en Huellitas</span>
+                  </button>
+
+                  <!-- WhatsApp Button prefilled (Extra Option) -->
+                  <a
+                    [href]="getAdoptionWhatsAppUrl()"
+                    target="_blank"
+                    (click)="closeAdoptionModal()"
+                    class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  >
+                    <span>📲</span>
+                    <span>O abrir WhatsApp con el Rescatista</span>
+                  </a>
+                </div>
 
                 <button
                   (click)="closeAdoptionModal()"
@@ -2052,6 +2139,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
+  private dmService = inject(DirectMessageService);
   private imageUploadService = inject(ImageUploadService);
   private confirmService = inject(ConfirmService);
 
@@ -3552,6 +3640,63 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     const cleanPhone = phone.replace(/\D/g, '');
     const cleanNumber = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
     return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+  }
+
+  canMessagePostAuthor(post: FeedPost): boolean {
+    const authorId =
+      post.kind === 'PET_ADOPTION'
+        ? post.petData?.ownerId || post.petData?.owner?.id
+        : post.lostData?.reporterId || post.lostData?.reporter?.id;
+    if (!authorId) return false;
+    const myId = this.authService.currentUser()?.id;
+    return !myId || authorId !== myId;
+  }
+
+  contactAuthorInApp(post: FeedPost, customMessage?: string): void {
+    const recipientId =
+      post.kind === 'PET_ADOPTION'
+        ? post.petData?.ownerId || post.petData?.owner?.id
+        : post.lostData?.reporterId || post.lostData?.reporter?.id;
+    if (!recipientId) return;
+
+    this.dmService.openChatWithContext({
+      recipientId,
+      recipientName: post.authorName,
+      contextType: post.kind === 'PET_ADOPTION' ? 'PET' : 'LOST_REPORT',
+      contextId:
+        post.kind === 'PET_ADOPTION' ? post.petData?.id : post.lostData?.id,
+      contextTitle: post.title,
+      contextSubtitle: `${post.typeBadge} • ${post.coloniaName || 'Dolores Hidalgo'}`,
+      contextImageUrl: post.photoUrl,
+      contextTargetUrl:
+        post.kind === 'PET_ADOPTION' && post.petData
+          ? `/adopciones/${post.petData.id}`
+          : '/',
+      contextWhatsappPhone:
+        post.contactPhone || post.petData?.owner?.phone || undefined,
+      prefilledDraft: customMessage,
+    });
+  }
+
+  contactSelectedAdoptionPetOwnerInApp(): void {
+    const pet = this.selectedPetForAdoption();
+    if (!pet) return;
+    const recipientId = pet.ownerId || pet.owner?.id;
+    this.closeAdoptionModal();
+    if (!recipientId) return;
+
+    this.dmService.openChatWithContext({
+      recipientId,
+      recipientName: pet.owner?.fullName,
+      contextType: 'ADOPTION_REQUEST',
+      contextId: pet.id,
+      contextTitle: `Solicitud de Adopción: ${pet.name}`,
+      contextSubtitle: `${pet.species} • ${pet.colonia?.name || 'Dolores Hidalgo'}`,
+      contextImageUrl: pet.photoUrl || pet.photos?.[0],
+      contextTargetUrl: `/adopciones/${pet.id}`,
+      contextWhatsappPhone: pet.owner?.phone || undefined,
+      prefilledDraft: `¡Hola! Acabo de registrar mi solicitud para adoptar a ${pet.name}. Me encantaría platicar sobre los siguientes pasos y agendar una visita 💚`,
+    });
   }
 
   // ==========================================

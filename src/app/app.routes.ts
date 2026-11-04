@@ -41,6 +41,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mensajes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/messages/direct-messages.component').then(
+        (m) => m.DirectMessagesComponent,
+      ),
+  },
+  {
     path: 'verificacion',
     canActivate: [authGuard],
     loadComponent: () =>
