@@ -5,6 +5,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PwaService } from '../../../core/services/pwa.service';
 import { SocialNotificationService } from '../../../core/services/social-notification.service';
+import { DirectMessageService } from '../../../core/services/direct-message.service';
+import { DirectConversation } from '../../../core/models/direct-message.model';
 import {
   SocialNotification,
   SocialNotificationType,
@@ -147,6 +149,24 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   @if (authService.isAuthenticated()) {
                     <div class="my-1 border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
+                    <!-- Mensajes Directos (Huellitas Direct) -->
+                    <a
+                      routerLink="/mensajes"
+                      routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      (click)="closeAllDropdowns()"
+                      class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <span class="flex items-center gap-2.5">
+                        <span class="text-sm">💬</span>
+                        <span>Mensajes Directos</span>
+                      </span>
+                      @if (dmService.totalUnreadMessages() > 0) {
+                        <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                          {{ dmService.totalUnreadMessages() }}
+                        </span>
+                      }
+                    </a>
+
                     <!-- Centro de Notificaciones -->
                     <a
                       routerLink="/notificaciones"
@@ -256,13 +276,129 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
 
         <!-- ======================================================== -->
-        <!-- Right Section: Notification Bell + User Avatar + Burger  -->
+        <!-- Right Section: Messages + Bell + User Avatar + Burger    -->
         <!-- ======================================================== -->
-        <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+        <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
           
           @if (authService.isAuthenticated()) {
             <!-- ==================================================== -->
-            <!-- Notification Bell Pill + Floating Activity Popover   -->
+            <!-- 1. Direct Messages Pill + Floating Inbox Popover     -->
+            <!-- ==================================================== -->
+            <div class="relative">
+              <button
+                type="button"
+                (click)="toggleMessagesMenu($event)"
+                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800': isMessagesMenuOpen() }"
+                title="Mensajes Directos (Huellitas Direct)"
+              >
+                <span class="text-base sm:text-lg group-hover:scale-110 transition-transform">💬</span>
+
+                @if (dmService.totalUnreadMessages() > 0) {
+                  <span
+                    class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center shadow-md shadow-emerald-500/40 ring-2 ring-white dark:ring-slate-900"
+                  >
+                    {{ dmService.totalUnreadMessages() > 9 ? '9+' : dmService.totalUnreadMessages() }}
+                  </span>
+                }
+              </button>
+
+              <!-- Floating Popover for Direct Messages -->
+              @if (isMessagesMenuOpen()) {
+                <div
+                  (click)="$event.stopPropagation()"
+                  class="fixed left-3 right-3 top-[4.25rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2.5 sm:w-96 bg-white/95 dark:bg-[#0d1526]/95 rounded-3xl p-4 shadow-2xl border border-emerald-500/30 backdrop-blur-2xl z-50 space-y-3 animate-fadeIn"
+                >
+                  <div class="flex items-center justify-between px-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm">💬</span>
+                      <h3 class="text-sm font-black text-slate-900 dark:text-white">
+                        Huellitas Direct
+                      </h3>
+                      @if (dmService.totalUnreadMessages() > 0) {
+                        <span
+                          class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                        >
+                          {{ dmService.totalUnreadMessages() }} sin leer
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  @if (dmService.recentConversations().length === 0) {
+                    <div class="py-7 text-center space-y-1.5">
+                      <span class="text-2xl block">🐾</span>
+                      <p class="text-xs font-bold text-slate-700 dark:text-slate-200">
+                        Sin conversaciones activas aún
+                      </p>
+                      <p class="text-[11px] text-slate-500">
+                        Toca «💬 Mensaje» en cualquier publicación para chatear directo.
+                      </p>
+                    </div>
+                  } @else {
+                    <div class="max-h-[52dvh] sm:max-h-72 overflow-y-auto overscroll-contain space-y-2 pr-0.5">
+                      @for (conv of dmService.recentConversations(); track conv.id) {
+                        <div
+                          (click)="openConversationFromPopover(conv)"
+                          class="p-2.5 rounded-2xl flex items-center gap-2.5 transition-all cursor-pointer border"
+                          [ngClass]="
+                            conv.unreadCount > 0
+                              ? 'bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15'
+                              : 'bg-slate-100/70 dark:bg-slate-900/60 border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70'
+                          "
+                        >
+                          <div class="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-emerald-400 to-teal-500 p-0.5 flex-shrink-0">
+                            @if (conv.otherParticipant.profilePhotoUrl) {
+                              <img
+                                [src]="conv.otherParticipant.profilePhotoUrl"
+                                [alt]="conv.otherParticipant.fullName"
+                                class="w-full h-full object-cover rounded-[10px]"
+                              />
+                            } @else {
+                              <div class="w-full h-full rounded-[10px] bg-white dark:bg-slate-900 flex items-center justify-center text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                {{ (conv.otherParticipant.fullName || 'H').charAt(0) }}
+                              </div>
+                            }
+                          </div>
+
+                          <div class="flex-1 min-w-0">
+                            <p class="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {{ conv.otherParticipant.fullName }}
+                            </p>
+                            @if (conv.contextTitle) {
+                              <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                                📌 {{ conv.contextTitle }}
+                              </p>
+                            }
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {{ conv.lastMessageText || 'Abrir conversación' }}
+                            </p>
+                          </div>
+
+                          @if (conv.unreadCount > 0) {
+                            <span class="min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center flex-shrink-0">
+                              {{ conv.unreadCount }}
+                            </span>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <a
+                    routerLink="/mensajes"
+                    (click)="closeAllDropdowns()"
+                    class="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black text-center flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                  >
+                    <span>Abrir bandeja completa de mensajes</span>
+                    <span>→</span>
+                  </a>
+                </div>
+              }
+            </div>
+
+            <!-- ==================================================== -->
+            <!-- 2. Notification Bell Pill + Floating Activity Popover-->
             <!-- ==================================================== -->
             <div class="relative">
               <button
@@ -479,6 +615,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <span>Mi Perfil y Datos</span>
                   </a>
 
+                  <!-- Option: Mis Mensajes Directos -->
+                  <a
+                    routerLink="/mensajes"
+                    (click)="closeAllDropdowns()"
+                    class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="flex items-center gap-3">
+                      <span class="text-base">💬</span>
+                      <span>Mensajes Directos</span>
+                    </span>
+                    @if (dmService.totalUnreadMessages() > 0) {
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950">
+                        {{ dmService.totalUnreadMessages() }}
+                      </span>
+                    }
+                  </a>
+
                   <!-- Option: Mis Notificaciones -->
                   <a
                     routerLink="/notificaciones"
@@ -576,7 +729,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
     <!-- ======================================================== -->
     <!-- Mobile Full-Viewport Navigation Drawer (Outside <header>)-->
-    <!-- Ahora usa 100dvh reales sin quedar aplastado por header  -->
     <!-- ======================================================== -->
     @if (isMobileMenuOpen()) {
       <div
@@ -646,7 +798,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </div>
           }
 
-          <!-- Scrollable Navigation Links List (Generous Touch Targets & Clear Typography) -->
+          <!-- Scrollable Navigation Links List -->
           <div class="flex-1 overflow-y-auto overscroll-contain space-y-1.5 pr-1 text-sm font-bold text-slate-800 dark:text-slate-100">
             <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3 pt-1">
               Secciones Principales
@@ -698,6 +850,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3">
                   Mi Cuenta y Servicios
                 </span>
+
+                <a
+                  routerLink="/mensajes"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
+                >
+                  <span class="flex items-center gap-3.5">
+                    <span class="text-lg">💬</span>
+                    <span>Mensajes Directos (Huellitas Direct)</span>
+                  </span>
+                  @if (dmService.totalUnreadMessages() > 0) {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-slate-950">
+                      {{ dmService.totalUnreadMessages() }}
+                    </span>
+                  }
+                </a>
 
                 <a
                   routerLink="/notificaciones"
@@ -845,7 +1014,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
     <!-- ======================================================== -->
     <!-- Mobile Bottom Navigation Dock (Native App Style)         -->
-    <!-- Visible ONLY on mobile (< md), thumb-friendly, sleek     -->
     <!-- ======================================================== -->
     <nav
       class="md:hidden fixed bottom-2.5 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
@@ -873,18 +1041,21 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <span class="text-[10px] font-bold mt-0.5">Adoptar</span>
       </a>
 
-      <!-- Perdidos (Public) -->
-      <a
-        routerLink="/perdidas"
-        routerLinkActive="mobile-dock-active"
-        (click)="closeAllDropdowns()"
-        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
-      >
-        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🚨</span>
-        <span class="text-[10px] font-bold mt-0.5">Perdidos</span>
-      </a>
-
       @if (authService.isAuthenticated()) {
+        <!-- Mensajes Directos -->
+        <a
+          routerLink="/mensajes"
+          routerLinkActive="mobile-dock-active"
+          (click)="closeAllDropdowns()"
+          class="relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        >
+          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">💬</span>
+          <span class="text-[10px] font-bold mt-0.5">Mensajes</span>
+          @if (dmService.totalUnreadMessages() > 0) {
+            <span class="absolute top-1 right-3 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+          }
+        </a>
+
         <!-- Alertas / Notificaciones -->
         <a
           routerLink="/notificaciones"
@@ -910,6 +1081,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <span class="text-[10px] font-bold mt-0.5">Opciones</span>
         </button>
       } @else {
+        <!-- Perdidos (Public) -->
+        <a
+          routerLink="/perdidas"
+          routerLinkActive="mobile-dock-active"
+          (click)="closeAllDropdowns()"
+          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        >
+          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🚨</span>
+          <span class="text-[10px] font-bold mt-0.5">Perdidos</span>
+        </a>
+
         <!-- Ingresar (Guest) -->
         <a
           routerLink="/auth/login"
@@ -994,6 +1176,7 @@ export class NavbarComponent implements OnInit {
   themeService = inject(ThemeService);
   pwaService = inject(PwaService);
   socialNotifications = inject(SocialNotificationService);
+  dmService = inject(DirectMessageService);
   private router = inject(Router);
   brand = BRAND_CONFIG;
 
@@ -1002,6 +1185,7 @@ export class NavbarComponent implements OnInit {
   isMoreMenuOpen = signal(false);
   isUserMenuOpen = signal(false);
   isNotifMenuOpen = signal(false);
+  isMessagesMenuOpen = signal(false);
 
   isRescuerOrAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
@@ -1012,6 +1196,7 @@ export class NavbarComponent implements OnInit {
     event.stopPropagation();
     this.isUserMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMessagesMenuOpen.set(false);
     this.isMobileMenuOpen.set(false);
     this.isMoreMenuOpen.update((v) => !v);
   }
@@ -1020,20 +1205,41 @@ export class NavbarComponent implements OnInit {
     event.stopPropagation();
     this.isMoreMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMessagesMenuOpen.set(false);
     this.isMobileMenuOpen.set(false);
     this.isUserMenuOpen.update((v) => !v);
+  }
+
+  toggleMessagesMenu(event: Event): void {
+    event.stopPropagation();
+    this.isMoreMenuOpen.set(false);
+    this.isUserMenuOpen.set(false);
+    this.isNotifMenuOpen.set(false);
+    this.isMobileMenuOpen.set(false);
+    const nextState = !this.isMessagesMenuOpen();
+    this.isMessagesMenuOpen.set(nextState);
+    if (nextState) {
+      this.dmService.loadConversations().subscribe();
+    }
   }
 
   toggleNotifMenu(event: Event): void {
     event.stopPropagation();
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
+    this.isMessagesMenuOpen.set(false);
     this.isMobileMenuOpen.set(false);
     const nextState = !this.isNotifMenuOpen();
     this.isNotifMenuOpen.set(nextState);
     if (nextState) {
       this.socialNotifications.loadNotifications().subscribe();
     }
+  }
+
+  openConversationFromPopover(conv: DirectConversation): void {
+    this.dmService.activeConversation.set(conv);
+    this.closeAllDropdowns();
+    this.router.navigate(['/mensajes'], { queryParams: { convId: conv.id } });
   }
 
   openNotificationFromPopover(notif: SocialNotification): void {
@@ -1068,6 +1274,7 @@ export class NavbarComponent implements OnInit {
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMessagesMenuOpen.set(false);
     this.isMobileMenuOpen.set(false);
   }
 
@@ -1088,6 +1295,7 @@ export class NavbarComponent implements OnInit {
     this.isMoreMenuOpen.set(false);
     this.isUserMenuOpen.set(false);
     this.isNotifMenuOpen.set(false);
+    this.isMessagesMenuOpen.set(false);
     this.isMobileMenuOpen.update((v) => !v);
   }
 
@@ -1106,6 +1314,7 @@ export class NavbarComponent implements OnInit {
     if (typeof window !== 'undefined') {
       this.isScrolled.set(window.scrollY > 20);
     }
+    this.dmService.startPolling(15000);
   }
 
   getFirstName(fullName?: string): string {

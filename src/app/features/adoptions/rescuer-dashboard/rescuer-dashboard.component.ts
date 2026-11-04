@@ -6,6 +6,7 @@ import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
+import { DirectMessageService } from '../../../core/services/direct-message.service';
 import { AdoptionRequest, AdoptionFollowup, AdoptionRequestStatus } from '../../../core/models/adoption.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
@@ -158,14 +159,24 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                     <!-- Actions -->
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
-                      <div class="flex items-center gap-2">
+                      <div class="flex flex-wrap items-center gap-2">
+                        @if (req.adopter?.id) {
+                          <button
+                            type="button"
+                            (click)="contactAdopterInApp(req)"
+                            class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow-md hover:from-teal-400 hover:to-emerald-300 cursor-pointer"
+                          >
+                            <span>💬</span> Mensaje en Huellitas
+                          </button>
+                        }
                         @if (req.adopter?.phone) {
                           <a
                             [href]="getAdopterWhatsAppUrl(req)"
                             target="_blank"
-                            class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md transition-colors"
+                            class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center gap-1 shadow-sm transition-colors"
+                            title="Contactar también por WhatsApp"
                           >
-                            <span>💬</span> WhatsApp Adoptante
+                            <span>📲</span> WhatsApp Adoptante
                           </a>
                         }
                       </div>
@@ -243,13 +254,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     }
 
                     <!-- Actions -->
-                    <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2">
+                    <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center gap-2">
+                      @if (fol.adopter?.id) {
+                        <button
+                          type="button"
+                          (click)="contactFollowupAdopterInApp(fol)"
+                          class="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-black text-xs text-center flex items-center justify-center gap-1 shadow-md hover:from-teal-400 hover:to-emerald-300 cursor-pointer"
+                        >
+                          <span>💬</span> Pedir Foto por Huellitas
+                        </button>
+                      }
                       <a
                         [href]="fol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(fol)"
                         target="_blank"
-                        class="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs text-center flex items-center justify-center gap-1 shadow-md"
+                        class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs text-center flex items-center justify-center gap-1 shadow-sm"
+                        title="Pedir foto por WhatsApp"
                       >
-                        <span>💬</span> Pedir Foto WhatsApp
+                        <span>📲</span> WhatsApp
                       </a>
 
                       @if (fol.status !== 'COMPLETADO') {
@@ -257,7 +278,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                           (click)="registerProofModal(fol)"
                           class="py-2 px-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
                         >
-                          📷 Registrar Foto
+                          📷 Registrar
                         </button>
                       }
                     </div>
@@ -279,6 +300,7 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
   private confirmService = inject(ConfirmService);
+  private dmService = inject(DirectMessageService);
 
   activeTab = signal<'REQUESTS' | 'FOLLOWUPS'>('REQUESTS');
   requests = signal<AdoptionRequest[]>([]);
@@ -410,6 +432,38 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
       `¡Hola ${req.adopter?.fullName}! Te escribo de ${this.brand.name} Dolores Hidalgo sobre tu solicitud para adoptar a ${req.pet?.name}. ¿Cuándo tendrías oportunidad de platicar o realizar una visita de conocimiento?`,
     );
     return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+  }
+
+  contactAdopterInApp(req: AdoptionRequest): void {
+    if (!req.adopter?.id) return;
+    this.dmService.openChatWithContext({
+      recipientId: req.adopter.id,
+      recipientName: req.adopter.fullName,
+      contextType: 'ADOPTION_REQUEST',
+      contextId: req.pet?.id || req.id,
+      contextTitle: `Solicitud de ${req.adopter.fullName} para ${req.pet?.name || 'Mascota'}`,
+      contextSubtitle: `Estado actual: ${req.status} • Dolores Hidalgo`,
+      contextImageUrl: req.pet?.photoUrl || req.pet?.photos?.[0],
+      contextTargetUrl: req.pet ? `/adopciones/${req.pet.id}` : '/panel-rescatista',
+      contextWhatsappPhone: req.adopter.phone || undefined,
+      prefilledDraft: `¡Hola ${req.adopter.fullName.split(' ')[0]}! Revisé tu solicitud para adoptar a ${req.pet?.name || 'nuestro peludito'}. ¿Cuándo tendrías oportunidad de platicar o realizar una visita de conocimiento? 💚`,
+    });
+  }
+
+  contactFollowupAdopterInApp(fol: AdoptionFollowup): void {
+    if (!fol.adopter?.id) return;
+    this.dmService.openChatWithContext({
+      recipientId: fol.adopter.id,
+      recipientName: fol.adopter.fullName,
+      contextType: 'FOLLOWUP',
+      contextId: fol.id,
+      contextTitle: `Seguimiento de ${fol.dayMilestone} días: ${fol.pet?.name || 'Mascota'}`,
+      contextSubtitle: `Hito programado: ${fol.scheduledDate?.slice(0, 10)} • Dolores Hidalgo`,
+      contextImageUrl: fol.pet?.photoUrl || fol.pet?.photos?.[0],
+      contextTargetUrl: '/panel-rescatista',
+      contextWhatsappPhone: fol.adopter.phone || undefined,
+      prefilledDraft: `¡Hola ${fol.adopter.fullName.split(' ')[0]}! Te escribo en el seguimiento de los ${fol.dayMilestone} días de ${fol.pet?.name || 'tu peludito'} 🐾 ¿Nos podrías compartir por aquí una fotito reciente para registrar su carnet de bienestar?`,
+    });
   }
 
   getFollowupWhatsAppUrl(fol: AdoptionFollowup): string {
