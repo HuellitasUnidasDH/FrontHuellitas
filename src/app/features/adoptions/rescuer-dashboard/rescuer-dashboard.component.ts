@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,6 +8,12 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
 import { AdoptionRequest, AdoptionFollowup, AdoptionRequestStatus } from '../../../core/models/adoption.model';
+import {
+  AdoptionRequest,
+  AdoptionFollowup,
+  AdoptionRequestStatus,
+  AdopterVerification,
+} from '../../../core/models/adoption.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
@@ -19,7 +25,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
       <!-- Header -->
-      <section class="liquid-glass rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-500/20">
+      <section class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-500/20">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-4 text-center sm:text-left">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/25 flex-shrink-0">
@@ -27,10 +33,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </div>
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Panel del Rescatista
+                Panel del Rescatista y Evaluación
               </h1>
               <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
-                Gestión de solicitudes y seguimiento preventivo post-adopción a 7, 30 y 90 días en Dolores Hidalgo.
+                Gestión de solicitudes de adopción, aprobación de niveles 2 y 3 de adoptantes y seguimientos 7, 30 y 90 días.
               </p>
             </div>
           </div>
@@ -41,7 +47,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               (click)="refreshData()"
               [disabled]="isRefreshing()"
               class="px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-slate-700"
-              title="Actualizar bandeja de solicitudes"
+              title="Actualizar bandeja"
             >
               <span [class.animate-spin]="isRefreshing()">🔄</span>
               <span>Actualizar</span>
@@ -57,19 +63,32 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="flex items-center gap-2 mt-6 pt-6 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+        <div class="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
           <button
             (click)="activeTab.set('REQUESTS')"
-            class="px-4 py-2 rounded-xl font-bold transition-all cursor-pointer"
-            [ngClass]="activeTab() === 'REQUESTS' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'liquid-glass text-slate-600 dark:text-slate-300'"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
+            [ngClass]="activeTab() === 'REQUESTS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
-            📥 Solicitudes Recibidas ({{ requests().length }})
+            📥 Solicitudes de Adopción ({{ requests().length }})
+          </button>
+
+          <button
+            (click)="activeTab.set('VERIFICATIONS')"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            [ngClass]="activeTab() === 'VERIFICATIONS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
+          >
+            <span>🛡️ Aprobar Niveles 2 y 3</span>
+            @if (pendingVerificationsCount() > 0) {
+              <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                {{ pendingVerificationsCount() }}
+              </span>
+            }
           </button>
 
           <button
             (click)="activeTab.set('FOLLOWUPS')"
-            class="px-4 py-2 rounded-xl font-bold transition-all cursor-pointer"
-            [ngClass]="activeTab() === 'FOLLOWUPS' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'liquid-glass text-slate-600 dark:text-slate-300'"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
+            [ngClass]="activeTab() === 'FOLLOWUPS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
             🗓️ Seguimientos 7, 30 y 90 Días ({{ followups().length }})
           </button>
@@ -85,7 +104,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <!-- TAB 1: SOLICITUDES DE ADOPCIÓN -->
         @if (activeTab() === 'REQUESTS') {
           <section class="space-y-4">
-            <!-- Sync & Quick Actions Bar -->
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-1 text-xs">
               <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
@@ -96,16 +114,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   Última sincronización: <strong>{{ lastUpdatedFormatted() }}</strong>
                 </span>
               </div>
-
-              <button
-                type="button"
-                (click)="refreshData()"
-                [disabled]="isRefreshing()"
-                class="text-xs text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer flex items-center gap-1 disabled:opacity-50"
-              >
-                <span [class.animate-spin]="isRefreshing()">🔄</span>
-                <span>Recargar ahora</span>
-              </button>
             </div>
 
             @if (requests().length === 0) {
@@ -135,7 +143,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                         </div>
                       </div>
 
-                      <!-- Status Badge -->
                       <span
                         class="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider"
                         [ngClass]="getStatusBadge(req.status)"
@@ -144,7 +151,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </span>
                     </div>
 
-                    <!-- Adopter Message with Protocol Styling -->
                     @if (req.adopterMessage) {
                       <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-emerald-500/20 shadow-inner text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-sans">
                         <div class="flex items-center gap-1.5 font-bold text-[11px] text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
@@ -157,7 +163,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </div>
                     }
 
-                    <!-- Actions -->
                     <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
                       <div class="flex flex-wrap items-center gap-2">
                         @if (req.adopter?.id) {
@@ -205,7 +210,141 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           </section>
         }
 
-        <!-- TAB 2: SEGUIMIENTOS POST-ADOPCIÓN 7, 30 Y 90 DÍAS -->
+        <!-- TAB 2: APROBACIÓN DE VERIFICACIONES DE ADOPTANTES (NIVELES 2 Y 3) -->
+        @if (activeTab() === 'VERIFICATIONS') {
+          <section class="space-y-4">
+            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-slate-700 dark:text-slate-300">
+              🛡️ <strong>Control de Seguridad de Adoptantes:</strong> Ningún usuario puede auto-asignarse el Nivel 2 o el Nivel 3. Como Rescatista Verificado o Administrador, aquí puedes revisar sus respuestas socioambientales y autorizar cada nivel.
+            </div>
+
+            @if (verifications().length === 0) {
+              <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
+                <span class="text-4xl">🛡️</span>
+                <p class="text-sm font-bold text-slate-800 dark:text-white">No hay solicitudes de verificación registradas</p>
+                <p class="text-xs text-slate-500">Cuando un ciudadano envíe su Cuestionario Nivel 2 o Carta Compromiso Nivel 3, aparecerá aquí para tu aprobación.</p>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 gap-4">
+                @for (ver of verifications(); track ver.id) {
+                  <div class="liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border border-slate-200/80 dark:border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
+                      <div>
+                        <h3 class="text-base font-black text-slate-900 dark:text-white">
+                          {{ ver.user?.fullName || 'Ciudadano Solicitud' }}
+                        </h3>
+                        <p class="text-xs text-slate-500">
+                          📧 {{ ver.user?.email }} • 📱 {{ ver.user?.phone || 'Sin teléfono' }}
+                        </p>
+                      </div>
+
+                      <div class="flex flex-wrap items-center gap-2 text-[11px] font-extrabold">
+                        <span
+                          class="px-2.5 py-1 rounded-full border"
+                          [ngClass]="
+                            ver.isLevel2Completed
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                              : ver.level2Status === 'PENDIENTE'
+                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
+                          "
+                        >
+                          Nivel 2: {{ ver.isLevel2Completed ? '✓ Aprobado' : ver.level2Status || 'Pendiente' }}
+                        </span>
+
+                        <span
+                          class="px-2.5 py-1 rounded-full border"
+                          [ngClass]="
+                            ver.isLevel3Completed
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
+                              : ver.level3Status === 'PENDIENTE'
+                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
+                          "
+                        >
+                          Nivel 3: {{ ver.isLevel3Completed ? '✓ Aprobado' : ver.level3Status || 'No solicitado' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Questionnaire Answers -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                      <div>
+                        <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Tipo de Vivienda</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ ver.housingType }} (Permite mascotas: {{ ver.landlordAllowsPets ? 'Sí' : 'No' }})</span>
+                      </div>
+                      <div>
+                        <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Habitantes del Hogar</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ ver.peopleInHome || 'No especificado' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Experiencia Previa</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ ver.previousExperience || 'No especificado' }}</span>
+                      </div>
+                      <div>
+                        <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Plan ante Mudanza / Viajes</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ ver.relocationPlan || 'No especificado' }}</span>
+                      </div>
+                      <div class="sm:col-span-2">
+                        <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Responsable Financiero Veterinario</span>
+                        <span class="font-bold text-slate-800 dark:text-slate-200">{{ ver.financialResponsible || 'No especificado' }}</span>
+                      </div>
+                      @if (ver.signedCommitmentLetter) {
+                        <div class="sm:col-span-2 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-emerald-700 dark:text-emerald-400 font-bold">
+                          📜 Carta Compromiso de Nivel 3 firmada digitalmente por el solicitante.
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Reviewer Actions -->
+                    <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
+                      @if (!ver.isLevel2Completed) {
+                        <button
+                          type="button"
+                          (click)="reviewAdopterLevel(ver, 2, true)"
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
+                        >
+                          ✓ Aprobar Nivel 2
+                        </button>
+                        <button
+                          type="button"
+                          (click)="reviewAdopterLevel(ver, 2, false)"
+                          class="px-3.5 py-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
+                        >
+                          ✕ Rechazar Nivel 2
+                        </button>
+                      } @else if (ver.isLevel2Completed && !ver.isLevel3Completed && (ver.level3Status === 'PENDIENTE' || ver.signedCommitmentLetter)) {
+                        <button
+                          type="button"
+                          (click)="reviewAdopterLevel(ver, 3, true)"
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
+                        >
+                          ✓ Aprobar Nivel 3 (Adoptante Verificado)
+                        </button>
+                        <button
+                          type="button"
+                          (click)="reviewAdopterLevel(ver, 3, false)"
+                          class="px-3.5 py-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
+                        >
+                          ✕ Rechazar Nivel 3
+                        </button>
+                      } @else if (ver.isLevel3Completed) {
+                        <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                          ✅ Expediente Completo (Nivel 3 Autorizado)
+                        </span>
+                      } @else {
+                        <span class="text-xs text-slate-500">
+                          Nivel 2 aprobado • Esperando que el usuario firme su Carta Compromiso (Nivel 3)
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <!-- TAB 3: SEGUIMIENTOS POST-ADOPCIÓN 7, 30 Y 90 DÍAS -->
         @if (activeTab() === 'FOLLOWUPS') {
           <section class="space-y-4">
             <div class="p-4 rounded-2xl bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border border-teal-500/20 text-xs text-slate-700 dark:text-slate-300">
@@ -240,13 +379,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </p>
                     </div>
 
-                    <!-- Status -->
                     <div class="text-xs">
                       <span class="font-bold text-slate-600 dark:text-slate-300">Estado: </span>
                       <span class="font-black text-emerald-600 dark:text-emerald-400">{{ fol.status }}</span>
                     </div>
 
-                    <!-- Proof Photo if received -->
                     @if (fol.proofPhotoUrl) {
                       <div class="w-full h-36 rounded-xl overflow-hidden border">
                         <img [src]="fol.proofPhotoUrl" alt="Foto de bienestar recibida" class="w-full h-full object-cover" />
@@ -264,6 +401,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                           <span>💬</span> Pedir Foto por Huellitas
                         </button>
                       }
+                    <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center gap-2">
                       <a
                         [href]="fol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(fol)"
                         target="_blank"
@@ -296,18 +434,26 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 export class RescuerDashboardComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private dmService = inject(DirectMessageService);
 
-  activeTab = signal<'REQUESTS' | 'FOLLOWUPS'>('REQUESTS');
+  activeTab = signal<'REQUESTS' | 'VERIFICATIONS' | 'FOLLOWUPS'>('REQUESTS');
   requests = signal<AdoptionRequest[]>([]);
+  verifications = signal<AdopterVerification[]>([]);
   followups = signal<AdoptionFollowup[]>([]);
   isLoading = signal<boolean>(true);
   isRefreshing = signal<boolean>(false);
   lastUpdated = signal<Date>(new Date());
+
+  pendingVerificationsCount = computed(() => {
+    return this.verifications().filter(
+      (v) => v.level2Status === 'PENDIENTE' || v.level3Status === 'PENDIENTE',
+    ).length;
+  });
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -317,6 +463,11 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
       this.notify.error('Acceso denegado', 'Esta vista es exclusiva para rescatistas verificados y administradores.');
       this.router.navigate(['/dashboard']);
       return;
+    }
+
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    if (tabParam === 'verifications') {
+      this.activeTab.set('VERIFICATIONS');
     }
 
     this.loadData();
@@ -329,7 +480,6 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   startAutoRefresh(): void {
     this.stopAutoRefresh();
-    // Auto-detección en segundo plano cada 20 segundos
     this.pollTimer = setInterval(() => {
       this.silentRefresh();
     }, 20000);
@@ -355,20 +505,13 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   silentRefresh(): void {
     this.adoptionService.getPublisherInbox().subscribe({
       next: (newReqs) => {
-        const previousCount = this.requests().length;
-        const previousPending = this.requests().filter((r) => r.status === 'PENDIENTE').length;
-        const currentPending = (newReqs || []).filter((r) => r.status === 'PENDIENTE').length;
-
-        if (newReqs && newReqs.length > previousCount && currentPending > previousPending) {
-          this.notify.info(
-            '¡Nueva solicitud recibida!',
-            'Un adoptante acaba de postular una solicitud para una de tus mascotas.',
-          );
-        }
-
         this.requests.set(newReqs || []);
         this.lastUpdated.set(new Date());
       },
+    });
+    this.adoptionService.getVerificationsForReview().subscribe({
+      next: (vers) => this.verifications.set(vers || []),
+      error: () => {},
     });
   }
 
@@ -377,12 +520,16 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
+        this.adoptionService.getVerificationsForReview().subscribe({
+          next: (vers) => this.verifications.set(vers || []),
+          error: () => {},
+        });
         this.adoptionService.getFollowups().subscribe({
           next: (fols) => {
             this.followups.set(fols || []);
             this.isRefreshing.set(false);
             this.lastUpdated.set(new Date());
-            this.notify.success('Bandeja de solicitudes actualizada');
+            this.notify.success('Bandeja actualizada');
           },
           error: () => this.isRefreshing.set(false),
         });
@@ -396,6 +543,10 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
+        this.adoptionService.getVerificationsForReview().subscribe({
+          next: (vers) => this.verifications.set(vers || []),
+          error: () => {},
+        });
         this.adoptionService.getFollowups().subscribe({
           next: (fols) => {
             this.followups.set(fols || []);
@@ -405,6 +556,37 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
         });
       },
       error: () => this.isLoading.set(false),
+    });
+  }
+
+  async reviewAdopterLevel(ver: AdopterVerification, level: 2 | 3, approved: boolean): Promise<void> {
+    let notes: string | undefined;
+    if (!approved) {
+      const input = await this.confirmService.prompt({
+        title: `Observaciones para Nivel ${level}`,
+        message: `Indica al adoptante ${ver.user?.fullName || ''} qué debe corregir o ampliar:`,
+        inputPlaceholder: 'Ej: Por favor especifica quién cuidará a la mascota si sales de viaje...',
+        confirmText: 'Enviar Observaciones',
+        cancelText: 'Cancelar',
+        type: 'warning',
+        icon: '📝',
+      });
+      if (!input) return;
+      notes = input;
+    }
+
+    this.adoptionService.reviewVerification(ver.id, { level, approved, notes }).subscribe({
+      next: () => {
+        this.notify.success(
+          approved
+            ? `¡Nivel ${level} aprobado para ${ver.user?.fullName || 'el adoptante'}!`
+            : `Observaciones enviadas para Nivel ${level}`,
+        );
+        this.loadData();
+      },
+      error: (err) => {
+        this.notify.error(err.error?.message || 'No se pudo procesar la evaluación');
+      },
     });
   }
 
@@ -420,9 +602,12 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   getStatusBadge(status: string): string {
     switch (status) {
-      case 'APROBADA': return 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30';
-      case 'RECHAZADA': return 'bg-rose-500/20 text-rose-600 border border-rose-500/30';
-      default: return 'bg-amber-500/20 text-amber-600 border border-amber-500/30';
+      case 'APROBADA':
+        return 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30';
+      case 'RECHAZADA':
+        return 'bg-rose-500/20 text-rose-600 border border-rose-500/30';
+      default:
+        return 'bg-amber-500/20 text-amber-600 border border-amber-500/30';
     }
   }
 

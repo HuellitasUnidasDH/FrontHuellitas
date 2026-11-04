@@ -4,24 +4,30 @@ import { Pet } from './pet.model';
 export type HousingType = 'CASA_PROPIA' | 'CASA_RENTADA' | 'DEPARTAMENTO';
 export type AdoptionRequestStatus = 'PENDIENTE' | 'EN_EVALUACION' | 'APROBADA' | 'RECHAZADA' | 'CANCELADA';
 export type FollowupStatus = 'PROGRAMADO' | 'SOLICITADO' | 'FOTO_RECIBIDA' | 'ALERTA_REABANDONO' | 'COMPLETADO';
+export type VerificationStepStatus = 'NO_ENVIADO' | 'PENDIENTE' | 'APROBADO' | 'RECHAZADO';
 
 export interface AdopterVerification {
   id: string;
   userId: string;
+  user?: User;
   housingType: HousingType;
   landlordAllowsPets: boolean;
   peopleInHome?: string;
   previousExperience?: string;
   relocationPlan?: string;
   financialResponsible?: string;
+  level2Status?: VerificationStepStatus;
   isLevel2Completed: boolean;
   level2CompletedAt?: string;
   homeYardPhotos?: string[];
   hasSafeEnclosure: boolean;
   signedCommitmentLetter: boolean;
   volunteerInterviewNotes?: string;
+  level3Status?: VerificationStepStatus;
   isLevel3Completed: boolean;
   level3CompletedAt?: string;
+  reviewedByAdminId?: string;
+  reviewNotes?: string;
   createdAt: string;
   updatedAt: string;
 }

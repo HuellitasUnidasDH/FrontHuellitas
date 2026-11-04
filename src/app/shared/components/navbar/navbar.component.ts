@@ -1247,7 +1247,19 @@ export class NavbarComponent implements OnInit {
       this.socialNotifications.markAsRead(notif.id).subscribe();
     }
     this.closeAllDropdowns();
-    this.router.navigateByUrl(notif.targetUrl || '/notificaciones');
+    let targetUrl = notif.targetUrl || '/notificaciones';
+    if (notif.entityId) {
+      if (
+        notif.type === SocialNotificationType.COMMENT_ON_POST ||
+        notif.type === SocialNotificationType.SIGHTING_REPORTED ||
+        notif.targetUrl === '/perdidas'
+      ) {
+        targetUrl = `/?postId=lost-${notif.entityId}`;
+      } else if (notif.type === SocialNotificationType.COMMENT_ON_PET) {
+        targetUrl = `/?postId=pet-${notif.entityId}`;
+      }
+    }
+    this.router.navigateByUrl(targetUrl);
   }
 
   getNotifIcon(type: SocialNotificationType): string {

@@ -17,7 +17,7 @@ export class AdoptionService {
   private http = inject(HttpClient);
   private readonly URL = `${environment.apiUrl}/adoptions`;
 
-  // 1. Verificación por Niveles
+  // 1. Verificación por Niveles (Usuario solicita, Rescatista/Admin aprueba)
   getMyVerification(): Observable<AdopterVerification | null> {
     return this.http
       .get<ApiResponse<AdopterVerification | null>>(`${this.URL}/my-verification`)
@@ -33,6 +33,24 @@ export class AdoptionService {
   submitLevel3(payload: Partial<AdopterVerification>): Observable<AdopterVerification> {
     return this.http
       .post<ApiResponse<AdopterVerification>>(`${this.URL}/verification/level-3`, payload)
+      .pipe(map((r) => r.data));
+  }
+
+  getVerificationsForReview(): Observable<AdopterVerification[]> {
+    return this.http
+      .get<ApiResponse<AdopterVerification[]>>(`${this.URL}/verifications/review-list`)
+      .pipe(map((r) => r.data || []));
+  }
+
+  reviewVerification(
+    verificationId: string,
+    payload: { level: 2 | 3; approved: boolean; notes?: string },
+  ): Observable<AdopterVerification> {
+    return this.http
+      .patch<ApiResponse<AdopterVerification>>(
+        `${this.URL}/verifications/${verificationId}/review`,
+        payload,
+      )
       .pipe(map((r) => r.data));
   }
 
