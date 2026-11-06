@@ -30,28 +30,30 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
+    <div
+      class="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 h-[calc(100dvh-5.5rem)] sm:h-[calc(100dvh-6.5rem)] flex flex-col gap-2.5 overflow-hidden -mb-24 md:-mb-12"
+    >
       <!-- ======================================================== -->
       <!-- 1. Top Header Bar: Huellitas Direct + Nuevo Mensaje CTA  -->
       <!-- ======================================================== -->
       <header
-        class="liquid-glass rounded-3xl px-4 sm:px-6 py-3.5 sm:py-4 border border-emerald-500/25 shadow-xl flex flex-wrap items-center justify-between gap-3"
+        class="liquid-glass rounded-2xl px-3.5 sm:px-5 py-2 sm:py-2.5 border border-emerald-500/25 shadow-lg flex items-center justify-between gap-3 flex-shrink-0"
       >
-        <div class="flex items-center gap-3 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0">
           <div
-            class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 flex items-center justify-center text-xl sm:text-2xl font-black shadow-lg shadow-emerald-500/25 flex-shrink-0"
+            class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 text-slate-950 flex items-center justify-center text-lg sm:text-xl font-black shadow-md shadow-emerald-500/25 flex-shrink-0"
           >
             💬
           </div>
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
               <h1
-                class="text-base sm:text-xl font-black tracking-tight text-slate-900 dark:text-white truncate"
+                class="text-sm sm:text-base font-black tracking-tight text-slate-900 dark:text-white truncate"
               >
                 Huellitas Direct
               </h1>
               <span
-                class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                class="hidden sm:inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
               >
                 Mensajería Contextual
               </span>
@@ -63,37 +65,38 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                 </span>
               }
             </div>
-            <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
+            <p class="hidden xs:block text-[11px] text-slate-500 dark:text-slate-400 truncate">
               Conecta directo con rescatistas, albergues y ciudadanos o continúa en WhatsApp con 1 clic
             </p>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-shrink-0">
           <button
             type="button"
             (click)="openDirectoryModal()"
-            class="px-3.5 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer transition-all"
+            class="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer transition-all"
           >
             <span>➕</span>
-            <span>Nuevo Mensaje</span>
+            <span class="hidden sm:inline">Nuevo Mensaje</span>
           </button>
         </div>
       </header>
 
       <!-- ======================================================== -->
-      <!-- 2. Main Split-Pane Messenger Container                   -->
+      <!-- 2. Main Split-Pane Messenger Container (WhatsApp Style)  -->
       <!-- ======================================================== -->
       <div
-        class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch min-h-[72dvh] lg:h-[75dvh]"
+        class="flex-1 min-h-0 flex gap-3 overflow-hidden"
       >
         <!-- ====================================================== -->
-        <!-- LEFT PANEL: Conversations Inbox List (4 cols on lg+)   -->
+        <!-- LEFT PANEL: Conversations Inbox List                   -->
         <!-- ====================================================== -->
         <aside
-          class="lg:col-span-4 liquid-glass rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl flex flex-col overflow-hidden"
+          class="w-full lg:w-[360px] xl:w-[400px] flex-shrink-0 liquid-glass rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl flex flex-col h-full overflow-hidden"
           [ngClass]="{
-            'hidden lg:flex': mobileView() === 'CHAT' && activeConversation()
+            'hidden lg:flex': mobileView() === 'CHAT',
+            'flex': mobileView() === 'LIST'
           }"
         >
           <!-- Search & Filter Controls -->
@@ -292,29 +295,29 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
         </aside>
 
         <!-- ====================================================== -->
-        <!-- RIGHT PANEL: Active Chat Window (8 cols on lg+)        -->
+        <!-- RIGHT PANEL: Active Chat Window (WhatsApp Desktop Style)-->
         <!-- ====================================================== -->
         <section
-          class="lg:col-span-8 liquid-glass rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl flex flex-col overflow-hidden"
+          class="flex-1 min-w-0 liquid-glass rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl flex flex-col h-full overflow-hidden"
           [ngClass]="{
-            'hidden lg:flex': mobileView() === 'LIST' && !activeConversation()
+            'hidden lg:flex': mobileView() === 'LIST',
+            'flex': mobileView() === 'CHAT'
           }"
         >
           @if (!activeConversation()) {
-            <!-- Empty State when no conversation is selected -->
-            <div class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+            <!-- Empty State when no conversation is selected (WhatsApp Desktop style) -->
+            <div class="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center space-y-4">
               <div
-                class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-4xl shadow-inner"
+                class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-4xl sm:text-5xl shadow-inner"
               >
                 🐾
               </div>
-              <div class="max-w-md space-y-1.5">
+              <div class="max-w-md space-y-1.5 px-4">
                 <h2 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                   Tus Mensajes Directos en {{ brand.name }}
                 </h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Selecciona una conversación de la bandeja izquierda, toca
-                  <strong>«💬 Mensaje»</strong> en cualquier publicación del Muro Comunitario, o inicia un chat con un rescatista verificado.
+                  Selecciona una conversación de la bandeja izquierda para ver los mensajes, o inicia un chat nuevo con un rescatista o ciudadano.
                 </p>
               </div>
               <div class="flex flex-wrap items-center justify-center gap-2.5 pt-1">
@@ -338,17 +341,18 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- A. Active Conversation Top Header                  -->
             <!-- ================================================== -->
             <div
-              class="px-4 sm:px-5 py-3 border-b border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between gap-2"
+              class="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-slate-200/70 dark:border-slate-800/70 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex items-center justify-between gap-2 flex-shrink-0"
             >
-              <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <!-- Back Button on Mobile -->
+              <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <!-- Back Button on Mobile (prominent style) -->
                 <button
                   type="button"
                   (click)="backToInboxOnMobile()"
-                  class="lg:hidden p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer"
-                  title="Volver a la bandeja"
+                  class="lg:hidden px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs font-black cursor-pointer flex items-center gap-1 transition-colors flex-shrink-0"
+                  title="Volver a los chats"
                 >
-                  ←
+                  <span>←</span>
+                  <span class="text-[11px]">Chats</span>
                 </button>
 
                 <!-- Counterpart Avatar -->
@@ -416,18 +420,18 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- ================================================== -->
             @if (activeConversation()!.contextTitle) {
               <div
-                class="px-4 py-2.5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-3"
+                class="px-4 py-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-3 flex-shrink-0"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
                   @if (activeConversation()!.contextImageUrl) {
                     <img
                       [src]="activeConversation()!.contextImageUrl!"
                       alt=""
-                      class="w-10 h-10 rounded-xl object-cover border border-emerald-500/30 flex-shrink-0 shadow-sm"
+                      class="w-9 h-9 rounded-xl object-cover border border-emerald-500/30 flex-shrink-0 shadow-sm"
                     />
                   } @else {
                     <div
-                      class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-base flex-shrink-0"
+                      class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-sm flex-shrink-0"
                     >
                       {{ getContextIcon(activeConversation()!.contextType) }}
                     </div>
@@ -446,7 +450,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                       {{ activeConversation()!.contextTitle }}
                     </p>
                     @if (activeConversation()!.contextSubtitle) {
-                      <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      <p class="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                         {{ activeConversation()!.contextSubtitle }}
                       </p>
                     }
@@ -456,9 +460,9 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                 @if (activeConversation()!.contextTargetUrl) {
                   <a
                     [routerLink]="activeConversation()!.contextTargetUrl!"
-                    class="px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-[11px] font-bold border border-slate-200/70 dark:border-slate-700 transition-colors flex-shrink-0"
+                    class="px-2.5 py-1 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200/70 dark:border-slate-700 transition-colors flex-shrink-0"
                   >
-                    Ver publicación ↗
+                    Ver ↗
                   </a>
                 }
               </div>
@@ -469,7 +473,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- ================================================== -->
             <div
               #messagesScrollContainer
-              class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/40 dark:bg-slate-950/30"
+              class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3.5 bg-slate-50/40 dark:bg-slate-950/30"
             >
               @if (dmService.isLoadingMessages() && dmService.activeMessages().length === 0) {
                 <div class="py-12 text-center space-y-2">
@@ -602,7 +606,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- D. Smart Icebreakers Strip (1-Click Quick Replies) -->
             <!-- ================================================== -->
             <div
-              class="px-3.5 py-2 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-slate-900/40 flex items-center gap-1.5 overflow-x-auto no-scrollbar"
+              class="px-3 sm:px-4 py-1.5 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-slate-900/40 flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden flex-shrink-0"
             >
               <span
                 class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex-shrink-0 pr-1"
@@ -624,7 +628,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- E. Message Composer Input + Photo Upload           -->
             <!-- ================================================== -->
             <div
-              class="p-3 sm:p-4 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl space-y-2"
+              class="p-2.5 sm:p-3.5 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl space-y-2 flex-shrink-0"
             >
               <!-- Pending Attachment Preview -->
               @if (attachmentPreviewUrl()) {
@@ -940,13 +944,15 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
           if (convIdParam) {
             const target = list.find((c) => c.id === convIdParam);
             if (target) {
-              this.selectConversation(target);
+              this.selectConversation(target, true);
               return;
             }
           }
-          if (list.length > 0 && !this.activeConversation()) {
-            this.selectConversation(list[0], false);
-          }
+          // Por defecto no se abre ningún chat automáticamente.
+          // En PC se muestra la lista a la izquierda y el placeholder a la derecha (estilo WhatsApp Desktop).
+          // En móviles / Android se muestra únicamente la lista de chats.
+          this.mobileView.set('LIST');
+          this.dmService.activeConversation.set(null);
         }
       },
     });
@@ -969,6 +975,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
       clearInterval(this.activeChatPollingHandle);
       this.activeChatPollingHandle = null;
     }
+    this.dmService.activeConversation.set(null);
   }
 
   selectConversation(conv: DirectConversation, switchMobile = true): void {
@@ -983,6 +990,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
 
   backToInboxOnMobile(): void {
     this.mobileView.set('LIST');
+    this.dmService.activeConversation.set(null);
   }
 
   canSendMessage(): boolean {
