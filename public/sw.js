@@ -1,12 +1,13 @@
 // Service Worker Oficial de Huellitas PWA
-const CACHE_NAME = 'huellitas-pwa-v3';
+const CACHE_NAME = 'huellitas-pwa-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/sounds/iphone-bell.wav'
 ];
 
 self.addEventListener('install', (event) => {
@@ -76,6 +77,7 @@ self.addEventListener('push', (event) => {
     renotify: true,
     requireInteraction: false,
     silent: false,
+    sound: '/sounds/iphone-bell.wav',
     vibrate: [200, 100, 200],
     data: { url: targetUrl },
   };

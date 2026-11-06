@@ -117,7 +117,7 @@ export class PushNotificationService {
         } else if (data.type === 'PUSH_FOREGROUND') {
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             this.toast.info(data.title || 'Huellitas', data.body || '');
-            this.playPing();
+            this.playNotificationSound();
           }
           this.social.loadNotifications().subscribe({ error: () => {} });
           this.dm.loadConversations(true).subscribe({ error: () => {} });
@@ -139,27 +139,66 @@ export class PushNotificationService {
     }
   }
 
-  /** Ping corto opcional (puede ser bloqueado por el navegador hasta la primera interacción) */
-  private playPing(): void {
+  /** Campana estilo iPhone para notificaciones entrantes */
+  public playNotificationSound(): void {
+    try {
+      if (typeof window === 'undefined') return;
+      const audio = new Audio('/sounds/iphone-bell.wav');
+      audio.volume = 0.85;
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.catch(() => {
+          this.playSynthesizedBell();
+        });
+      }
+    } catch {
+      this.playSynthesizedBell();
+    }
+  }
+
+  /** Síntesis armónica de la campana de 3 notas de iPhone (G#5 -> B5 -> E6) */
+  private playSynthesizedBell(): void {
     try {
       const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-      setTimeout(() => ctx.close().catch(() => {}), 500);
+
+      // Notas armónicas de campana cristalina (estilo iOS Tri-tone)
+      const notes = [
+        { freq: 830.61, time: 0.0, dur: 0.18, vol: 0.22 },  // Sol#5
+        { freq: 987.77, time: 0.11, dur: 0.18, vol: 0.25 }, // Si5
+        { freq: 1318.51, time: 0.22, dur: 0.65, vol: 0.32 }, // Mi6 (campana brillante)
+      ];
+
+      for (const n of notes) {
+        const start = ctx.currentTime + n.time;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(n.freq, start);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(n.freq * 2, start);
+
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(n.vol, start + 0.005);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + n.dur);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(start);
+        osc1.stop(start + n.dur);
+        osc2.start(start);
+        osc2.stop(start + n.dur);
+      }
+
+      setTimeout(() => ctx.close().catch(() => {}), 1100);
     } catch {
-      // Ignorar: el sonido es opcional
+      // Ignorar: el audio es decorativo
     }
   }
 
@@ -365,6 +404,7 @@ export class PushNotificationService {
 
   async sendTest(): Promise<void> {
     try {
+      this.playNotificationSound();
       const res = await firstValueFrom(
         this.http.post<ApiResponse<{ sent: number }>>(`${this.apiUrl}/test`, {}),
       );
