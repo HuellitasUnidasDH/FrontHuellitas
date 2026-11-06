@@ -47,3 +47,4 @@ describe('PushNotificationService', () => {
     expect(service.subscribed()).toBe(false);
   });
 });
+

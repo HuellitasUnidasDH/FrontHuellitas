@@ -1,5 +1,5 @@
 // Service Worker Oficial de Huellitas PWA
-const CACHE_NAME = 'huellitas-pwa-v2';
+const CACHE_NAME = 'huellitas-pwa-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -63,36 +63,60 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'Huellitas';
+  const targetUrl = data.url || '/';
+
   const options = {
     body: data.body || '',
     icon: data.icon || '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    // badge se omite deliberadamente para evitar que Windows 11 o Android
+    // conviertan imágenes a color en siluetas negras distorsionadas.
     image: data.image || undefined,
-    tag: data.tag || undefined,
-    renotify: !!data.tag,
-    vibrate: [120, 60, 120],
-    data: { url: data.url || '/' },
+    // Tag único por mensaje para que Windows/Android siempre reproduzca sonido y saque el banner
+    tag: data.tag ? `${data.tag}-${Date.now()}` : `huellitas-${Date.now()}`,
+    renotify: true,
+    requireInteraction: false,
+    silent: false,
+    vibrate: [200, 100, 200],
+    data: { url: targetUrl },
   };
 
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        const visibleClient = clientList.find(
-          (c) => c.visibilityState === 'visible' && c.focused
+        // 1. Notificar siempre a cualquier cliente abierto para refrescar contadores en la UI
+        clientList.forEach((c) =>
+          c.postMessage({
+            type: 'PUSH_FOREGROUND',
+            title,
+            body: options.body,
+            url: targetUrl,
+          })
         );
-        if (visibleClient) {
-          // La app está abierta y enfocada: la UI muestra su propio aviso.
-          clientList.forEach((c) =>
-            c.postMessage({
-              type: 'PUSH_FOREGROUND',
-              title,
-              body: options.body,
-              url: options.data.url,
-            })
-          );
+
+        // 2. Comprobar si el usuario está activamente en esa misma ventana y pantalla
+        const isActivelyChatting = clientList.some((c) => {
+          if (c.visibilityState !== 'visible' || !c.focused) return false;
+          if (!targetUrl || targetUrl === '/') return false;
+          try {
+            const clientUrl = new URL(c.url);
+            const target = new URL(targetUrl, clientUrl.origin);
+            return (
+              clientUrl.pathname === target.pathname &&
+              (!target.search || clientUrl.search === target.search)
+            );
+          } catch {
+            return false;
+          }
+        });
+
+        // Si el usuario ya está viendo esa misma conversación en primer plano, no saturar con el banner del SO
+        if (isActivelyChatting) {
           return;
         }
+
+        // Si la app está minimizada, en segundo plano, en otra pestaña o cerrada:
+        // Se emite siempre la notificación nativa del sistema operativo con sonido.
         return self.registration.showNotification(title, options);
       })
   );

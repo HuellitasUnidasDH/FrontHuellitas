@@ -115,8 +115,10 @@ export class PushNotificationService {
         if (data.type === 'PUSH_NAVIGATE' && typeof data.url === 'string') {
           this.router.navigateByUrl(this.safeInternalUrl(data.url));
         } else if (data.type === 'PUSH_FOREGROUND') {
-          this.toast.info(data.title || 'Huellitas', data.body || '');
-          this.playPing();
+          if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+            this.toast.info(data.title || 'Huellitas', data.body || '');
+            this.playPing();
+          }
           this.social.loadNotifications().subscribe({ error: () => {} });
           this.dm.loadConversations(true).subscribe({ error: () => {} });
         }
