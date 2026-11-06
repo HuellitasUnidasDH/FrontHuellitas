@@ -979,6 +979,11 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   }
 
   selectConversation(conv: DirectConversation, switchMobile = true): void {
+    const previousId = this.dmService.activeConversation()?.id;
+    if (previousId !== conv.id) {
+      // Limpiar de inmediato los mensajes del chat anterior para evitar que parpadeen en el nuevo
+      this.dmService.activeMessages.set([]);
+    }
     this.dmService.activeConversation.set(conv);
     if (switchMobile) {
       this.mobileView.set('CHAT');

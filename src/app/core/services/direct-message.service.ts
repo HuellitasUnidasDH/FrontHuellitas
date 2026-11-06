@@ -216,8 +216,11 @@ export class DirectMessageService {
       .pipe(
         tap((res) => {
           if (res?.data) {
-            this.activeConversation.set(res.data.conversation);
-            this.activeMessages.set(res.data.messages || []);
+            // Solo actualizar si el usuario aún está en esta conversación (evita race conditions al cambiar rápido de chat)
+            if (this.activeConversation()?.id === conversationId) {
+              this.activeConversation.set(res.data.conversation);
+              this.activeMessages.set(res.data.messages || []);
+            }
 
             // Descontar no leídos localmente de esta conversación
             const prevConv = this.conversations().find(
