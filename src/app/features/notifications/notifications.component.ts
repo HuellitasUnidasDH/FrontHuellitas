@@ -8,6 +8,7 @@ import {
   SocialNotificationType,
 } from '../../core/models/social-notification.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import { PushSettingsCardComponent } from './push-settings-card.component';
 
 type NotificationFilterTab =
   | 'ALL'
@@ -28,7 +29,7 @@ interface NotificationTimeGroup {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, PushSettingsCardComponent],
   template: `
     <div class="max-w-4xl mx-auto px-3.5 sm:px-6 py-5 sm:py-7 space-y-6">
 
@@ -146,6 +147,11 @@ interface NotificationTimeGroup {
           }
         </div>
       </section>
+
+      <!-- ======================================================== -->
+      <!-- Push Notifications Settings Card (PWA / Web Push)        -->
+      <!-- ======================================================== -->
+      <app-push-settings-card />
 
       <!-- ======================================================== -->
       <!-- Main Feed Content: Time-Grouped Activity Stream          -->

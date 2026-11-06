@@ -1,10 +1,11 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, Injector } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, throwError, map, shareReplay, finalize } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StorageService } from './storage.service';
 import { NotificationService } from './notification.service';
+import { PushNotificationService } from './push-notification.service';
 import {
   User,
   UserRole,
@@ -22,6 +23,7 @@ export class AuthService {
   private router = inject(Router);
   private storage = inject(StorageService);
   private notification = inject(NotificationService);
+  private injector = inject(Injector);
 
   private readonly API_URL = `${environment.apiUrl}/auth`;
   public static readonly CURRENT_PRIVACY_VERSION = '2026-v1.0';
@@ -236,6 +238,16 @@ export class AuthService {
   }
 
   logout(showNotification = true): void {
+    // Gracefully unsubscribe Web Push from backend before clearing session tokens
+    try {
+      const pushService = this.injector.get(PushNotificationService, null);
+      if (pushService) {
+        pushService.unsubscribeBeforeLogout();
+      }
+    } catch {
+      // Ignored: fail-safe
+    }
+
     const token = this.getAccessToken();
     if (token && !this.isTokenExpired(token, 0)) {
       this.http.post(`${this.API_URL}/logout`, {}).subscribe({
