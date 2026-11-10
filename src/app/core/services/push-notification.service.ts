@@ -41,9 +41,6 @@ export class PushNotificationService {
   private readonly dm = inject(DirectMessageService);
   private readonly apiUrl = `${environment.apiUrl}/push`;
 
-  private static readonly DEFAULT_VAPID_PUBLIC_KEY =
-    'BKpCwRlSbJKU0E9zZeAL0iQPPAfLsKCMPIBJBZNkIeBpToR32at8YkiMrd2HUuoQNOH7rvqep97rafovhG8Ju8M';
-
   readonly supported = signal<boolean>(false);
   readonly permission = signal<NotificationPermission>('default');
   readonly subscribed = signal<boolean>(false);
@@ -375,19 +372,19 @@ export class PushNotificationService {
         return false;
       }
 
-      let publicKey = PushNotificationService.DEFAULT_VAPID_PUBLIC_KEY;
-      try {
-        const keyRes = await firstValueFrom(
-          this.http.get<ApiResponse<{ enabled: boolean; publicKey: string | null }>>(
-            `${this.apiUrl}/public-key`,
-          ),
+      const keyRes = await firstValueFrom(
+        this.http.get<ApiResponse<{ enabled: boolean; publicKey: string | null }>>(
+          `${this.apiUrl}/public-key`,
+        ),
+      );
+      const publicKey = keyRes?.data?.publicKey;
+      this.serverEnabled.set(!!keyRes?.data?.enabled);
+      if (!keyRes?.data?.enabled || !publicKey) {
+        this.toast.warning(
+          'Alertas no disponibles',
+          'El servidor aún no tiene activadas las notificaciones push.',
         );
-        if (keyRes?.data?.publicKey) {
-          publicKey = keyRes.data.publicKey;
-        }
-        this.serverEnabled.set(keyRes?.data?.enabled !== false);
-      } catch {
-        this.serverEnabled.set(true);
+        return false;
       }
 
       const reg = await this.getRegistration();
