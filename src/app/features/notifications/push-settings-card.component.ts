@@ -10,7 +10,7 @@ import {
   standalone: true,
   imports: [CommonModule],
   template: `
-    @if (push.supported() && push.serverEnabled() !== false) {
+    @if (push.supported()) {
       <section
         class="liquid-glass rounded-3xl p-4 sm:p-5 border relative overflow-hidden transition-all"
         [ngClass]="
