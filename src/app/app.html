@@ -1,4 +1,9 @@
-<div class="min-h-screen bg-slate-100 dark:bg-[#070c18] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-500">
+<div
+  class="bg-slate-100 dark:bg-[#070c18] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-500"
+  [class.min-h-screen]="!isMessagesRoute()"
+  [class.h-\[100dvh\]]="isMessagesRoute()"
+  [class.overflow-hidden]="isMessagesRoute()"
+>
   
   <!-- High-Performance Liquid Ambient Mesh (Zero Continuous GPU Thrashing) -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-70 dark:opacity-50">
@@ -14,23 +19,33 @@
   </div>
 
   <!-- Main Content Routed with breathing space below floating navbar and above mobile dock -->
-  <main class="flex-1 relative z-10 pt-20 sm:pt-24 pb-24 md:pb-12">
+  <main
+    class="flex-1 relative z-10 pt-20 sm:pt-24"
+    [class.pb-24]="!isMessagesRoute()"
+    [class.md:pb-12]="!isMessagesRoute()"
+    [class.pb-20]="isMessagesRoute()"
+    [class.md:pb-3]="isMessagesRoute()"
+    [class.min-h-0]="isMessagesRoute()"
+    [class.overflow-hidden]="isMessagesRoute()"
+  >
     <router-outlet />
   </main>
 
-  <!-- Footer -->
-  <footer class="relative z-10 py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#070c18]/60 backdrop-blur-xl text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
-    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <p>© 2026 {{ brand.fullName }} • {{ brand.city }}. Todos los derechos reservados.</p>
-      <button
-        type="button"
-        (click)="isManualPrivacyOpen = true"
-        class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-      >
-        📜 Aviso de Privacidad y Términos Legales
-      </button>
-    </div>
-  </footer>
+  <!-- Footer (oculto en vista de chat a pantalla fija para evitar doble scroll de fondo) -->
+  @if (!isMessagesRoute()) {
+    <footer class="relative z-10 py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#070c18]/60 backdrop-blur-xl text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <p>© 2026 {{ brand.fullName }} • {{ brand.city }}. Todos los derechos reservados.</p>
+        <button
+          type="button"
+          (click)="isManualPrivacyOpen = true"
+          class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+        >
+          📜 Aviso de Privacidad y Términos Legales
+        </button>
+      </div>
+    </footer>
+  }
 
   <!-- Modal Global Obligatorio o Informativo del Aviso de Privacidad -->
   <app-privacy-modal

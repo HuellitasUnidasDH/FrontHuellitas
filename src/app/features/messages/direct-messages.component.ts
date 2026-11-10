@@ -5,6 +5,7 @@ import {
   inject,
   signal,
   computed,
+  effect,
   ElementRef,
   ViewChild,
 } from '@angular/core';
@@ -31,7 +32,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div
-      class="max-w-7xl mx-auto px-2 sm:px-4 py-2 sm:py-3 h-[calc(100dvh-5.5rem)] sm:h-[calc(100dvh-6.5rem)] flex flex-col gap-2.5 overflow-hidden -mb-24 md:-mb-12"
+      class="max-w-7xl mx-auto px-2 sm:px-4 py-1.5 sm:py-2.5 h-[calc(100dvh-10rem)] md:h-[calc(100dvh-6.75rem)] flex flex-col gap-2 overflow-hidden overscroll-none"
     >
       <!-- ======================================================== -->
       <!-- 1. Top Header Bar: Huellitas Direct + Nuevo Mensaje CTA  -->
@@ -155,7 +156,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
           </div>
 
           <!-- Conversations Scrollable List -->
-          <div class="flex-1 overflow-y-auto divide-y divide-slate-200/40 dark:divide-slate-800/50">
+          <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-slate-200/40 dark:divide-slate-800/50">
             @if (dmService.isLoadingConversations() && dmService.conversations().length === 0) {
               <div class="p-8 text-center space-y-2">
                 <div
@@ -476,7 +477,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- ================================================== -->
             <div
               #messagesScrollContainer
-              class="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-5 space-y-3.5 bg-slate-50/40 dark:bg-slate-950/30"
+              class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3.5 bg-slate-50/40 dark:bg-slate-950/30"
             >
               @if (dmService.isLoadingMessages() && dmService.activeMessages().length === 0) {
                 <div class="py-12 text-center space-y-2">
@@ -567,6 +568,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                           <img
                             [src]="msg.attachmentUrl"
                             alt="Fotografía adjunta"
+                            (load)="onMessageImageLoad()"
                             class="w-full h-full object-cover hover:scale-105 transition-transform"
                           />
                         </div>
@@ -670,8 +672,8 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                 </div>
               }
 
-              <div class="flex items-end gap-2">
-                <!-- Hidden File Input for Chat Photo Attachment -->
+              <div class="flex items-end gap-1.5 sm:gap-2">
+                <!-- Hidden File Input for Chat Photo Attachment (Galería) -->
                 <input
                   #chatPhotoInput
                   type="file"
@@ -679,20 +681,40 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                   class="hidden"
                   (change)="onChatPhotoSelected($event)"
                 />
+                <!-- Hidden Native Camera Input (Fallback / Direct Mobile Camera) -->
+                <input
+                  #chatCameraInput
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  class="hidden"
+                  (change)="onChatPhotoSelected($event)"
+                />
+                <!-- Botón Galería -->
                 <button
                   type="button"
                   (click)="chatPhotoInput.click()"
                   [disabled]="isUploadingPhoto()"
                   class="w-10 h-10 rounded-2xl bg-slate-200/80 dark:bg-slate-800 hover:bg-emerald-500/20 text-slate-700 dark:text-slate-200 flex items-center justify-center text-base transition-colors cursor-pointer flex-shrink-0"
-                  title="Adjuntar fotografía en el chat"
+                  title="Subir imagen desde tu galería o dispositivo"
                 >
                   @if (isUploadingPhoto()) {
                     <span
                       class="w-4 h-4 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"
                     ></span>
                   } @else {
-                    <span>📷</span>
+                    <span>🖼️</span>
                   }
+                </button>
+                <!-- Botón Cámara del Dispositivo -->
+                <button
+                  type="button"
+                  (click)="openChatCameraModal()"
+                  [disabled]="isUploadingPhoto()"
+                  class="w-10 h-10 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-base transition-colors cursor-pointer flex-shrink-0"
+                  title="Tomar foto con la cámara de tu dispositivo"
+                >
+                  <span>📸</span>
                 </button>
 
                 <!-- Text Input -->
@@ -828,6 +850,120 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
         />
       </div>
     }
+
+    <!-- ========================================================== -->
+    <!-- MODAL 3: Captura con Cámara en Vivo para Mensajería        -->
+    <!-- ========================================================== -->
+    @if (isChatCameraModalOpen()) {
+      <div
+        class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+        (click)="closeChatCameraModal()"
+      >
+        <div
+          (click)="$event.stopPropagation()"
+          class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-5 shadow-2xl space-y-4"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📸</span>
+              <div>
+                <h3 class="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                  Tomar fotografía para el chat
+                </h3>
+                <p class="text-[11px] text-slate-500">
+                  Captura directamente con la cámara de tu dispositivo
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              (click)="closeChatCameraModal()"
+              class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 hover:bg-rose-500 hover:text-white flex items-center justify-center text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <input
+            #nativeModalCameraInput
+            type="file"
+            accept="image/*"
+            capture="environment"
+            class="hidden"
+            (change)="onChatPhotoSelected($event); closeChatCameraModal()"
+          />
+
+          @if (isChatCameraActive()) {
+            <div class="relative rounded-2xl overflow-hidden bg-black aspect-[4/3] border border-emerald-500/40 shadow-inner">
+              <video
+                id="chatLiveCameraVideo"
+                autoplay
+                playsinline
+                muted
+                class="w-full h-full object-cover"
+              ></video>
+              <div class="absolute bottom-3 inset-x-3 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  (click)="toggleChatCameraFacingMode()"
+                  class="px-3 py-1.5 rounded-xl bg-slate-900/80 text-white text-[11px] font-bold backdrop-blur-md border border-white/15 cursor-pointer hover:bg-slate-800"
+                >
+                  🔄 Voltear cámara
+                </button>
+                <button
+                  type="button"
+                  (click)="captureChatPhotoFromStream()"
+                  class="px-4 py-2 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 text-xs font-black shadow-lg cursor-pointer active:scale-95"
+                >
+                  📸 Capturar foto
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-800/60 text-center space-y-3">
+              @if (chatCameraError()) {
+                <p class="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                  {{ chatCameraError() }}
+                </p>
+              }
+              <div class="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  (click)="startChatCameraStream()"
+                  class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black shadow-md cursor-pointer"
+                >
+                  🎥 Reintentar cámara en vivo
+                </button>
+                <button
+                  type="button"
+                  (click)="nativeModalCameraInput.click()"
+                  class="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer"
+                >
+                  📱 Abrir cámara nativa del teléfono
+                </button>
+              </div>
+            </div>
+          }
+
+          <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+            <button
+              type="button"
+              (click)="nativeModalCameraInput.click()"
+              class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+            >
+              📱 Prefiero usar la app de cámara nativa del teléfono
+            </button>
+            <button
+              type="button"
+              (click)="closeChatCameraModal()"
+              class="text-[11px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
 })
 export class DirectMessagesComponent implements OnInit, OnDestroy {
@@ -855,10 +991,43 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   readonly directoryUsers = signal<DirectParticipant[]>([]);
   readonly previewImageModalUrl = signal<string | null>(null);
 
+  // Estado de cámara en vivo para el chat
+  readonly isChatCameraModalOpen = signal<boolean>(false);
+  readonly isChatCameraActive = signal<boolean>(false);
+  readonly chatCameraFacingMode = signal<'environment' | 'user'>('environment');
+  readonly chatCameraError = signal<string | null>(null);
+  private chatCameraStream: MediaStream | null = null;
+
   /** Contexto pendiente de adjuntar al próximo mensaje que envíe el usuario */
   readonly pendingMessageContext = signal<StartConversationPayload | null>(null);
 
   private activeChatPollingHandle: any = null;
+  private lastTrackedConvId: string | null = null;
+  private lastTrackedMessageCount = 0;
+  private lastTrackedMessageId: string | null = null;
+
+  constructor() {
+    // Auto-scroll reactivo cada vez que llega o se envía un mensaje nuevo o se cambia de conversación
+    effect(() => {
+      const convId = this.activeConversation()?.id || null;
+      const messages = this.dmService.activeMessages();
+      const count = messages.length;
+      const latestId = count > 0 ? messages[count - 1].id : null;
+
+      const convChanged = convId !== this.lastTrackedConvId;
+      const messageAddedOrUpdated =
+        count > this.lastTrackedMessageCount ||
+        (latestId !== null && latestId !== this.lastTrackedMessageId);
+
+      this.lastTrackedConvId = convId;
+      this.lastTrackedMessageCount = count;
+      this.lastTrackedMessageId = latestId;
+
+      if (convId && (convChanged || messageAddedOrUpdated)) {
+        this.scrollToBottom();
+      }
+    });
+  }
 
   readonly filterTabs: { key: InboxFilter; label: string; icon: string }[] = [
     { key: 'ALL', label: 'Todos', icon: '💬' },
@@ -933,6 +1102,10 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    }
     const draft = this.dmService.pendingContextDraft();
 
     this.dmService.loadConversations().subscribe({
@@ -987,6 +1160,11 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopChatCameraStream();
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
     if (this.activeChatPollingHandle) {
       clearInterval(this.activeChatPollingHandle);
       this.activeChatPollingHandle = null;
@@ -1077,19 +1255,129 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
     const file = input.files?.[0];
     if (!file) return;
 
+    this.uploadChatAttachmentFile(file, () => {
+      input.value = '';
+    });
+  }
+
+  private uploadChatAttachmentFile(file: File, onDone?: () => void): void {
     this.isUploadingPhoto.set(true);
     this.imageUpload.uploadImage(file, 'messages').subscribe({
       next: (url) => {
         this.attachmentPreviewUrl.set(url);
         this.isUploadingPhoto.set(false);
-        input.value = '';
+        onDone?.();
       },
       error: () => {
         this.isUploadingPhoto.set(false);
         this.toast.error('No se pudo subir la imagen adjunta.');
-        input.value = '';
+        onDone?.();
       },
     });
+  }
+
+  openChatCameraModal(): void {
+    this.isChatCameraModalOpen.set(true);
+    void this.startChatCameraStream();
+  }
+
+  closeChatCameraModal(): void {
+    this.stopChatCameraStream();
+    this.isChatCameraModalOpen.set(false);
+  }
+
+  async startChatCameraStream(): Promise<void> {
+    this.stopChatCameraStream();
+    this.chatCameraError.set(null);
+
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      this.chatCameraError.set(
+        'Tu navegador no permite vista previa en vivo. Usa el botón de abajo para abrir la cámara nativa.',
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: this.chatCameraFacingMode() },
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+        },
+        audio: false,
+      });
+
+      this.chatCameraStream = stream;
+      this.isChatCameraActive.set(true);
+
+      setTimeout(() => {
+        if (typeof document === 'undefined') return;
+        const videoEl = document.getElementById('chatLiveCameraVideo') as HTMLVideoElement | null;
+        if (videoEl && this.chatCameraStream) {
+          videoEl.srcObject = this.chatCameraStream;
+          videoEl.play().catch(() => {});
+        }
+      }, 60);
+    } catch {
+      this.isChatCameraActive.set(false);
+      this.chatCameraError.set(
+        'No se pudo acceder a la cámara en vivo. Verifica los permisos o usa "Abrir cámara nativa del teléfono".',
+      );
+    }
+  }
+
+  stopChatCameraStream(): void {
+    if (this.chatCameraStream) {
+      for (const track of this.chatCameraStream.getTracks()) {
+        try {
+          track.stop();
+        } catch {
+          // ignore
+        }
+      }
+      this.chatCameraStream = null;
+    }
+    this.isChatCameraActive.set(false);
+  }
+
+  toggleChatCameraFacingMode(): void {
+    this.chatCameraFacingMode.update((mode) => (mode === 'environment' ? 'user' : 'environment'));
+    void this.startChatCameraStream();
+  }
+
+  captureChatPhotoFromStream(): void {
+    if (typeof document === 'undefined') return;
+    const videoEl = document.getElementById('chatLiveCameraVideo') as HTMLVideoElement | null;
+    if (!videoEl || !videoEl.videoWidth) {
+      this.toast.warning('La cámara aún se está iniciando, intenta en un segundo.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `chat-camara-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        this.closeChatCameraModal();
+        this.uploadChatAttachmentFile(file);
+      },
+      'image/jpeg',
+      0.88,
+    );
+  }
+
+  onMessageImageLoad(): void {
+    this.scrollToBottom();
   }
 
   deleteOwnMessage(msg: DirectMessage): void {
@@ -1308,12 +1596,16 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    setTimeout(() => {
+    if (typeof window === 'undefined') return;
+    const applyScroll = () => {
       const el = this.messagesScrollContainer?.nativeElement;
       if (el) {
         el.scrollTop = el.scrollHeight;
       }
-    }, 60);
+    };
+    requestAnimationFrame(() => applyScroll());
+    setTimeout(() => applyScroll(), 50);
+    setTimeout(() => applyScroll(), 160);
   }
 }
 

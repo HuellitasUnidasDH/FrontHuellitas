@@ -40,8 +40,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
                 return next(retriedReq);
               }),
               catchError((refreshErr) => {
-                notification.error('Sesión caducada', 'Por favor inicia sesión nuevamente');
-                authService.logout(false);
+                // Solo cerrar sesión si el servidor rechazó el refresh token (401/403), no por corte momentáneo de red
+                if (refreshErr?.status === 401 || refreshErr?.status === 403) {
+                  notification.error('Sesión caducada', 'Por favor inicia sesión nuevamente');
+                  authService.logout(false);
+                }
                 return throwError(() => refreshErr);
               }),
             );

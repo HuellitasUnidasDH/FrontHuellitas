@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { PrivacyNoticeModalComponent } from './shared/components/privacy-modal/privacy-modal.component';
@@ -26,7 +26,12 @@ import { BRAND_CONFIG } from './core/constants/brand.constants';
 export class App {
   brand = BRAND_CONFIG;
   authService = inject(AuthService);
+  private router = inject(Router);
   isManualPrivacyOpen = false;
+
+  isMessagesRoute(): boolean {
+    return (this.router.url || '').startsWith('/mensajes');
+  }
 
   onAcceptUpdatedPrivacy(): void {
     this.isManualPrivacyOpen = false;

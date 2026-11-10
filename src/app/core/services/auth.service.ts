@@ -183,9 +183,14 @@ export class AuthService {
 
     if (this.isTokenExpired(accessToken, 60)) {
       if (refreshToken && !this.isTokenExpired(refreshToken, 10)) {
-        // Renovar silenciosamente al arrancar la app
+        // Renovar silenciosamente al arrancar la app.
+        // Solo limpiar sesión si el servidor rechaza el token (401/403), nunca por microcorte de red en el celular.
         this.refreshToken().subscribe({
-          error: () => this.clearSessionSilent(),
+          error: (err) => {
+            if (err?.status === 401 || err?.status === 403) {
+              this.clearSessionSilent();
+            }
+          },
         });
       } else {
         // El token ya caducó y no hay refresh token válido -> limpiar estado inmediatamente
@@ -282,7 +287,11 @@ export class AuthService {
           }
         }),
         catchError((err) => {
-          this.clearSessionSilent();
+          // Solo borrar sesión si el servidor rechazó el refresh token explícitamente (401/403).
+          // Jamás cerrar sesión en el celular por un arranque en frío del servidor o cambio de red móvil (status 0 / 5xx).
+          if (err?.status === 401 || err?.status === 403) {
+            this.clearSessionSilent();
+          }
           return throwError(() => err);
         }),
         finalize(() => {

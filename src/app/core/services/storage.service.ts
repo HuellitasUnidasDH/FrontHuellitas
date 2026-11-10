@@ -29,19 +29,25 @@ export class StorageService {
   isRememberMeEnabled(): boolean {
     try {
       if (typeof window !== 'undefined') {
-        if (localStorage.getItem(this.PREFIX + 'remember_me') === 'true') {
-          return true;
-        }
         if (sessionStorage.getItem(this.PREFIX + 'remember_me') === 'false') {
           return false;
         }
-        // Compatibilidad si ya había un token previo en localStorage
-        return Boolean(localStorage.getItem(this.PREFIX + 'token'));
+        if (localStorage.getItem(this.PREFIX + 'remember_me') === 'true') {
+          return true;
+        }
+        // Compatibilidad si ya había un token o refresh_token previo en localStorage
+        if (
+          localStorage.getItem(this.PREFIX + 'token') ||
+          localStorage.getItem(this.PREFIX + 'refresh_token')
+        ) {
+          localStorage.setItem(this.PREFIX + 'remember_me', 'true');
+          return true;
+        }
       }
     } catch {
       return false;
     }
-    return false;
+    return true;
   }
 
   setItem(key: string, value: string, forcePersistent?: boolean): void {
@@ -66,7 +72,9 @@ export class StorageService {
     try {
       if (typeof window !== 'undefined') {
         const fullKey = this.PREFIX + key;
-        return sessionStorage.getItem(fullKey) ?? localStorage.getItem(fullKey);
+        return this.isRememberMeEnabled()
+          ? (localStorage.getItem(fullKey) ?? sessionStorage.getItem(fullKey))
+          : (sessionStorage.getItem(fullKey) ?? localStorage.getItem(fullKey));
       }
     } catch (e) {
       console.error('Error reading from storage', e);

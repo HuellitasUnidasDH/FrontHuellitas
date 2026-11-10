@@ -9,6 +9,7 @@ import {
   SocialNotificationType,
 } from '../models/social-notification.model';
 import { AuthService } from './auth.service';
+import { NotificationService } from './notification.service';
 
 @Injectable({
   providedIn: 'root',
@@ -16,11 +17,14 @@ import { AuthService } from './auth.service';
 export class SocialNotificationService {
   private http = inject(HttpClient);
   private authService = inject(AuthService);
+  private toast = inject(NotificationService);
   private readonly URL = `${environment.apiUrl}/notifications`;
 
   private notificationsSignal = signal<SocialNotification[]>([]);
   private unreadCountSignal = signal<number>(0);
   private isLoadingSignal = signal<boolean>(false);
+  private knownNotificationIds = new Set<string>();
+  private initialLoadCompleted = false;
 
   public readonly notifications = this.notificationsSignal.asReadonly();
   public readonly unreadCount = this.unreadCountSignal.asReadonly();
@@ -68,8 +72,31 @@ export class SocialNotificationService {
       .pipe(
         map((res) => res.data),
         tap((data) => {
+          const items = data.items || [];
           if (!filters?.unreadOnly && !filters?.type) {
-            this.notificationsSignal.set(data.items || []);
+            if (this.initialLoadCompleted) {
+              const newlyArrived = items.filter(
+                (n) => !n.isRead && !this.knownNotificationIds.has(n.id),
+              );
+              if (
+                newlyArrived.length > 0 &&
+                typeof document !== 'undefined' &&
+                document.visibilityState === 'visible'
+              ) {
+                const latest = newlyArrived[0];
+                const lastSwPushTs = Number((window as any).__lastHuellitasSwPushTs || 0);
+                // Si el Service Worker no acaba de mostrar el toast hace menos de 4s, mostrar alerta en pantalla
+                if (Date.now() - lastSwPushTs > 4000) {
+                  const actor = latest.actor?.fullName || latest.actorNameFallback || 'Huellitas';
+                  this.toast.info(`🔔 ${actor}`, `${latest.title}${latest.message ? ': ' + latest.message : ''}`);
+                }
+              }
+            }
+            for (const item of items) {
+              this.knownNotificationIds.add(item.id);
+            }
+            this.initialLoadCompleted = true;
+            this.notificationsSignal.set(items);
           }
           this.unreadCountSignal.set(data.unreadCount ?? 0);
           this.isLoadingSignal.set(false);
@@ -155,7 +182,16 @@ export class SocialNotificationService {
     this.stopPolling();
     this.pollingInterval = setInterval(() => {
       this.refreshUnreadCount();
-    }, 15000);
+    }, 10000);
+
+    if (typeof document !== 'undefined' && !(window as any).__huellitasNotifVisAttached) {
+      (window as any).__huellitasNotifVisAttached = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && this.authService.isAuthenticated()) {
+          this.refreshUnreadCount();
+        }
+      });
+    }
   }
 
   private stopPolling(): void {

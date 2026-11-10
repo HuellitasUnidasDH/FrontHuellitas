@@ -190,6 +190,9 @@ export class PushNotificationService {
         if (data.type === 'PUSH_NAVIGATE' && typeof data.url === 'string') {
           this.router.navigateByUrl(this.safeInternalUrl(data.url));
         } else if (data.type === 'PUSH_FOREGROUND') {
+          if (typeof window !== 'undefined') {
+            (window as any).__lastHuellitasSwPushTs = Date.now();
+          }
           if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
             this.toast.info(data.title || 'Huellitas', data.body || '');
             this.playNotificationSound();

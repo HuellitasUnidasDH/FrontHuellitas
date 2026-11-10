@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -2478,19 +2478,116 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   cameraError = signal<string | null>(null);
   private activeCameraStream: MediaStream | null = null;
 
+  // ==========================================
+  // PERSISTENCIA LIGERA DEL MURO Y RESTAURACIÓN DE NIVEL DE SCROLL
+  // ==========================================
+  private static readonly SESSION_CACHE_KEY = 'huellitas_feed_light_cache_v1';
+  private static cachedPosts: FeedPost[] = [];
+  private static cachedColonias: Colonia[] = [];
+  private static cachedKnownPostIds = new Set<string>();
+  private static cachedDeletedPostIds = new Set<string>();
+  private static cachedLatestSeenTimestamp = 0;
+  private static savedScrollY = 0;
+  private static lastOpenedPostId: string | null = null;
+  private static savedFilter: FeedFilterType = 'ALL';
+  private static savedSearchQuery = '';
+  private static savedColoniaId = '';
+  private static savedSpecies = '';
+  private static savedGoodWithKids = false;
+  private static savedGoodWithPets = false;
+
   // Data signals
-  allPosts = signal<FeedPost[]>([]);
-  colonias = signal<Colonia[]>([]);
-  isLoading = signal<boolean>(true);
+  allPosts = signal<FeedPost[]>(CommunityFeedComponent.cachedPosts);
+  colonias = signal<Colonia[]>(CommunityFeedComponent.cachedColonias);
+  isLoading = signal<boolean>(CommunityFeedComponent.cachedPosts.length === 0);
   isRefreshingFeed = signal<boolean>(false);
   pendingNewPostsCount = signal<number>(0);
   isScrolledDown = signal<boolean>(false);
   private bufferedFreshPosts: FeedPost[] | null = null;
-  private knownPostIds = new Set<string>();
-  private deletedPostIds = new Set<string>();
-  private latestSeenTimestamp = 0;
+  private knownPostIds = CommunityFeedComponent.cachedKnownPostIds;
+  private deletedPostIds = CommunityFeedComponent.cachedDeletedPostIds;
+  private latestSeenTimestamp = CommunityFeedComponent.cachedLatestSeenTimestamp;
   private commentsPollingTimer: any = null;
   private feedPollingTimer: any = null;
+
+  constructor() {
+    this.hydrateFromLightweightSessionStorage();
+
+    effect(() => {
+      const currentPosts = this.allPosts();
+      const currentColonias = this.colonias();
+      if (currentPosts.length > 0) {
+        CommunityFeedComponent.cachedPosts = currentPosts;
+        this.saveLightweightSessionSnapshot(currentPosts, currentColonias);
+      }
+      if (currentColonias.length > 0) {
+        CommunityFeedComponent.cachedColonias = currentColonias;
+      }
+    });
+  }
+
+  /**
+   * Guarda una copia ultraligera (< 45 KB) en sessionStorage omitiendo cadenas Base64 pesadas (> 1.5 KB)
+   * para no ocupar espacio en el almacenamiento del dispositivo y mantener persistencia instantánea.
+   */
+  private saveLightweightSessionSnapshot(posts: FeedPost[], colonias: Colonia[]): void {
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
+    try {
+      const stripHeavyUrl = (u?: string) => (u && u.length <= 1500 ? u : '');
+      const lightPosts = posts.slice(0, 35).map((p) => ({
+        ...p,
+        photoUrl: stripHeavyUrl(p.photoUrl),
+        photos: (p.photos || []).map(stripHeavyUrl).filter(Boolean),
+        authorPhotoUrl: stripHeavyUrl(p.authorPhotoUrl),
+        petData: p.petData
+          ? {
+              ...p.petData,
+              photoUrl: stripHeavyUrl(p.petData.photoUrl),
+              photos: (p.petData.photos || []).map(stripHeavyUrl).filter(Boolean),
+            }
+          : undefined,
+        lostData: p.lostData
+          ? {
+              ...p.lostData,
+              photos: (p.lostData.photos || []).map(stripHeavyUrl).filter(Boolean),
+            }
+          : undefined,
+      }));
+      sessionStorage.setItem(
+        CommunityFeedComponent.SESSION_CACHE_KEY,
+        JSON.stringify({
+          posts: lightPosts,
+          colonias: colonias.slice(0, 120),
+          savedAt: Date.now(),
+        }),
+      );
+    } catch {
+      // Ignorar si sessionStorage está restringido
+    }
+  }
+
+  private hydrateFromLightweightSessionStorage(): void {
+    if (CommunityFeedComponent.cachedPosts.length > 0) return;
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
+    try {
+      const raw = sessionStorage.getItem(CommunityFeedComponent.SESSION_CACHE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      // Vigencia máxima de 20 minutos para el snapshot de sesión
+      if (parsed && Array.isArray(parsed.posts) && parsed.posts.length > 0 && Date.now() - (parsed.savedAt || 0) < 20 * 60 * 1000) {
+        CommunityFeedComponent.cachedPosts = parsed.posts;
+        this.allPosts.set(parsed.posts);
+        this.registerKnownPosts(parsed.posts);
+        this.isLoading.set(false);
+        if (Array.isArray(parsed.colonias) && parsed.colonias.length > 0) {
+          CommunityFeedComponent.cachedColonias = parsed.colonias;
+          this.colonias.set(parsed.colonias);
+        }
+      }
+    } catch {
+      // Ignorar errores de parseo
+    }
+  }
 
   private registerKnownPosts(posts: FeedPost[]): void {
     let maxTs = this.latestSeenTimestamp || Date.now();
@@ -2502,12 +2599,17 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       }
     }
     this.latestSeenTimestamp = Math.max(maxTs, Date.now());
+    CommunityFeedComponent.cachedLatestSeenTimestamp = this.latestSeenTimestamp;
   }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
     if (typeof window !== 'undefined') {
       this.isScrolledDown.set(window.scrollY > 280);
+      // Guardar continuamente la altura de scroll mientras el usuario navega en el muro general
+      if (!this.singlePostModeId() && window.scrollY > 40) {
+        CommunityFeedComponent.savedScrollY = window.scrollY;
+      }
     }
   }
 
@@ -2676,16 +2778,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       );
     }
 
-    // Si se abrió mediante enlace directo (?postId=...), colocar esa publicación hasta arriba del muro
-    const targetId = this.highlightedPostId();
-    if (targetId) {
-      const targetIndex = posts.findIndex((p) => p.id === targetId);
-      if (targetIndex > 0) {
-        const [targetPost] = posts.splice(targetIndex, 1);
-        posts = [targetPost, ...posts];
-      }
-    }
-
     return posts;
   });
 
@@ -2806,7 +2898,17 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.syncFilterFromRoute();
     this.loadColonias();
-    this.loadFeed();
+
+    // Si ya contamos con el muro en memoria o en caché ligera de sesión, mostrarlo en 0ms sin volver a cargar desde cero
+    if (CommunityFeedComponent.cachedPosts.length > 0) {
+      this.allPosts.set(CommunityFeedComponent.cachedPosts);
+      this.isLoading.set(false);
+      // Sincronizar en segundo plano sin mostrar pantalla de carga ni mover el scroll
+      this.checkForNewPostsSilently();
+    } else {
+      this.loadFeed();
+    }
+
     this.startAutoPolling();
 
     this.route.paramMap.subscribe((params) => {
@@ -2815,6 +2917,12 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         this.singlePostModeId.set(routeId.trim());
         if (this.allPosts().length > 0) {
           this.focusTargetPost(routeId);
+        }
+      } else if (!this.route.snapshot.queryParamMap.get('postId')) {
+        const wasInSinglePost = Boolean(this.singlePostModeId() || CommunityFeedComponent.lastOpenedPostId);
+        this.singlePostModeId.set(null);
+        if (wasInSinglePost) {
+          this.restoreSavedFiltersAndScroll();
         }
       }
     });
@@ -2827,16 +2935,66 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           this.focusTargetPost(postId);
         }
       } else if (!this.route.snapshot.paramMap.get('id')) {
+        const wasInSinglePost = Boolean(this.singlePostModeId());
         this.singlePostModeId.set(null);
+        if (wasInSinglePost) {
+          this.restoreSavedFiltersAndScroll();
+        }
       }
     });
   }
 
   exitSinglePostView(): void {
     this.singlePostModeId.set(null);
-    this.highlightedPostId.set(null);
-    this.clearFilters();
+    this.restoreSavedFiltersAndScroll();
     this.router.navigate(['/']);
+  }
+
+  private restoreSavedFiltersAndScroll(): void {
+    this.activeFilter.set(CommunityFeedComponent.savedFilter || 'ALL');
+    this.searchQuery.set(CommunityFeedComponent.savedSearchQuery || '');
+    this.selectedColoniaId.set(CommunityFeedComponent.savedColoniaId || '');
+    this.selectedSpecies.set(CommunityFeedComponent.savedSpecies || '');
+    this.filterGoodWithKids.set(CommunityFeedComponent.savedGoodWithKids || false);
+    this.filterGoodWithPets.set(CommunityFeedComponent.savedGoodWithPets || false);
+
+    const targetPostId = CommunityFeedComponent.lastOpenedPostId;
+    const targetScrollY = CommunityFeedComponent.savedScrollY;
+
+    if (targetPostId) {
+      this.highlightedPostId.set(targetPostId);
+      setTimeout(() => {
+        if (this.highlightedPostId() === targetPostId && !this.singlePostModeId()) {
+          this.highlightedPostId.set(null);
+        }
+      }, 2400);
+    }
+
+    if (typeof window !== 'undefined') {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (targetPostId && typeof document !== 'undefined') {
+            const postEl = document.getElementById(`post-${targetPostId}`);
+            if (postEl) {
+              if (targetScrollY > 0) {
+                window.scrollTo({ top: targetScrollY, behavior: 'instant' as ScrollBehavior });
+                const rect = postEl.getBoundingClientRect();
+                // Si el elemento quedó fuera del área visible tras restaurar scrollY, centrarlo con exactitud
+                if (rect.top < 60 || rect.bottom > window.innerHeight + 120) {
+                  postEl.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+                }
+              } else {
+                postEl.scrollIntoView({ block: 'center', behavior: 'instant' as ScrollBehavior });
+              }
+              return;
+            }
+          }
+          if (targetScrollY > 0) {
+            window.scrollTo({ top: targetScrollY, behavior: 'instant' as ScrollBehavior });
+          }
+        }, 30);
+      });
+    }
   }
 
   private startAutoPolling(): void {
@@ -2915,6 +3073,18 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   openSinglePostView(post: FeedPost): void {
+    // Guardar el nivel exacto de scroll y filtros activos antes de entrar a la publicación individual
+    if (typeof window !== 'undefined' && !this.singlePostModeId()) {
+      CommunityFeedComponent.savedScrollY = window.scrollY;
+    }
+    CommunityFeedComponent.lastOpenedPostId = post.id;
+    CommunityFeedComponent.savedFilter = this.activeFilter();
+    CommunityFeedComponent.savedSearchQuery = this.searchQuery();
+    CommunityFeedComponent.savedColoniaId = this.selectedColoniaId();
+    CommunityFeedComponent.savedSpecies = this.selectedSpecies();
+    CommunityFeedComponent.savedGoodWithKids = this.filterGoodWithKids();
+    CommunityFeedComponent.savedGoodWithPets = this.filterGoodWithPets();
+
     this.singlePostModeId.set(post.id);
     this.highlightedPostId.set(post.id);
     this.allPosts.update((list) =>
