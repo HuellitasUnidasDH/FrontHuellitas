@@ -1,6 +1,7 @@
-import { Component, EventEmitter, Input, Output, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, OnDestroy, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-privacy-modal',
@@ -21,10 +22,10 @@ import { FormsModule } from '@angular/forms';
               </div>
               <div>
                 <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                  Aviso de Privacidad Integral y Términos Legales
+                  {{ authService.privacyPolicy().title }}
                 </h3>
                 <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Versión: 2026-v1.0 · Cumplimiento LFPDPPP & GDPR
+                  Versión: {{ authService.privacyPolicy().version }} · Cumplimiento LFPDPPP & GDPR
                 </span>
               </div>
             </div>
@@ -47,7 +48,7 @@ import { FormsModule } from '@angular/forms';
             <div class="mt-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
               <span class="text-base">⚠️</span>
               <span>
-                <strong>Actualización de Términos Requerida:</strong> Hemos actualizado nuestro Aviso de Privacidad. Debes leer y aceptar los términos para continuar utilizando la aplicación.
+                <strong>Actualización de Términos Requerida ({{ authService.privacyPolicy().version }}):</strong> Hemos actualizado nuestro Aviso de Privacidad. Debes leer y aceptar los términos para continuar utilizando la aplicación.
               </span>
             </div>
           }
@@ -55,88 +56,25 @@ import { FormsModule } from '@angular/forms';
           <!-- Legal Content Body (Scrollable) -->
           <div class="flex-1 overflow-y-auto py-4 pr-2 space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed custom-scrollbar">
             
-            <section class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
-              <p class="font-semibold">
-                🛡️ Al registrarse y hacer uso de la plataforma VetRegistro, el usuario otorga su consentimiento expreso e informado para la recopilación, almacenamiento seguro y tratamiento de sus datos personales y de sus animales de compañía bajo las normas legales vigentes.
-              </p>
-            </section>
+            @if (authService.privacyPolicy().introBanner) {
+              <section class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                <p class="font-semibold whitespace-pre-line">
+                  {{ authService.privacyPolicy().introBanner }}
+                </p>
+              </section>
+            }
 
-            <!-- Cláusula 1 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                1. Identidad y Domicilio del Responsable
-              </h4>
-              <p>
-                <strong>VetRegistro Enterprise Systems S.A.P.I. de C.V.</strong> (en adelante "El Responsable"), con domicilio legal y plataformas digitales autorizadas, es el responsable del uso, confidencialidad, integridad y protección de los datos personales proporcionados por los usuarios en estricto cumplimiento con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y estándares internacionales (GDPR).
-              </p>
-            </div>
-
-            <!-- Cláusula 2 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                2. Datos Personales Recabados
-              </h4>
-              <p>Para la prestación de los servicios del sistema, se recopilan de manera directa y lícita:</p>
-              <ul class="list-disc list-inside mt-1.5 space-y-1 pl-2">
-                <li><strong>Datos de Identificación del Titular:</strong> Nombre completo, correo electrónico, número telefónico celular verificado de 10 dígitos.</li>
-                <li><strong>Datos de Identificación Animal:</strong> Nombre de la mascota, especie, raza, peso, edad, número de microchip de identificación única, fotografías y datos biológicos.</li>
-                <li><strong>Historial Clínico Veterinario:</strong> Vacunas, desparasitaciones, diagnósticos médicos, tratamientos farmacológicos y prescripciones expedidas por profesionales autorizados.</li>
-                <li><strong>Datos Técnicos de Seguridad y Auditoría:</strong> Dirección IP, registros de acceso (timestamps), tipo de navegador y registros inmutables de auditoría forense para prevenir accesos no autorizados.</li>
-              </ul>
-            </div>
-
-            <!-- Cláusula 3 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                3. Finalidades del Tratamiento de Datos
-              </h4>
-              <p>Los datos recabados serán utilizados para las siguientes finalidades primarias y necesarias:</p>
-              <ul class="list-disc list-inside mt-1.5 space-y-1 pl-2">
-                <li>Creación, autenticación y administración segura de su cuenta de usuario con tecnología de cifrado JWT y hashing criptográfico.</li>
-                <li>Emisión, consulta y resguardo del expediente médico y cartilla digital de vacunación de sus animales de compañía.</li>
-                <li>Verificación y asignación de controles de acceso basados en roles (Dueño, Médico Veterinario o Administrador).</li>
-                <li>Seguridad y defensa perimetral: Detección y bloqueo automático de ciberataques, denegación de servicio (DoS) e intentos maliciosos de intrusión.</li>
-              </ul>
-            </div>
-
-            <!-- Cláusula 4 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                4. Medidas de Seguridad y Cifrado
-              </h4>
-              <p>
-                El Responsable implementa medidas de seguridad técnicas, físicas y administrativas reconocidas por la industria, que incluyen: cifrado de contraseñas con algoritmo Bcrypt (factor de costo 12), protección de cabeceras HTTP mediante Helmet CSP/HSTS, prevención de inyecciones SQL mediante consultas parametrizadas tipadas, limitación de tasa de solicitudes (Rate Limiting) y aislamiento estricto multi-tenant de datos.
-              </p>
-            </div>
-
-            <!-- Cláusula 5 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                5. Deslinde de Responsabilidad Médica Veterinaria
-              </h4>
-              <p>
-                VetRegistro opera exclusivamente como una plataforma tecnológica de registro y gestión de información. La veracidad, precisión y consecuencias de los diagnósticos, prescripciones, tratamientos médicos o procedimientos clínicos aplicados a las mascotas son responsabilidad única y exclusiva del Médico Veterinario tratante que los expida o del usuario que los registre.
-              </p>
-            </div>
-
-            <!-- Cláusula 6 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                6. Derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)
-              </h4>
-              <p>
-                Usted tiene el derecho constitucional de acceder a sus datos personales en nuestra posesión, rectificarlos en caso de inexactitud, solicitar su cancelación cuando considere que no se requieren para las finalidades señaladas, u oponerse al tratamiento de los mismos para fines específicos mediante solicitud formal al oficial de privacidad en <em>privacidad&#64;vetregistro.com</em>.
-              </p>
-            </div>
-
-            <!-- Cláusula 7 -->
-            <div>
-              <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">
-                7. Transferencia de Datos
-              </h4>
-              <p>
-                Se hace constar expresamente que El Responsable <strong>NO vende, arrienda, comercializa ni transfiere datos personales o historiales médicos a terceros con fines publicitarios o lucrativos</strong>. Únicamente se transferirán datos cuando sea requerido formalmente por mandato judicial o autoridad sanitaria competente en materia de control zoológico.
-              </p>
+            <div class="space-y-4">
+              @for (block of formattedBlocks(); track $index) {
+                <div class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+                  @if (block.heading) {
+                    <h4 class="font-bold text-sm text-white mb-1.5">
+                      {{ block.heading }}
+                    </h4>
+                  }
+                  <p class="whitespace-pre-line text-slate-300 leading-relaxed">{{ block.body }}</p>
+                </div>
+              }
             </div>
 
           </div>
@@ -198,6 +136,8 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
+  authService = inject(AuthService);
+
   @Input() isOpen = false;
   @Input() isMandatory = false;
   @Output() accepted = new EventEmitter<void>();
@@ -205,8 +145,30 @@ export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
 
   isTermsCheckboxChecked = false;
 
+  formattedBlocks(): Array<{ heading: string; body: string }> {
+    const raw = (this.authService.privacyPolicy().content || '').trim();
+    if (!raw) return [];
+    const sections = raw.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+    return sections.map((section) => {
+      const lines = section.split('\n');
+      if (lines.length > 1 && lines[0].trim().length <= 95 && !lines[0].trim().startsWith('•')) {
+        return {
+          heading: lines[0].trim(),
+          body: lines.slice(1).join('\n').trim(),
+        };
+      }
+      return {
+        heading: '',
+        body: section,
+      };
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']) {
+      if (this.isOpen) {
+        this.authService.refreshPrivacyPolicy();
+      }
       if (typeof document !== 'undefined') {
         if (this.isOpen) {
           document.body.classList.add('privacy-modal-active');

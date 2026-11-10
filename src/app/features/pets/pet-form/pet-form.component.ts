@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -100,22 +100,30 @@ import { PetGroup } from '../../../core/models/group.model';
               </label>
 
               <!-- Switcher -->
-              <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2.5 gap-1 text-xs font-bold max-w-sm">
+              <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2.5 gap-1 text-xs font-bold">
                 <button
                   type="button"
-                  (click)="photoSource.set('FILE')"
+                  (click)="setPhotoSource('FILE')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': photoSource() !== 'FILE' }"
-                  class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
                 >
-                  📁 Desde mi dispositivo
+                  📁 Dispositivo
                 </button>
                 <button
                   type="button"
-                  (click)="photoSource.set('URL')"
-                  [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'URL', 'text-slate-600 dark:text-slate-400': photoSource() !== 'URL' }"
-                  class="flex-1 py-1 rounded-lg transition-all cursor-pointer"
+                  (click)="setPhotoSource('CAMERA')"
+                  [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': photoSource() !== 'CAMERA' }"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
                 >
-                  🔗 Pegar enlace URL
+                  📸 Usar Cámara
+                </button>
+                <button
+                  type="button"
+                  (click)="setPhotoSource('URL')"
+                  [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'URL', 'text-slate-600 dark:text-slate-400': photoSource() !== 'URL' }"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                >
+                  🔗 Enlace URL
                 </button>
               </div>
 
@@ -131,6 +139,61 @@ import { PetGroup } from '../../../core/models/group.model';
                     class="hidden"
                   />
                 </label>
+              } @else if (photoSource() === 'CAMERA') {
+                <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/90 p-4 space-y-3 text-center">
+                  @if (isCameraActive()) {
+                    <div class="relative rounded-xl overflow-hidden bg-black aspect-video max-h-64 mx-auto border border-white/15">
+                      <video
+                        id="petFormCameraVideo"
+                        autoplay
+                        playsinline
+                        muted
+                        class="w-full h-full object-cover"
+                      ></video>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        (click)="capturePhotoFromCamera()"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                      >
+                        📸 Capturar Foto
+                      </button>
+                      <button
+                        type="button"
+                        (click)="toggleCameraFacingMode()"
+                        class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
+                      >
+                        🔄 Girar cámara
+                      </button>
+                    </div>
+                  } @else {
+                    @if (cameraError()) {
+                      <p class="text-[11px] text-amber-300 font-semibold px-2">
+                        {{ cameraError() }}
+                      </p>
+                    }
+                    <div class="flex flex-wrap items-center justify-center gap-2 py-1">
+                      <button
+                        type="button"
+                        (click)="startCameraStream()"
+                        class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all"
+                      >
+                        🎥 Encender cámara en vivo
+                      </button>
+                      <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
+                        📱 Abrir cámara del teléfono
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          (change)="onPhotoFileSelected($event)"
+                          class="hidden"
+                        />
+                      </label>
+                    </div>
+                  }
+                </div>
               } @else {
                 <input
                   type="url"
@@ -151,7 +214,7 @@ import { PetGroup } from '../../../core/models/group.model';
                   <div class="text-xs text-slate-600 dark:text-slate-300">
                     <span class="font-bold block text-slate-900 dark:text-white">Foto lista</span>
                     <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                      {{ photoSource() === 'FILE' ? 'Archivo cargado desde tu dispositivo' : 'Enlace web válido' }}
+                      {{ photoSource() === 'URL' ? 'Enlace web válido' : 'Imagen capturada desde tu dispositivo' }}
                     </span>
                   </div>
                 </div>
@@ -308,7 +371,7 @@ import { PetGroup } from '../../../core/models/group.model';
     </div>
   `,
 })
-export class PetFormComponent implements OnInit {
+export class PetFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private petService = inject(PetService);
   private groupService = inject(GroupService);
@@ -325,9 +388,13 @@ export class PetFormComponent implements OnInit {
   petId = signal<string | null>(null);
   availableGroups = signal<PetGroup[]>([]);
 
-  photoSource = signal<'FILE' | 'URL'>('FILE');
+  photoSource = signal<'FILE' | 'CAMERA' | 'URL'>('FILE');
   photoPreview = signal<string | null>(null);
   selectedPhotoFile = signal<File | null>(null);
+  isCameraActive = signal(false);
+  cameraFacingMode = signal<'environment' | 'user'>('environment');
+  cameraError = signal<string | null>(null);
+  private activeCameraStream: MediaStream | null = null;
 
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
@@ -415,6 +482,114 @@ export class PetFormComponent implements OnInit {
     }
   }
 
+  setPhotoSource(source: 'FILE' | 'CAMERA' | 'URL'): void {
+    if (source !== 'CAMERA') {
+      this.stopCameraStream();
+    }
+    this.photoSource.set(source);
+    if (source === 'CAMERA') {
+      void this.startCameraStream();
+    }
+  }
+
+  async startCameraStream(): Promise<void> {
+    this.stopCameraStream();
+    this.cameraError.set(null);
+
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      this.cameraError.set(
+        'Tu navegador no permite vista previa en vivo. Usa el botón "Abrir cámara del teléfono".',
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: this.cameraFacingMode() },
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+        },
+        audio: false,
+      });
+
+      this.activeCameraStream = stream;
+      this.isCameraActive.set(true);
+
+      setTimeout(() => {
+        if (typeof document === 'undefined') return;
+        const videoEl = document.getElementById('petFormCameraVideo') as HTMLVideoElement | null;
+        if (videoEl && this.activeCameraStream) {
+          videoEl.srcObject = this.activeCameraStream;
+          videoEl.play().catch(() => {});
+        }
+      }, 60);
+    } catch {
+      this.isCameraActive.set(false);
+      this.cameraError.set(
+        'No se pudo acceder a la cámara en vivo. Verifica los permisos o usa "Abrir cámara del teléfono".',
+      );
+    }
+  }
+
+  stopCameraStream(): void {
+    if (this.activeCameraStream) {
+      for (const track of this.activeCameraStream.getTracks()) {
+        try {
+          track.stop();
+        } catch {
+          // ignore
+        }
+      }
+      this.activeCameraStream = null;
+    }
+    this.isCameraActive.set(false);
+  }
+
+  toggleCameraFacingMode(): void {
+    this.cameraFacingMode.update((mode) => (mode === 'environment' ? 'user' : 'environment'));
+    void this.startCameraStream();
+  }
+
+  capturePhotoFromCamera(): void {
+    if (typeof document === 'undefined') return;
+    const videoEl = document.getElementById('petFormCameraVideo') as HTMLVideoElement | null;
+    if (!videoEl || !videoEl.videoWidth) {
+      this.notification.warning('Espera un momento', 'La cámara aún se está iniciando.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `mascota-camara-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        this.selectedPhotoFile.set(file);
+        void this.imageUploadService.fileToDataUrl(file).then((preview) => {
+          this.photoPreview.set(preview);
+        });
+        this.notification.success('Foto capturada', 'La imagen se tomó correctamente desde tu cámara.');
+        this.stopCameraStream();
+      },
+      'image/jpeg',
+      0.88,
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.stopCameraStream();
+  }
+
   onSubmit(): void {
     if (this.petForm.invalid) return;
 
@@ -459,7 +634,7 @@ export class PetFormComponent implements OnInit {
       }
     };
 
-    if (this.photoSource() === 'FILE' && this.selectedPhotoFile()) {
+    if ((this.photoSource() === 'FILE' || this.photoSource() === 'CAMERA') && this.selectedPhotoFile()) {
       this.imageUploadService.uploadImage(this.selectedPhotoFile()!, 'pets').subscribe({
         next: (uploadedUrl) => {
           finalizeSubmission(uploadedUrl);

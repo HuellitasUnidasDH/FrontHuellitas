@@ -561,10 +561,10 @@ export class NotificationsComponent implements OnInit {
         item.type === SocialNotificationType.SIGHTING_REPORTED ||
         item.targetUrl === '/perdidas'
       ) {
-        return `/?postId=lost-${item.entityId}`;
+        return `/publicacion/lost-${item.entityId}`;
       }
       if (item.type === SocialNotificationType.COMMENT_ON_PET) {
-        return `/?postId=pet-${item.entityId}`;
+        return `/publicacion/pet-${item.entityId}`;
       }
     }
     return item.targetUrl || '/';

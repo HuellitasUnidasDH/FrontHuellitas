@@ -2,6 +2,32 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/publicacion/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|FacebookBot|meta-externalagent|WhatsApp|Twitterbot|TelegramBot|Discordbot|LinkedInBot|Slackbot|Pinterest).*"
+        }
+      ],
+      "destination": "/api/og?type=post&id=:id"
+    },
+    {
+      "source": "/adopciones/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Facebot|FacebookBot|meta-externalagent|WhatsApp|Twitterbot|TelegramBot|Discordbot|LinkedInBot|Slackbot|Pinterest).*"
+        }
+      ],
+      "destination": "/api/og?type=pet&id=:id"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

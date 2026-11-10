@@ -47,6 +47,8 @@ export class PushNotificationService {
   readonly busy = signal<boolean>(false);
   readonly serverEnabled = signal<boolean | null>(null);
   readonly preferences = signal<PushPreferences | null>(null);
+  readonly stateReady = signal<boolean>(false);
+  readonly promptDismissedVersion = signal<number>(0);
 
   /** En iPhone/iPad solo funciona si la PWA está instalada en la pantalla de inicio */
   readonly needsIosInstall = computed(() => this.pwa.isIos() && !this.pwa.isStandalone());
@@ -57,16 +59,17 @@ export class PushNotificationService {
     return this.subscribed() ? 'on' : 'off';
   });
 
-  /** Se muestra la invitación discreta solo si tiene sentido pedir el permiso */
-  readonly canInvite = computed(
-    () =>
-      this.auth.isAuthenticated() &&
-      this.supported() &&
-      !this.needsIosInstall() &&
-      this.permission() === 'default' &&
-      !this.subscribed() &&
-      this.serverEnabled() !== false,
-  );
+  /** Se muestra la invitación en el muro principal si no tiene alertas activadas ni guardó preferencia de rechazo */
+  readonly shouldShowWallModal = computed(() => {
+    this.promptDismissedVersion(); // reactividad al rechazar
+    const user = this.auth.currentUser();
+    if (!this.auth.isAuthenticated() || !user?.id) return false;
+    if (!this.stateReady()) return false;
+    if (!this.supported() || this.needsIosInstall()) return false;
+    if (this.status() !== 'off') return false;
+    if (this.serverEnabled() === false) return false;
+    return !this.isPromptSuppressed(user.id);
+  });
 
   private listenersAttached = false;
 
@@ -81,9 +84,56 @@ export class PushNotificationService {
         } else {
           this.subscribed.set(false);
           this.preferences.set(null);
+          this.stateReady.set(false);
         }
       });
     });
+  }
+
+  public isPromptSuppressed(userId?: string): boolean {
+    try {
+      const uid = userId || this.auth.currentUser()?.id;
+      if (!uid || typeof window === 'undefined') return true;
+      const permanentKey = `huellitas_push_declined_${uid}`;
+      const sessionKey = `huellitas_push_session_dismissed_${uid}`;
+      if (localStorage.getItem(permanentKey) === 'true') return true;
+      if (sessionStorage.getItem(sessionKey) === 'true') return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  public declinePrompt(savePreference: boolean): void {
+    try {
+      const uid = this.auth.currentUser()?.id;
+      if (!uid || typeof window === 'undefined') return;
+      const permanentKey = `huellitas_push_declined_${uid}`;
+      const sessionKey = `huellitas_push_session_dismissed_${uid}`;
+      sessionStorage.setItem(sessionKey, 'true');
+      if (savePreference) {
+        localStorage.setItem(permanentKey, 'true');
+        this.toast.info(
+          'Preferencia guardada',
+          'No volveremos a preguntarte. Puedes activar las alertas cuando quieras desde Notificaciones.',
+        );
+      }
+      this.promptDismissedVersion.update((v) => v + 1);
+    } catch {
+      this.promptDismissedVersion.update((v) => v + 1);
+    }
+  }
+
+  private clearSavedDeclinePreference(): void {
+    try {
+      const uid = this.auth.currentUser()?.id;
+      if (!uid || typeof window === 'undefined') return;
+      localStorage.removeItem(`huellitas_push_declined_${uid}`);
+      sessionStorage.removeItem(`huellitas_push_session_dismissed_${uid}`);
+      this.promptDismissedVersion.update((v) => v + 1);
+    } catch {
+      // Ignorar
+    }
   }
 
   private detectSupport(): void {
@@ -208,7 +258,10 @@ export class PushNotificationService {
    * (cubre el caso de cambiar de cuenta en un dispositivo compartido).
    */
   async refreshState(): Promise<void> {
-    if (!this.supported()) return;
+    if (!this.supported()) {
+      this.stateReady.set(true);
+      return;
+    }
     try {
       this.permission.set(Notification.permission);
       const reg = await this.getRegistration();
@@ -230,6 +283,8 @@ export class PushNotificationService {
       this.serverEnabled.set(!!keyRes?.data?.enabled);
     } catch {
       // Silencioso: el push es una mejora opcional
+    } finally {
+      this.stateReady.set(true);
     }
   }
 
@@ -318,6 +373,7 @@ export class PushNotificationService {
 
       await this.sendSubscriptionToServer(sub);
       this.subscribed.set(true);
+      this.clearSavedDeclinePreference();
       void this.loadPreferences();
       this.toast.success('¡Alertas activadas!', 'Te avisaremos aunque cierres Huellitas.');
       return true;

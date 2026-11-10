@@ -1254,9 +1254,9 @@ export class NavbarComponent implements OnInit {
         notif.type === SocialNotificationType.SIGHTING_REPORTED ||
         notif.targetUrl === '/perdidas'
       ) {
-        targetUrl = `/?postId=lost-${notif.entityId}`;
+        targetUrl = `/publicacion/lost-${notif.entityId}`;
       } else if (notif.type === SocialNotificationType.COMMENT_ON_PET) {
-        targetUrl = `/?postId=pet-${notif.entityId}`;
+        targetUrl = `/publicacion/pet-${notif.entityId}`;
       }
     }
     this.router.navigateByUrl(targetUrl);

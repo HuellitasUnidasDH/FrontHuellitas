@@ -7,7 +7,7 @@ import { PetService } from '../../core/services/pet.service';
 import { AuditService } from '../../core/services/audit.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthService, DEFAULT_PRIVACY_POLICY_CONFIG } from '../../core/services/auth.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Pet } from '../../core/models/pet.model';
 import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
@@ -508,15 +508,17 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                 <option [value]="UserRole.PET_OWNER">Dueños</option>
               </select>
 
-              <button
-                type="button"
-                (click)="onInvalidatePrivacyVersion()"
-                class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                title="Invalidar la aprobación para obligar a todos los usuarios a aceptar una nueva versión de términos"
-              >
-                <span>📜</span>
-                <span>Actualizar Versión Legal</span>
-              </button>
+              @if (isAdmin()) {
+                <button
+                  type="button"
+                  (click)="onInvalidatePrivacyVersion()"
+                  class="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Editar el contenido del Aviso de Privacidad y actualizar la versión legal requerida"
+                >
+                  <span>📜</span>
+                  <span>Actualizar Versión Legal</span>
+                </button>
+              }
             </div>
           </div>
 
@@ -573,7 +575,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                           </select>
                         </td>
                         <td class="py-4 px-4">
-                          @if (user.acceptedPrivacyVersion === '2026-v1.0') {
+                          @if (user.acceptedPrivacyVersion && user.acceptedPrivacyVersion !== 'OUTDATED' && user.acceptedPrivacyVersion === currentPrivacyVersion()) {
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                               <span>✓</span>
                               <span>{{ user.acceptedPrivacyVersion }}</span>
@@ -722,6 +724,145 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
         </div>
       }
 
+      <!-- ========================================================= -->
+      <!-- MODAL EXCLUSIVO DE ADMIN: EDITAR AVISO DE PRIVACIDAD      -->
+      <!-- ========================================================= -->
+      @if (isPrivacyEditorOpen() && isAdmin()) {
+        <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-hidden animate-fade-in">
+          <div class="w-full h-full max-h-[96dvh] sm:h-auto sm:max-h-[90vh] sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-2xl">
+                  📜
+                </div>
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    Editar Aviso de Privacidad y Versión Legal
+                  </h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Exclusivo para Administradores · Modifica las cláusulas legales que verán todos los usuarios.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                (click)="isPrivacyEditorOpen.set(false)"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Form Body -->
+            <div class="flex-1 overflow-y-auto py-4 pr-1 space-y-4 text-xs">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Versión Legal *
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="privacyEditorForm.version"
+                    placeholder="Ej: 2026-v2.0"
+                    class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                    Título del Documento *
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="privacyEditorForm.title"
+                    placeholder="Aviso de Privacidad Integral y Términos Legales"
+                    class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-semibold text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                  Mensaje Destacado de Consentimiento (Banner Superior)
+                </label>
+                <textarea
+                  [(ngModel)]="privacyEditorForm.introBanner"
+                  rows="2"
+                  placeholder="Mensaje introductorio de consentimiento..."
+                  class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs leading-relaxed focus:outline-none focus:border-emerald-500"
+                ></textarea>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                    Cláusulas y Contenido del Aviso de Privacidad *
+                  </label>
+                  <button
+                    type="button"
+                    (click)="restoreDefaultPrivacyText()"
+                    class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    ↺ Restaurar texto predeterminado
+                  </button>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+                  Separa cada cláusula con una línea en blanco. La primera línea de cada bloque se mostrará como subtítulo en negritas.
+                </p>
+                <textarea
+                  [(ngModel)]="privacyEditorForm.content"
+                  rows="11"
+                  placeholder="Escribe aquí las cláusulas del Aviso de Privacidad..."
+                  class="w-full px-3.5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs leading-relaxed focus:outline-none focus:border-emerald-500"
+                ></textarea>
+              </div>
+
+              <label class="flex items-start gap-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="privacyEditorForm.invalidateUsers"
+                  class="mt-0.5 w-4 h-4 rounded text-emerald-500 border-slate-300 dark:border-slate-700"
+                />
+                <div class="text-xs">
+                  <span class="font-bold text-amber-800 dark:text-amber-300 block">
+                    Solicitar aceptación obligatoria a todos los usuarios registrados
+                  </span>
+                  <span class="text-[11px] text-slate-600 dark:text-slate-400">
+                    Si está activo, invalidará la aceptación anterior para que todos los usuarios lean y acepten este nuevo Aviso de Privacidad al ingresar.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-4 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-end gap-2.5">
+              <button
+                type="button"
+                (click)="isPrivacyEditorOpen.set(false)"
+                class="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                (click)="savePrivacyPolicyChanges()"
+                [disabled]="isSavingPrivacyPolicy() || !privacyEditorForm.version.trim() || !privacyEditorForm.content.trim()"
+                class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50 transition-all flex items-center gap-1.5"
+              >
+                @if (isSavingPrivacyPolicy()) {
+                  <span>Guardando...</span>
+                } @else {
+                  <span>💾 Guardar y Publicar Aviso Legal</span>
+                }
+              </button>
+            </div>
+
+          </div>
+        </div>
+      }
+
     </div>
   `,
 })
@@ -759,9 +900,22 @@ export class AdminComponent implements OnInit {
   isLoadingPets = signal(false);
   petSearch = '';
 
+  // Privacy Policy Editor State (Admin Exclusive)
+  isPrivacyEditorOpen = signal(false);
+  isSavingPrivacyPolicy = signal(false);
+  privacyEditorForm = {
+    version: '2026-v1.0',
+    title: DEFAULT_PRIVACY_POLICY_CONFIG.title,
+    introBanner: DEFAULT_PRIVACY_POLICY_CONFIG.introBanner,
+    content: DEFAULT_PRIVACY_POLICY_CONFIG.content,
+    invalidateUsers: true,
+  };
+
   UserRole = UserRole;
 
   currentAdminId = computed(() => this.authService.currentUser()?.id);
+  isAdmin = computed(() => this.authService.isAdmin());
+  currentPrivacyVersion = computed(() => this.authService.privacyPolicy().version || '2026-v1.0');
 
   filteredUsers = computed(() => {
     let result = this.users();
@@ -954,27 +1108,84 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  async onInvalidatePrivacyVersion(): Promise<void> {
-    const isConfirmed = await this.confirmService.confirm({
-      title: 'Actualizar Términos Legales',
-      message: '¿Deseas invalidar la aprobación del Aviso de Privacidad para TODOS los usuarios?',
-      submessage: 'Esto obligará a toda la comunidad a leer y aceptar los nuevos términos legales antes de poder continuar usando la plataforma.',
-      confirmText: 'Sí, invalidar y requerir',
-      cancelText: 'Cancelar',
-      type: 'warning',
-      icon: '📜',
-    });
-    if (!isConfirmed) return;
+  onInvalidatePrivacyVersion(): void {
+    if (!this.isAdmin()) {
+      this.notification.error('Acceso denegado', 'Solo el rol de Administrador puede editar el Aviso de Privacidad.');
+      return;
+    }
 
-    this.userService.resetPrivacyTerms('2026-v2.0').subscribe({
-      next: (res) => {
-        this.notification.success('Aviso Legal Actualizado', res.message || 'Se ha reiniciado el estado de aprobación legal para todos los usuarios.');
-        this.loadUsers();
-        this.loadStats();
+    const active = this.authService.privacyPolicy();
+    this.privacyEditorForm = {
+      version: active.version || '2026-v2.0',
+      title: active.title || DEFAULT_PRIVACY_POLICY_CONFIG.title,
+      introBanner: active.introBanner || DEFAULT_PRIVACY_POLICY_CONFIG.introBanner,
+      content: active.content || DEFAULT_PRIVACY_POLICY_CONFIG.content,
+      invalidateUsers: true,
+    };
+    this.isPrivacyEditorOpen.set(true);
+
+    this.userService.getPrivacyPolicy().subscribe({
+      next: (policy) => {
+        if (policy?.content) {
+          this.privacyEditorForm = {
+            version: policy.version || '2026-v2.0',
+            title: policy.title || DEFAULT_PRIVACY_POLICY_CONFIG.title,
+            introBanner: policy.introBanner || DEFAULT_PRIVACY_POLICY_CONFIG.introBanner,
+            content: policy.content || DEFAULT_PRIVACY_POLICY_CONFIG.content,
+            invalidateUsers: true,
+          };
+        }
       },
-      error: () => {
-        this.notification.error('Error', 'No se pudo actualizar el estado de los términos.');
-      },
+      error: () => {},
     });
+  }
+
+  restoreDefaultPrivacyText(): void {
+    this.privacyEditorForm = {
+      ...this.privacyEditorForm,
+      title: DEFAULT_PRIVACY_POLICY_CONFIG.title,
+      introBanner: DEFAULT_PRIVACY_POLICY_CONFIG.introBanner,
+      content: DEFAULT_PRIVACY_POLICY_CONFIG.content,
+    };
+    this.notification.info('Texto restaurado', 'Se cargó la redacción predeterminada del Aviso de Privacidad.');
+  }
+
+  savePrivacyPolicyChanges(): void {
+    if (!this.isAdmin()) return;
+    if (!this.privacyEditorForm.version.trim() || !this.privacyEditorForm.content.trim()) {
+      this.notification.warning('Campos obligatorios', 'Indica la versión legal y el contenido del Aviso de Privacidad.');
+      return;
+    }
+
+    this.isSavingPrivacyPolicy.set(true);
+    this.userService
+      .resetPrivacyTerms({
+        newVersion: this.privacyEditorForm.version.trim(),
+        title: this.privacyEditorForm.title.trim() || DEFAULT_PRIVACY_POLICY_CONFIG.title,
+        introBanner: this.privacyEditorForm.introBanner.trim(),
+        content: this.privacyEditorForm.content.trim(),
+        invalidateUsers: this.privacyEditorForm.invalidateUsers,
+      })
+      .subscribe({
+        next: (res) => {
+          this.isSavingPrivacyPolicy.set(false);
+          this.isPrivacyEditorOpen.set(false);
+          if (res?.policy) {
+            this.authService.applyUpdatedPrivacyPolicy(res.policy);
+          } else {
+            this.authService.refreshPrivacyPolicy();
+          }
+          this.notification.success(
+            'Aviso de Privacidad Actualizado',
+            res?.message || 'Se guardó el nuevo Aviso de Privacidad y se actualizó la versión legal.',
+          );
+          this.loadUsers();
+          this.loadStats();
+        },
+        error: () => {
+          this.isSavingPrivacyPolicy.set(false);
+          this.notification.error('Error', 'No se pudo actualizar el Aviso de Privacidad.');
+        },
+      });
   }
 }

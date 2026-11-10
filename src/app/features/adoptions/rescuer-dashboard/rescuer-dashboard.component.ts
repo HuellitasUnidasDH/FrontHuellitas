@@ -244,10 +244,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                               ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                               : ver.level2Status === 'PENDIENTE'
                                 ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
+                                : ver.level2Status === 'RECHAZADO'
+                                  ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
                           "
                         >
-                          Nivel 2: {{ ver.isLevel2Completed ? '✓ Aprobado' : ver.level2Status || 'Pendiente' }}
+                          Nivel 2: {{ ver.isLevel2Completed ? '✓ Aprobado' : ver.level2Status === 'RECHAZADO' ? '⚠️ Con Observación' : ver.level2Status || 'Pendiente' }}
                         </span>
 
                         <span
@@ -257,13 +259,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                               ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                               : ver.level3Status === 'PENDIENTE'
                                 ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
+                                : ver.level3Status === 'RECHAZADO'
+                                  ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40'
+                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
                           "
                         >
-                          Nivel 3: {{ ver.isLevel3Completed ? '✓ Aprobado' : ver.level3Status || 'No solicitado' }}
+                          Nivel 3: {{ ver.isLevel3Completed ? '✓ Aprobado' : ver.level3Status === 'RECHAZADO' ? '⚠️ Con Observación' : ver.level3Status || 'No solicitado' }}
                         </span>
                       </div>
                     </div>
+
+                    @if (ver.reviewNotes && (ver.level2Status === 'RECHAZADO' || ver.level3Status === 'RECHAZADO')) {
+                      <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-2.5">
+                          <span class="text-base">💬</span>
+                          <div>
+                            <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[10px]">
+                              Observación activa enviada al solicitante:
+                            </strong>
+                            <p class="mt-0.5 text-slate-800 dark:text-slate-200">{{ ver.reviewNotes }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    }
 
                     <!-- Questionnaire Answers -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">

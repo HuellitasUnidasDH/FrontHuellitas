@@ -63,6 +63,12 @@ export class LostPetService {
       .pipe(map((r) => r.data));
   }
 
+  deleteSighting(reportId: string, sightingId: string): Observable<{ message: string }> {
+    return this.http
+      .delete<ApiResponse<{ message: string }>>(`${this.URL}/${reportId}/sightings/${sightingId}`)
+      .pipe(map((r) => r.data));
+  }
+
   getComments(id: string): Observable<PublicationComment[]> {
     return this.http
       .get<ApiResponse<PublicationComment[]>>(`${this.URL}/${id}/comments`)

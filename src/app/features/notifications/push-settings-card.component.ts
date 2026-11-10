@@ -94,13 +94,6 @@ import {
             } @else if (push.status() === 'on') {
               <button
                 type="button"
-                (click)="push.sendTest()"
-                class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold cursor-pointer transition-colors"
-              >
-                Enviar prueba
-              </button>
-              <button
-                type="button"
                 (click)="push.disable()"
                 [disabled]="push.busy()"
                 class="px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-600 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"

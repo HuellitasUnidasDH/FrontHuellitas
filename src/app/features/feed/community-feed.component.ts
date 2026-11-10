@@ -11,6 +11,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { DirectMessageService } from '../../core/services/direct-message.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { ConfirmService } from '../../core/services/confirm.service';
+import { PushNotificationService } from '../../core/services/push-notification.service';
 import { Pet, AdoptionStatus } from '../../core/models/pet.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
@@ -125,6 +126,22 @@ interface FeedPost {
         </div>
       }
 
+      @if (singlePostModeId()) {
+        <div class="liquid-glass rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-emerald-500/35 shadow-xl max-w-3xl mx-auto w-full">
+          <button
+            type="button"
+            (click)="exitSinglePostView()"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer transition-all shadow-md"
+          >
+            <span>←</span>
+            <span>Ir al Muro Principal (Ver todas las publicaciones)</span>
+          </button>
+          <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5">
+            <span>📌</span>
+            <span>Vista directa de publicación compartida</span>
+          </span>
+        </div>
+      } @else {
       <!-- ======================================================== -->
       <!-- Top Hero Header / Dolores Hidalgo Brand Banner           -->
       <!-- ======================================================== -->
@@ -172,7 +189,7 @@ interface FeedPost {
               </button>
 
               <a
-                routerLink="/pets/new"
+                routerLink="/pets"
                 class="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
               >
                 <span>🐾</span> Mis Mascotas
@@ -471,6 +488,7 @@ interface FeedPost {
           }
         </div>
       </section>
+      }
 
       <!-- ======================================================== -->
       <!-- FEED POSTS (Facebook Style Cards)                        -->
@@ -486,20 +504,23 @@ interface FeedPost {
         <div class="liquid-glass rounded-3xl p-12 text-center space-y-4">
           <span class="text-5xl">🐾</span>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-            No hay publicaciones con estos filtros
+            {{ singlePostModeId() ? 'Esta publicación ya no está disponible' : 'No hay publicaciones con estos filtros' }}
           </h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-            Intenta cambiar de colonia o selecciona "Todo el Muro" para ver a todos los peluditos de Dolores Hidalgo.
+            {{ singlePostModeId() ? 'Es posible que haya sido resuelta o dada de baja por su autor.' : 'Intenta cambiar de colonia o selecciona "Todo el Muro" para ver a todos los peluditos de Dolores Hidalgo.' }}
           </p>
           <button
-            (click)="clearFilters()"
+            (click)="exitSinglePostView()"
             class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-md cursor-pointer active:scale-95 transition-all"
           >
-            Ver todas las publicaciones
+            Ver todas las publicaciones del Muro
           </button>
         </div>
       } @else {
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
+        <section
+          class="grid grid-cols-1 gap-4 sm:gap-6 items-stretch"
+          [ngClass]="singlePostModeId() ? 'max-w-3xl mx-auto w-full' : 'md:grid-cols-2'"
+        >
           @for (post of filteredPosts(); track post.id) {
             <article
               [id]="'post-' + post.id"
@@ -555,8 +576,15 @@ interface FeedPost {
 
               <!-- 2. Post Body / Title & Story (Compact & High Contrast, sin cortar título en móvil) -->
               <div class="mt-2.5 space-y-1">
-                <h2 class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-snug break-words hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-                  {{ post.title }}
+                <h2
+                  (click)="openSinglePostView(post)"
+                  title="Ver publicación directa y comentarios"
+                  class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-snug break-words hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline cursor-pointer transition-colors inline-flex items-baseline gap-1.5 group/title"
+                >
+                  <span>{{ post.title }}</span>
+                  @if (!singlePostModeId()) {
+                    <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 opacity-60 group-hover/title:opacity-100 transition-opacity shrink-0">↗</span>
+                  }
                 </h2>
                 <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
                   {{ post.description }}
@@ -721,30 +749,81 @@ interface FeedPost {
                 }
               </div>
 
-              <!-- 4.1. Cascading Incident Reports (Solo para Animal Herido o Avistamientos de Extravío) -->
-              @if (post.kind === 'LOST_PET' && (post.postType === 'ANIMAL_HERIDO' || post.postType === 'SE_BUSCA' || post.postType === 'EXTRAVIADA') && post.sightings && post.sightings.length > 0) {
-                <div class="rounded-xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/30 p-2.5 my-1.5 space-y-2">
+              <!-- 4.1. Cascading Incident Reports & Sightings (Avistamientos y Reportes de Ayuda) -->
+              @if (post.kind === 'LOST_PET' && post.sightings && post.sightings.length > 0) {
+                <div class="rounded-xl bg-amber-500/10 dark:bg-amber-950/25 border border-amber-500/35 p-3 my-1.5 space-y-2 shadow-inner">
                   <div class="flex items-center justify-between gap-1 text-[11px]">
-                    <span class="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
-                      <span>📍</span>
-                      <span>{{ post.postType === 'ANIMAL_HERIDO' ? 'Cascada vecinal de urgencia' : 'Avistamientos reportados' }} ({{ post.sightings.length }})</span>
+                    <span class="font-black text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                      <span>{{ post.postType === 'ANIMAL_HERIDO' ? '🚑' : post.postType === 'EN_RESGUARDO' ? '🏠' : '👀' }}</span>
+                      <span>
+                        {{
+                          post.postType === 'ANIMAL_HERIDO'
+                            ? 'Bitácora de Ayuda y Ubicación'
+                            : post.postType === 'EN_RESGUARDO'
+                              ? 'Avisos de Dueño / Apoyo al Resguardo'
+                              : 'Bitácora de Avistamientos'
+                        }}
+                        ({{ post.sightings.length }})
+                      </span>
                     </span>
-                    <span class="text-[9px] uppercase font-bold text-amber-600 dark:text-amber-400">
-                      {{ post.postType === 'ANIMAL_HERIDO' ? 'Consolidado' : 'Seguimiento' }}
+                    <span class="text-[9px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                      Bitácora activa
                     </span>
                   </div>
-                  <div class="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                  <div class="space-y-2 max-h-52 overflow-y-auto pr-1">
                     @for (sighting of post.sightings; track sighting.id) {
-                      <div class="p-2 rounded-lg bg-white/70 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 text-[10px]">
-                        <div class="flex items-center justify-between">
-                          <span class="font-bold text-slate-800 dark:text-slate-200 truncate">
-                            {{ sighting.notifier?.fullName || 'Vecino solidario' }}
+                      <div class="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-amber-500/25 dark:border-slate-800 text-[11px] space-y-1 shadow-sm">
+                        <div class="flex items-center justify-between gap-2">
+                          <span class="font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
+                            <span>👤 {{ sighting.notifier?.fullName || 'Ciudadano solidario' }}</span>
+                            @if (sighting.notifierId && sighting.notifierId === authService.currentUser()?.id) {
+                              <span class="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[9px] font-black">Tú</span>
+                            }
                           </span>
-                          <span class="text-slate-400">{{ formatRelativeTime(sighting.createdAt) }}</span>
+                          <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <span class="text-[10px] text-slate-400">{{ formatRelativeTime(sighting.createdAt) }}</span>
+                            @if ((sighting.notifierId || sighting.notifier?.id) && authService.currentUser()?.id && (sighting.notifierId || sighting.notifier?.id) !== authService.currentUser()?.id) {
+                              <button
+                                type="button"
+                                (click)="contactSightingNotifier(post, sighting)"
+                                class="px-2 py-0.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-700 dark:text-teal-300 border border-teal-500/30 font-bold text-[10px] cursor-pointer"
+                                title="Enviar mensaje directo a quien registró este reporte"
+                              >
+                                💬 Contactar
+                              </button>
+                            }
+                            @if (canDeleteSighting(sighting)) {
+                              <button
+                                type="button"
+                                (click)="deleteSightingReport(post, sighting)"
+                                class="w-6 h-6 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/30 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                                title="Eliminar este reporte de la bitácora (Solo su creador o Administrador)"
+                              >
+                                🗑️
+                              </button>
+                            }
+                          </div>
                         </div>
-                        <p class="text-slate-600 dark:text-slate-300 font-medium truncate mt-0.5">
-                          <span class="text-rose-500 font-bold">Ubicación:</span> {{ sighting.locationDescription }}
+                        <p class="text-slate-800 dark:text-slate-100 font-semibold leading-snug">
+                          <span class="text-rose-500 font-extrabold">
+                            {{ post.postType === 'ANIMAL_HERIDO' ? '🚑 Ayuda / Punto:' : post.postType === 'EN_RESGUARDO' ? '🏠 Aviso:' : '📍 Visto en:' }}
+                          </span>
+                          {{ sighting.locationDescription }}
                         </p>
+                        @if (sighting.additionalNotes) {
+                          <p class="text-slate-600 dark:text-slate-300 text-[10px] leading-snug bg-slate-100/80 dark:bg-slate-800/60 p-1.5 rounded-lg">
+                            <span class="font-bold">Detalles:</span> {{ sighting.additionalNotes }}
+                          </p>
+                        }
+                        @if (sighting.photoUrl) {
+                          <button
+                            type="button"
+                            (click)="openSightingPhotoInLightbox(post, sighting.photoUrl)"
+                            class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline pt-0.5 cursor-pointer"
+                          >
+                            <span>📷 Ver fotografía de evidencia adjunta</span>
+                          </button>
+                        }
                       </div>
                     }
                   </div>
@@ -752,13 +831,13 @@ interface FeedPost {
               }
 
               <!-- 5. Social Actions & CTA Buttons -->
-              <div class="mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-center gap-1.5 flex-1 min-w-[140px]">
+              <div class="mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2.5">
+                <div class="flex flex-wrap items-center gap-2 flex-1 min-w-fit">
                   @if (post.kind === 'PET_ADOPTION' && post.petData) {
                     <!-- Main CTA: Quiero Adoptar -->
                     <button
                       (click)="openAdoptionModal(post.petData)"
-                      class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1"
+                      class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                     >
                       <span>💚</span>
                       <span>Adoptar</span>
@@ -768,83 +847,68 @@ interface FeedPost {
                       <button
                         type="button"
                         (click)="contactAuthorInApp(post, '¡Hola! Vi la ficha de ' + post.title + ' en adopción y me gustaría pedir más información 🐾')"
-                        class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        class="shrink-0 whitespace-nowrap px-3 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                         title="Enviar mensaje directo en Huellitas"
                       >
                         <span>✉️</span>
-                        <span class="hidden sm:inline">Mensaje</span>
+                        <span>Mensaje</span>
                       </button>
                     }
 
                     <!-- Ver Ficha Completa -->
                     <a
                       [routerLink]="['/adopciones', post.petData.id]"
-                      class="px-2.5 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                      class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                     >
                       <span>👁️</span>
                       <span class="hidden sm:inline">Ficha</span>
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
                     @if (post.postType === 'CAMPANA_COMUNITARIA') {
-                      <!-- CTA para Campaña Comunitaria: Mensaje en Huellitas + WhatsApp Extra -->
+                      <!-- CTA para Campaña Comunitaria: Mensaje en Huellitas -->
                       @if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
-                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           <span>✉️</span>
                           <span>Solicitar Informes</span>
                         </button>
-                      } @else if (!post.contactPhone) {
+                      } @else {
                         <button
                           (click)="toggleComments(post)"
-                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           <span>📢</span>
                           <span>Ver Detalles / Preguntar</span>
                         </button>
                       }
-
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
-                          target="_blank"
-                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          title="Contactar también por WhatsApp"
-                        >
-                          <span>📲</span>
-                          <span class="hidden sm:inline">WhatsApp</span>
-                        </a>
-                      }
                     } @else if (post.postType === 'EN_ADOPCION') {
-                      <!-- CTA para Mascota en Adopción reportada en muro: Mensaje Directo + WhatsApp Extra -->
+                      <!-- CTA para Mascota en Adopción reportada en muro: Mensaje Directo -->
                       @if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo 💚')"
-                          class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
                           <span>💚</span>
                           <span>Quiero Adoptar</span>
                         </button>
-                      }
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo')"
-                          target="_blank"
-                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          title="Contactar también por WhatsApp"
+                      } @else {
+                        <button
+                          (click)="toggleComments(post)"
+                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>📲</span>
-                          <span class="hidden sm:inline">WhatsApp</span>
-                        </a>
+                          <span>💚</span>
+                          <span>Preguntar por Adopción</span>
+                        </button>
                       }
                     } @else if (post.postType === 'ANIMAL_HERIDO') {
                       <!-- CTA para Animal Herido -->
                       <button
                         (click)="openSightingModal(post.lostData)"
-                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-1"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-1.5"
                       >
                         <span>🚑</span>
                         <span>Brindar Ayuda</span>
@@ -854,30 +918,18 @@ interface FeedPost {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, vi la alerta de urgencia de ' + post.title + ' y quiero apoyar 🚑')"
-                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          class="shrink-0 whitespace-nowrap px-3 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo en Huellitas"
                         >
                           <span>✉️</span>
-                          <span class="hidden sm:inline">Mensaje</span>
+                          <span>Mensaje</span>
                         </button>
-                      }
-
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la alerta de urgencia de ' + post.title + ' en Huellitas Dolores Hidalgo')"
-                          target="_blank"
-                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          title="Contactar por WhatsApp"
-                        >
-                          <span>📲</span>
-                          <span class="hidden sm:inline">WhatsApp</span>
-                        </a>
                       }
                     } @else if (post.postType === 'EN_RESGUARDO') {
                       <!-- CTA para Animal en Resguardo -->
                       <button
                         (click)="openSightingModal(post.lostData)"
-                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                       >
                         <span>🏠</span>
                         <span>Es mío / Apoyar</span>
@@ -887,30 +939,18 @@ interface FeedPost {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo 🏠')"
-                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          class="shrink-0 whitespace-nowrap px-3 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo en Huellitas"
                         >
                           <span>✉️</span>
-                          <span class="hidden sm:inline">Mensaje</span>
+                          <span>Mensaje</span>
                         </button>
-                      }
-
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo')"
-                          target="_blank"
-                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          title="Contactar por WhatsApp"
-                        >
-                          <span>📲</span>
-                          <span class="hidden sm:inline">WhatsApp</span>
-                        </a>
                       }
                     } @else {
                       <!-- CTA para Mascota Extraviada (Se Busca) -->
                       <button
                         (click)="openSightingModal(post.lostData)"
-                        class="flex-1 justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                       >
                         <span>👀</span>
                         <span>¡Lo vi!</span>
@@ -920,31 +960,19 @@ interface FeedPost {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, vi tu alerta de búsqueda de ' + post.title + ' en Huellitas Dolores Hidalgo 📍')"
-                          class="px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          class="shrink-0 whitespace-nowrap px-3 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo en Huellitas"
                         >
                           <span>✉️</span>
-                          <span class="hidden sm:inline">Mensaje</span>
+                          <span>Mensaje</span>
                         </button>
-                      }
-
-                      @if (post.contactPhone) {
-                        <a
-                          [href]="getDirectWhatsAppUrl(post.contactPhone, 'Hola, vi la publicación de ' + post.title + ' en Huellitas Dolores Hidalgo')"
-                          target="_blank"
-                          class="px-2.5 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 active:scale-95 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          title="Contactar por WhatsApp"
-                        >
-                          <span>📲</span>
-                          <span class="hidden sm:inline">WhatsApp</span>
-                        </a>
                       }
                     }
                   }
                 </div>
 
                 <!-- Secondary Share Actions & Comments Button -->
-                <div class="flex items-center gap-1 flex-shrink-0">
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0 ml-auto">
                   <button
                     (click)="toggleComments(post)"
                     class="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
@@ -983,17 +1011,9 @@ interface FeedPost {
                   }
 
                   <button
-                    (click)="shareToWhatsApp(post)"
-                    class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/20 hover:text-emerald-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
-                    title="Compartir en grupos de WhatsApp"
-                  >
-                    <span>📱</span>
-                  </button>
-
-                  <button
                     (click)="shareToFacebook(post)"
                     class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-sky-500/20 hover:text-sky-500 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
-                    title="Compartir en Facebook"
+                    title="Compartir publicación en Facebook"
                   >
                     <span>🌐</span>
                   </button>
@@ -1001,7 +1021,7 @@ interface FeedPost {
                   <button
                     (click)="copyPostLink(post)"
                     class="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs transition-colors cursor-pointer"
-                    title="Copiar enlace"
+                    title="Copiar enlace directo a esta publicación"
                   >
                     🔗
                   </button>
@@ -1353,11 +1373,12 @@ interface FeedPost {
       }
 
       <!-- ======================================================== -->
-      <!-- MODAL: REPORTAR AVISTAMIENTO ("¡LO HE VISTO!")           -->
+      <!-- ======================================================== -->
+      <!-- MODAL: REPORTAR AVISTAMIENTO / BRINDAR AYUDA / RESGUARDO -->
       <!-- ======================================================== -->
       @if (selectedLostPetForSighting()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-          <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-5">
+          <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-4 max-h-[92vh] overflow-y-auto">
             <button
               (click)="closeSightingModal()"
               class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
@@ -1366,62 +1387,135 @@ interface FeedPost {
             </button>
 
             <div class="flex items-center gap-3">
-              <span class="text-3xl">👀</span>
+              <span class="text-3xl">
+                {{
+                  selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO'
+                    ? '🚑'
+                    : selectedLostPetForSighting()!.type === 'EN_RESGUARDO'
+                      ? '🏠'
+                      : '👀'
+                }}
+              </span>
               <div>
-                <h3 class="text-lg font-black text-slate-900 dark:text-white">
-                  Reportar Avistamiento de {{ selectedLostPetForSighting()!.petName }}
+                <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                  @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    Brindar Ayuda: {{ selectedLostPetForSighting()!.petName || 'Animal Herido' }}
+                  } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
+                    Reclamar Mascota o Apoyar Resguardo
+                  } @else {
+                    Reportar Avistamiento de {{ selectedLostPetForSighting()!.petName || 'Mascota' }}
+                  }
                 </h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Ayuda a la familia en Dolores Hidalgo indicando dónde y cuándo lo viste.
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    Tu reporte quedará visible en la Bitácora de la publicación y notificará al autor de inmediato.
+                  } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
+                    Indica si reconoces a tu mascota o si deseas apoyar con hogar temporal / alimento.
+                  } @else {
+                    Tu aviso aparecerá en la Bitácora de la tarjeta y notificará a su familia de inmediato.
+                  }
                 </p>
+              </div>
+            </div>
+
+            <!-- Quick-Select Action Chips según el tipo de publicación -->
+            <div class="space-y-1.5">
+              <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
+                ⚡ Selección rápida (toca una opción o escribe abajo):
+              </span>
+              <div class="flex flex-wrap gap-1.5">
+                @for (chip of getSightingQuickChips(selectedLostPetForSighting()!.type); track chip) {
+                  <button
+                    type="button"
+                    (click)="selectSightingQuickChip(chip)"
+                    [ngClass]="sightingForm.locationDescription === chip
+                      ? 'bg-emerald-500 text-slate-950 border-emerald-500 font-black shadow-sm'
+                      : 'bg-white/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-emerald-500'"
+                    class="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer active:scale-95 text-left"
+                  >
+                    {{ chip }}
+                  </button>
+                }
               </div>
             </div>
 
             <div class="space-y-3 text-xs">
               <div>
                 <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                  ¿Dónde lo viste? (Colonia o punto de referencia en Dolores Hgo.)
+                  @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    ¿Qué ayuda ofreces o en qué ubicación exacta sigue? *
+                  } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
+                    ¿Es tu mascota o cómo deseas apoyar? *
+                  } @else {
+                    ¿Dónde lo viste? (Calle, colonia o punto de referencia en Dolores Hgo.) *
+                  }
                 </label>
                 <input
                   type="text"
                   [(ngModel)]="sightingForm.locationDescription"
-                  placeholder="Ej: Pasando la glorieta de la Alameda, cerca de la tienda..."
+                  [placeholder]="
+                    selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO'
+                      ? 'Ej: Voy en camino con transportadora / Sigue frente a la tienda de C. Guanajuato...'
+                      : selectedLostPetForSighting()!.type === 'EN_RESGUARDO'
+                        ? 'Ej: ¡Es mi perrito! Se salió ayer en Col. Lindavista / Ofrezco croquetas...'
+                        : 'Ej: Pasando la glorieta de la Alameda, frente a la farmacia...'
+                  "
                   class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500"
                 />
               </div>
 
               <div>
                 <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                  Notas adicionales (¿En qué estado iba? ¿Tenía compañía?)
+                  @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    Detalles adicionales para coordinarse (horario, teléfono o estado)
+                  } @else if (selectedLostPetPetIsResguardo()) {
+                    Señas particulares, pruebas o detalles de contacto
+                  } @else {
+                    Notas adicionales (¿Hacia dónde iba? ¿En qué estado estaba?)
+                  }
                 </label>
                 <textarea
                   [(ngModel)]="sightingForm.additionalNotes"
                   rows="3"
-                  placeholder="Iba caminando despacio en dirección al mercado..."
+                  [placeholder]="
+                    selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO'
+                      ? 'Ej: Llego en 15 minutos, tengo auto para llevarlo al veterinario...'
+                      : selectedLostPetForSighting()!.type === 'EN_RESGUARDO'
+                        ? 'Ej: Tiene una manchita en la pata derecha y responde al nombre de Toby...'
+                        : 'Ej: Iba caminando despacio en dirección al mercado, se veía asustado...'
+                  "
                   class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500"
                 ></textarea>
               </div>
 
               <div>
                 <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                  Foto del avistamiento (Opcional)
+                  Fotografía de evidencia (Opcional)
                 </label>
-                <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2 gap-1 text-xs font-bold max-w-sm">
+                <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 mb-2 gap-1 text-[11px] font-bold">
                   <button
                     type="button"
-                    (click)="sightingPhotoSource.set('FILE')"
+                    (click)="setSightingPhotoSource('FILE')"
                     [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'FILE' }"
-                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                    class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                   >
-                    📁 Desde mi dispositivo
+                    📁 Dispositivo
                   </button>
                   <button
                     type="button"
-                    (click)="sightingPhotoSource.set('URL')"
-                    [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'URL' }"
-                    class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                    (click)="setSightingPhotoSource('CAMERA')"
+                    [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'CAMERA' }"
+                    class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                   >
-                    🔗 Pegar enlace URL
+                    📸 Usar Cámara
+                  </button>
+                  <button
+                    type="button"
+                    (click)="setSightingPhotoSource('URL')"
+                    [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'URL' }"
+                    class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
+                  >
+                    🔗 Enlace URL
                   </button>
                 </div>
 
@@ -1436,6 +1530,61 @@ interface FeedPost {
                       class="hidden"
                     />
                   </label>
+                } @else if (sightingPhotoSource() === 'CAMERA') {
+                  <div class="rounded-2xl border border-rose-500/30 bg-slate-900/90 p-3 space-y-2.5 text-center">
+                    @if (isCameraActive() && activeCameraTarget() === 'SIGHTING') {
+                      <div class="relative rounded-xl overflow-hidden bg-black aspect-video max-h-56 mx-auto border border-white/15">
+                        <video
+                          id="sightingCameraVideo"
+                          autoplay
+                          playsinline
+                          muted
+                          class="w-full h-full object-cover"
+                        ></video>
+                      </div>
+                      <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          (click)="capturePhotoFromStream('SIGHTING')"
+                          class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                        >
+                          📸 Tomar Foto Ahora
+                        </button>
+                        <button
+                          type="button"
+                          (click)="toggleCameraFacingMode('SIGHTING')"
+                          class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
+                        >
+                          🔄 Girar cámara
+                        </button>
+                      </div>
+                    } @else {
+                      @if (cameraError()) {
+                        <p class="text-[11px] text-amber-300 font-semibold px-2">
+                          {{ cameraError() }}
+                        </p>
+                      }
+                      <div class="flex flex-wrap items-center justify-center gap-2 py-1">
+                        <button
+                          type="button"
+                          (click)="startCameraStream('SIGHTING')"
+                          class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-black cursor-pointer transition-all"
+                        >
+                          🎥 Encender cámara en vivo
+                        </button>
+                        <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
+                          📱 Abrir cámara del teléfono
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            (change)="onSightingFileSelected($event)"
+                            class="hidden"
+                          />
+                        </label>
+                      </div>
+                    }
+                  </div>
                 } @else {
                   <input
                     type="url"
@@ -1453,7 +1602,7 @@ interface FeedPost {
                       alt="Foto avistamiento"
                       class="w-12 h-12 rounded-lg object-cover"
                     />
-                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Foto lista</span>
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Foto lista para adjuntar</span>
                   </div>
                 }
               </div>
@@ -1465,9 +1614,13 @@ interface FeedPost {
                   class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white font-black text-xs shadow-lg shadow-rose-500/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
                 >
                   @if (isSubmittingSighting()) {
-                    <span>Enviando avistamiento...</span>
+                    <span>Guardando en bitácora...</span>
+                  } @else if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    <span>🚑 Publicar Ayuda en la Bitácora</span>
+                  } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
+                    <span>🏠 Publicar Aviso en la Bitácora</span>
                   } @else {
-                    <span>🚨 Enviar Aviso a la Familia</span>
+                    <span>👀 Publicar Avistamiento en la Bitácora</span>
                   }
                 </button>
               </div>
@@ -1778,22 +1931,30 @@ interface FeedPost {
                     </p>
 
                     @if (reportLostPhotosList().length < authService.maxPhotosAllowed()) {
-                      <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 gap-1 text-xs font-bold max-w-sm">
+                      <div class="flex rounded-xl bg-slate-200/80 dark:bg-slate-800 p-1 gap-1 text-[11px] font-bold">
                         <button
                           type="button"
-                          (click)="reportLostPhotoSource.set('FILE')"
+                          (click)="setReportLostPhotoSource('FILE')"
                           [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'FILE' }"
-                          class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                          class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                         >
-                          📁 Desde mi dispositivo
+                          📁 Dispositivo
                         </button>
                         <button
                           type="button"
-                          (click)="reportLostPhotoSource.set('URL')"
-                          [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
-                          class="flex-1 py-1 rounded-lg transition-all cursor-pointer text-center"
+                          (click)="setReportLostPhotoSource('CAMERA')"
+                          [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'CAMERA' }"
+                          class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                         >
-                          🔗 Pegar enlace URL
+                          📸 Usar Cámara
+                        </button>
+                        <button
+                          type="button"
+                          (click)="setReportLostPhotoSource('URL')"
+                          [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
+                          class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
+                        >
+                          🔗 Enlace URL
                         </button>
                       </div>
 
@@ -1814,6 +1975,61 @@ interface FeedPost {
                             class="hidden"
                           />
                         </label>
+                      } @else if (reportLostPhotoSource() === 'CAMERA') {
+                        <div class="rounded-2xl border border-emerald-500/30 bg-slate-900/90 p-3 space-y-2.5 text-center">
+                          @if (isCameraActive() && activeCameraTarget() === 'REPORT') {
+                            <div class="relative rounded-xl overflow-hidden bg-black aspect-video max-h-60 mx-auto border border-white/15">
+                              <video
+                                id="reportCameraVideo"
+                                autoplay
+                                playsinline
+                                muted
+                                class="w-full h-full object-cover"
+                              ></video>
+                            </div>
+                            <div class="flex flex-wrap items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                (click)="capturePhotoFromStream('REPORT')"
+                                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                              >
+                                📸 Capturar Foto ({{ reportLostPhotosList().length }}/{{ authService.maxPhotosAllowed() }})
+                              </button>
+                              <button
+                                type="button"
+                                (click)="toggleCameraFacingMode('REPORT')"
+                                class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
+                              >
+                                🔄 Girar cámara
+                              </button>
+                            </div>
+                          } @else {
+                            @if (cameraError()) {
+                              <p class="text-[11px] text-amber-300 font-semibold px-2">
+                                {{ cameraError() }}
+                              </p>
+                            }
+                            <div class="flex flex-wrap items-center justify-center gap-2 py-1">
+                              <button
+                                type="button"
+                                (click)="startCameraStream('REPORT')"
+                                class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all"
+                              >
+                                🎥 Encender cámara en vivo
+                              </button>
+                              <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
+                                📱 Abrir cámara del teléfono
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  capture="environment"
+                                  (change)="onReportLostFileSelected($event)"
+                                  class="hidden"
+                                />
+                              </label>
+                            </div>
+                          }
+                        </div>
                       } @else {
                         <div class="flex items-center gap-2">
                           <input
@@ -2025,6 +2241,114 @@ interface FeedPost {
         </div>
       }
 
+      <!-- ======================================================== -->
+      <!-- MODAL DE INVITACIÓN A ACTIVAR ALERTAS EN EL DISPOSITIVO  -->
+      <!-- ======================================================== -->
+      @if (
+        pushService.shouldShowWallModal() &&
+        !isReportLostModalOpen() &&
+        !selectedPetForAdoption() &&
+        !selectedLostPetForSighting() &&
+        !lightboxPost()
+      ) {
+        <div
+          class="fixed inset-0 z-[65] bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+        >
+          <div
+            class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-6 shadow-2xl relative overflow-hidden"
+            (click)="$event.stopPropagation()"
+          >
+            <div
+              class="absolute -right-12 -top-12 w-40 h-40 rounded-full bg-gradient-to-br from-emerald-400/25 via-teal-400/15 to-transparent blur-2xl pointer-events-none"
+            ></div>
+
+            @if (!pushDeclineConfirmStep()) {
+              <div class="relative z-10 text-center space-y-4">
+                <div
+                  class="w-16 h-16 rounded-2xl mx-auto bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/30"
+                >
+                  🔔
+                </div>
+
+                <div class="space-y-1.5">
+                  <span
+                    class="inline-block px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                  >
+                    Alertas en tu dispositivo
+                  </span>
+                  <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight">
+                    ¿Quieres activar las alertas en tu dispositivo?
+                  </h3>
+                  <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Te avisaremos al instante en tu celular o computadora cuando alguien responda a tus reportes, te envíe un mensaje o publique una urgencia en tu zona, incluso con Huellitas cerrada.
+                  </p>
+                </div>
+
+                <div class="pt-2 flex flex-col gap-2.5">
+                  <button
+                    type="button"
+                    (click)="acceptPushFromWallModal()"
+                    [disabled]="pushService.busy()"
+                    class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-xs sm:text-sm font-black shadow-lg shadow-emerald-500/25 cursor-pointer transition-all active:scale-95"
+                  >
+                    {{ pushService.busy() ? 'Activando alertas…' : '🔔 Sí, activar alertas en mi dispositivo' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="pushDeclineConfirmStep.set(true)"
+                    [disabled]="pushService.busy()"
+                    class="w-full py-2.5 px-4 rounded-2xl bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <div class="relative z-10 text-center space-y-4">
+                <div
+                  class="w-14 h-14 rounded-2xl mx-auto bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center text-2xl shadow-sm"
+                >
+                  💾
+                </div>
+
+                <div class="space-y-1.5">
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
+                    ¿Deseas guardar esta preferencia?
+                  </h3>
+                  <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Si guardas tu preferencia, ya no volveremos a mostrarte esta invitación al entrar al muro. Siempre podrás activarlas manualmente desde la pantalla de <strong>Notificaciones</strong>.
+                  </p>
+                </div>
+
+                <div class="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    (click)="confirmDeclinePushModal(true)"
+                    class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                  >
+                    💾 Sí, guardar preferencia (No volver a preguntar)
+                  </button>
+                  <button
+                    type="button"
+                    (click)="confirmDeclinePushModal(false)"
+                    class="w-full py-2.5 px-4 rounded-2xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-colors"
+                  >
+                    ⏳ No guardar preferencia (Preguntarme después)
+                  </button>
+                  <button
+                    type="button"
+                    (click)="pushDeclineConfirmStep.set(false)"
+                    class="w-full py-1.5 text-[11px] font-bold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer transition-colors"
+                  >
+                    ← Volver atrás
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
     </div>
   `,
 })
@@ -2142,6 +2466,17 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   private dmService = inject(DirectMessageService);
   private imageUploadService = inject(ImageUploadService);
   private confirmService = inject(ConfirmService);
+  public pushService = inject(PushNotificationService);
+
+  // Push modal state on the main wall
+  pushDeclineConfirmStep = signal<boolean>(false);
+
+  // Live Camera state for photo uploaders
+  isCameraActive = signal<boolean>(false);
+  activeCameraTarget = signal<'REPORT' | 'SIGHTING' | null>(null);
+  cameraFacingMode = signal<'environment' | 'user'>('environment');
+  cameraError = signal<string | null>(null);
+  private activeCameraStream: MediaStream | null = null;
 
   // Data signals
   allPosts = signal<FeedPost[]>([]);
@@ -2151,8 +2486,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   pendingNewPostsCount = signal<number>(0);
   isScrolledDown = signal<boolean>(false);
   private bufferedFreshPosts: FeedPost[] | null = null;
+  private knownPostIds = new Set<string>();
+  private deletedPostIds = new Set<string>();
+  private latestSeenTimestamp = 0;
   private commentsPollingTimer: any = null;
   private feedPollingTimer: any = null;
+
+  private registerKnownPosts(posts: FeedPost[]): void {
+    let maxTs = this.latestSeenTimestamp || Date.now();
+    for (const p of posts) {
+      this.knownPostIds.add(p.id);
+      const ts = new Date(p.createdAt).getTime();
+      if (!isNaN(ts) && ts > maxTs) {
+        maxTs = ts;
+      }
+    }
+    this.latestSeenTimestamp = Math.max(maxTs, Date.now());
+  }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
@@ -2181,6 +2531,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   selectedSpecies = signal<string>('');
   modalPostalFilter = signal<string>('');
   highlightedPostId = signal<string | null>(null);
+  singlePostModeId = signal<string | null>(null);
   filterGoodWithKids = signal<boolean>(false);
   filterGoodWithPets = signal<boolean>(false);
   showFiltersPanel = signal<boolean>(false);
@@ -2222,7 +2573,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // Sighting modal state
   selectedLostPetForSighting = signal<LostPetReport | null>(null);
   isSubmittingSighting = signal<boolean>(false);
-  sightingPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  sightingPhotoSource = signal<'FILE' | 'CAMERA' | 'URL'>('FILE');
   sightingPhotoPreview = signal<string | null>(null);
   sightingSelectedFile = signal<File | null>(null);
   sightingForm = {
@@ -2234,6 +2585,19 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // Computed filtered posts
   filteredPosts = computed(() => {
     let posts = this.allPosts();
+    const singleId = this.singlePostModeId();
+    if (singleId) {
+      const cleanId = singleId.trim();
+      return posts.filter(
+        (p) =>
+          p.id === cleanId ||
+          p.id === `lost-${cleanId}` ||
+          p.id === `pet-${cleanId}` ||
+          p.lostData?.id === cleanId ||
+          p.petData?.id === cleanId,
+      );
+    }
+
     const filter = this.activeFilter();
     const query = this.normalizeText(this.searchQuery());
     const coloniaId = this.selectedColoniaId();
@@ -2312,6 +2676,16 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       );
     }
 
+    // Si se abrió mediante enlace directo (?postId=...), colocar esa publicación hasta arriba del muro
+    const targetId = this.highlightedPostId();
+    if (targetId) {
+      const targetIndex = posts.findIndex((p) => p.id === targetId);
+      if (targetIndex > 0) {
+        const [targetPost] = posts.splice(targetIndex, 1);
+        posts = [targetPost, ...posts];
+      }
+    }
+
     return posts;
   });
 
@@ -2319,7 +2693,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   isReportLostModalOpen = signal<boolean>(false);
   reportLostSuccess = signal<LostPetReport | null>(null);
   isSubmittingReportLost = signal<boolean>(false);
-  reportLostPhotoSource = signal<'FILE' | 'URL'>('FILE');
+  reportLostPhotoSource = signal<'FILE' | 'CAMERA' | 'URL'>('FILE');
   reportLostPhotoPreview = signal<string | null>(null);
   reportLostSelectedFile = signal<File | null>(null);
   reportLostForm = {
@@ -2399,6 +2773,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     if (post.kind === 'PET_ADOPTION' && post.petData) {
       this.petService.delete(post.petData.id).subscribe({
         next: () => {
+          this.deletedPostIds.add(post.id);
+          this.knownPostIds.add(post.id);
+          if (this.bufferedFreshPosts) {
+            this.bufferedFreshPosts = this.bufferedFreshPosts.filter((p) => p.id !== post.id);
+          }
           this.allPosts.update((posts) => posts.filter((p) => p.id !== post.id));
           this.notify.success('Publicación desactivada y archivada correctamente');
         },
@@ -2409,6 +2788,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     } else if (post.kind === 'LOST_PET' && post.lostData) {
       this.lostPetService.delete(post.lostData.id).subscribe({
         next: () => {
+          this.deletedPostIds.add(post.id);
+          this.knownPostIds.add(post.id);
+          if (this.bufferedFreshPosts) {
+            this.bufferedFreshPosts = this.bufferedFreshPosts.filter((p) => p.id !== post.id);
+          }
           this.allPosts.update((posts) => posts.filter((p) => p.id !== post.id));
           this.notify.success('Publicación desactivada y archivada correctamente');
         },
@@ -2424,12 +2808,35 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.loadColonias();
     this.loadFeed();
     this.startAutoPolling();
-    this.route.queryParamMap.subscribe((params) => {
-      const postId = params.get('postId');
-      if (postId && this.allPosts().length > 0) {
-        this.focusTargetPost(postId);
+
+    this.route.paramMap.subscribe((params) => {
+      const routeId = params.get('id');
+      if (routeId) {
+        this.singlePostModeId.set(routeId.trim());
+        if (this.allPosts().length > 0) {
+          this.focusTargetPost(routeId);
+        }
       }
     });
+
+    this.route.queryParamMap.subscribe((params) => {
+      const postId = params.get('postId');
+      if (postId) {
+        this.singlePostModeId.set(postId.trim());
+        if (this.allPosts().length > 0) {
+          this.focusTargetPost(postId);
+        }
+      } else if (!this.route.snapshot.paramMap.get('id')) {
+        this.singlePostModeId.set(null);
+      }
+    });
+  }
+
+  exitSinglePostView(): void {
+    this.singlePostModeId.set(null);
+    this.highlightedPostId.set(null);
+    this.clearFilters();
+    this.router.navigate(['/']);
   }
 
   private startAutoPolling(): void {
@@ -2490,11 +2897,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   syncFilterFromRoute(): void {
-    const postId = this.route.snapshot.queryParamMap.get('postId');
-    if (postId) {
+    const directId = this.route.snapshot.paramMap.get('id') || this.route.snapshot.queryParamMap.get('postId');
+    if (directId) {
+      this.singlePostModeId.set(directId.trim());
       this.activeFilter.set('ALL');
       return;
     }
+    this.singlePostModeId.set(null);
     const url = this.router.url;
     if (url.includes('perdidas')) {
       this.activeFilter.set('SE_BUSCA');
@@ -2505,9 +2914,34 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  openSinglePostView(post: FeedPost): void {
+    this.singlePostModeId.set(post.id);
+    this.highlightedPostId.set(post.id);
+    this.allPosts.update((list) =>
+      list.map((p) => (p.id === post.id ? { ...p, showComments: true } : p)),
+    );
+    this.refreshPostComments(post);
+    this.router.navigate(['/publicacion', post.id]);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  private lastFetchedTargetPostId: string | null = null;
+
   private focusTargetPost(rawPostId: string): void {
     const cleanId = rawPostId.trim();
     if (!cleanId) return;
+
+    this.singlePostModeId.set(cleanId);
+
+    // Si había publicaciones nuevas retenidas en el buffer de la píldora flotante,
+    // aplicarlas de inmediato para que la publicación recién creada sí aparezca
+    if (this.bufferedFreshPosts && this.bufferedFreshPosts.length > 0) {
+      this.allPosts.set(this.bufferedFreshPosts);
+      this.bufferedFreshPosts = null;
+      this.pendingNewPostsCount.set(0);
+    }
 
     const posts = this.allPosts();
     const matched = posts.find(
@@ -2519,7 +2953,17 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         p.petData?.id === cleanId,
     );
 
-    if (!matched) return;
+    if (!matched) {
+      // Si el muro ya estaba abierto y aún no había descargado esta publicación nueva,
+      // recargar el muro automáticamente una vez antes de decir que no está disponible
+      if (!this.isLoading() && this.lastFetchedTargetPostId !== cleanId) {
+        this.lastFetchedTargetPostId = cleanId;
+        this.loadFeed();
+      }
+      return;
+    }
+
+    this.lastFetchedTargetPostId = null;
 
     // Mostrar todo el muro y limpiar filtros para garantizar que la publicación sea visible
     this.activeFilter.set('ALL');
@@ -2536,19 +2980,8 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     );
     this.refreshPostComments(matched);
 
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      setTimeout(() => {
-        const el = document.getElementById(`post-${matched.id}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 150);
-
-      setTimeout(() => {
-        if (this.highlightedPostId() === matched.id) {
-          this.highlightedPostId.set(null);
-        }
-      }, 6500);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
@@ -2720,24 +3153,47 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       next: (pets) => {
         this.lostPetService.getAll().subscribe({
           next: (reports) => {
-            const combined = this.buildFeedPosts(pets || [], reports || []);
+            const combined = this.buildFeedPosts(pets || [], reports || []).filter(
+              (p) => !this.deletedPostIds.has(p.id),
+            );
+            this.registerKnownPosts(combined);
             this.allPosts.set(combined);
             this.pendingNewPostsCount.set(0);
             this.bufferedFreshPosts = null;
             this.isLoading.set(false);
 
-            const targetPostId = this.route.snapshot.queryParamMap.get('postId');
+            const targetPostId =
+              this.route.snapshot.paramMap.get('id') ||
+              this.route.snapshot.queryParamMap.get('postId') ||
+              this.singlePostModeId();
             if (targetPostId) {
               this.focusTargetPost(targetPostId);
             }
           },
           error: () => {
+            const onlyPets = this.buildFeedPosts(pets || [], []).filter(
+              (p) => !this.deletedPostIds.has(p.id),
+            );
+            this.registerKnownPosts(onlyPets);
+            this.allPosts.set(onlyPets);
             this.isLoading.set(false);
           },
         });
       },
       error: () => {
-        this.isLoading.set(false);
+        this.lostPetService.getAll().subscribe({
+          next: (reports) => {
+            const onlyReports = this.buildFeedPosts([], reports || []).filter(
+              (p) => !this.deletedPostIds.has(p.id),
+            );
+            this.registerKnownPosts(onlyReports);
+            this.allPosts.set(onlyReports);
+            this.isLoading.set(false);
+          },
+          error: () => {
+            this.isLoading.set(false);
+          },
+        });
       },
     });
   }
@@ -2749,13 +3205,41 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       next: (pets) => {
         this.lostPetService.getAll().subscribe({
           next: (reports) => {
-            const fresh = this.buildFeedPosts(pets || [], reports || []);
-            const currentIds = new Set(this.allPosts().map((p) => p.id));
-            const newCount = fresh.filter((p) => !currentIds.has(p.id)).length;
-            if (newCount > 0) {
+            const fresh = this.buildFeedPosts(pets || [], reports || []).filter(
+              (p) => !this.deletedPostIds.has(p.id),
+            );
+
+            // Si el muro aún estaba vacío, poblar directamente sin mostrar la píldora
+            if (this.allPosts().length === 0 || this.knownPostIds.size === 0) {
+              this.registerKnownPosts(fresh);
+              this.allPosts.set(fresh);
+              this.bufferedFreshPosts = null;
+              this.pendingNewPostsCount.set(0);
+              return;
+            }
+
+            const unseenPosts = fresh.filter((p) => !this.knownPostIds.has(p.id));
+            // Solo son publicaciones realmente nuevas aquellas cuya fecha de creación sea posterior a la carga inicial
+            const trulyNewPosts = unseenPosts.filter((p) => {
+              const createdTs = new Date(p.createdAt).getTime();
+              return !isNaN(createdTs) && createdTs > this.latestSeenTimestamp;
+            });
+
+            // Cualquier publicación anterior que no estuviera registrada se marca como conocida sin disparar la píldora
+            for (const p of unseenPosts) {
+              const createdTs = new Date(p.createdAt).getTime();
+              if (isNaN(createdTs) || createdTs <= this.latestSeenTimestamp) {
+                this.knownPostIds.add(p.id);
+              }
+            }
+
+            if (trulyNewPosts.length > 0) {
               this.bufferedFreshPosts = fresh;
-              this.pendingNewPostsCount.set(newCount);
+              this.pendingNewPostsCount.set(trulyNewPosts.length);
             } else {
+              this.bufferedFreshPosts = null;
+              this.pendingNewPostsCount.set(0);
+              this.registerKnownPosts(fresh);
               // Actualiza contadores de cascada/avistamientos sin alterar scroll ni cerrar comentarios
               this.allPosts.set(fresh);
             }
@@ -2770,10 +3254,14 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   applyPendingFeedRefresh(): void {
     const scrollY = typeof window !== 'undefined' ? window.scrollY : 0;
     if (this.bufferedFreshPosts) {
+      this.registerKnownPosts(this.bufferedFreshPosts);
       this.allPosts.set(this.bufferedFreshPosts);
       this.bufferedFreshPosts = null;
       this.pendingNewPostsCount.set(0);
-      if (typeof window !== 'undefined') {
+      const singleId = this.singlePostModeId();
+      if (singleId) {
+        this.focusTargetPost(singleId);
+      } else if (typeof window !== 'undefined') {
         requestAnimationFrame(() => window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior }));
       }
       this.notify.info('Muro actualizado con las publicaciones más recientes');
@@ -2791,7 +3279,10 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       next: (pets) => {
         this.lostPetService.getAll().subscribe({
           next: (reports) => {
-            const fresh = this.buildFeedPosts(pets || [], reports || []);
+            const fresh = this.buildFeedPosts(pets || [], reports || []).filter(
+              (p) => !this.deletedPostIds.has(p.id),
+            );
+            this.registerKnownPosts(fresh);
             this.allPosts.set(fresh);
             this.bufferedFreshPosts = null;
             this.pendingNewPostsCount.set(0);
@@ -3085,6 +3576,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   closeReportLostModal(): void {
+    this.stopCameraStream();
     if (typeof document !== 'undefined') {
       document.body.classList.remove('modal-open');
     }
@@ -3093,6 +3585,160 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.reportLostSuccess.set(null);
     this.reportLostPhotosList.set([]);
     this.modalPostalFilter.set('');
+  }
+
+  // ==========================================
+  // MODAL DE INVITACIÓN A ALERTAS PUSH (MURO)
+  // ==========================================
+  async acceptPushFromWallModal(): Promise<void> {
+    const ok = await this.pushService.enable();
+    if (!ok && this.pushService.permission() === 'default') {
+      // Si cerró el diálogo del navegador sin decidir, mantenemos el modal sin bloquear
+      this.pushDeclineConfirmStep.set(false);
+    }
+  }
+
+  confirmDeclinePushModal(savePreference: boolean): void {
+    this.pushDeclineConfirmStep.set(false);
+    this.pushService.declinePrompt(savePreference);
+  }
+
+  // ==========================================
+  // CAPTURA CON CÁMARA EN VIVO / DISPOSITIVO
+  // ==========================================
+  setReportLostPhotoSource(source: 'FILE' | 'CAMERA' | 'URL'): void {
+    if (source !== 'CAMERA') {
+      this.stopCameraStream();
+    }
+    this.reportLostPhotoSource.set(source);
+    if (source === 'CAMERA') {
+      void this.startCameraStream('REPORT');
+    }
+  }
+
+  setSightingPhotoSource(source: 'FILE' | 'CAMERA' | 'URL'): void {
+    if (source !== 'CAMERA') {
+      this.stopCameraStream();
+    }
+    this.sightingPhotoSource.set(source);
+    if (source === 'CAMERA') {
+      void this.startCameraStream('SIGHTING');
+    }
+  }
+
+  async startCameraStream(target: 'REPORT' | 'SIGHTING'): Promise<void> {
+    this.stopCameraStream();
+    this.cameraError.set(null);
+    this.activeCameraTarget.set(target);
+
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+      this.cameraError.set(
+        'Tu navegador no permite vista previa en vivo. Usa el botón "Abrir cámara del teléfono" de abajo.',
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: this.cameraFacingMode() },
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
+        },
+        audio: false,
+      });
+
+      this.activeCameraStream = stream;
+      this.isCameraActive.set(true);
+
+      setTimeout(() => {
+        if (typeof document === 'undefined') return;
+        const videoId = target === 'REPORT' ? 'reportCameraVideo' : 'sightingCameraVideo';
+        const videoEl = document.getElementById(videoId) as HTMLVideoElement | null;
+        if (videoEl && this.activeCameraStream) {
+          videoEl.srcObject = this.activeCameraStream;
+          videoEl.play().catch(() => {});
+        }
+      }, 60);
+    } catch {
+      this.isCameraActive.set(false);
+      this.cameraError.set(
+        'No se pudo acceder a la cámara en vivo. Verifica los permisos o usa "Abrir cámara del teléfono".',
+      );
+    }
+  }
+
+  stopCameraStream(): void {
+    if (this.activeCameraStream) {
+      for (const track of this.activeCameraStream.getTracks()) {
+        try {
+          track.stop();
+        } catch {
+          // ignore
+        }
+      }
+      this.activeCameraStream = null;
+    }
+    this.isCameraActive.set(false);
+    this.activeCameraTarget.set(null);
+  }
+
+  toggleCameraFacingMode(target: 'REPORT' | 'SIGHTING'): void {
+    this.cameraFacingMode.update((mode) => (mode === 'environment' ? 'user' : 'environment'));
+    void this.startCameraStream(target);
+  }
+
+  capturePhotoFromStream(target: 'REPORT' | 'SIGHTING'): void {
+    if (typeof document === 'undefined') return;
+    const videoId = target === 'REPORT' ? 'reportCameraVideo' : 'sightingCameraVideo';
+    const videoEl = document.getElementById(videoId) as HTMLVideoElement | null;
+    if (!videoEl || !videoEl.videoWidth) {
+      this.notify.warning('La cámara aún se está iniciando, intenta en un segundo.');
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `camara-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        if (target === 'REPORT') {
+          const maxAllowed = this.authService.maxPhotosAllowed();
+          if (this.reportLostPhotosList().length >= maxAllowed) {
+            this.notify.warning(`Has alcanzado el límite de ${maxAllowed} fotos.`);
+            this.stopCameraStream();
+            return;
+          }
+          const previewUrl = URL.createObjectURL(file);
+          this.reportLostPhotosList.update((list) =>
+            [...list, { previewUrl, file }].slice(0, maxAllowed),
+          );
+          this.notify.success('📸 Foto capturada y agregada a la publicación');
+          if (this.reportLostPhotosList().length >= maxAllowed) {
+            this.stopCameraStream();
+          }
+        } else {
+          this.sightingSelectedFile.set(file);
+          void this.imageUploadService.fileToDataUrl(file).then((preview) => {
+            this.sightingPhotoPreview.set(preview);
+          });
+          this.notify.success('📸 Foto de evidencia capturada');
+          this.stopCameraStream();
+        }
+      },
+      'image/jpeg',
+      0.88,
+    );
   }
 
   private revokeObjectUrls(items: Array<{ previewUrl: string; file?: File }>): void {
@@ -3420,6 +4066,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
               newCommentText: '',
               isSubmittingComment: false,
             };
+            this.registerKnownPosts([newAdoptionPost]);
             this.allPosts.update((posts) => [newAdoptionPost, ...posts]);
             this.notify.success('¡Mascota publicada en Adopción con Protocolo de Solicitud activo!');
             this.closeReportLostModal();
@@ -3476,6 +4123,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
             isSubmittingComment: false,
           };
 
+          this.registerKnownPosts([newPost]);
           const alreadyExists = this.allPosts().some((p) => p.id === postId);
           if (alreadyExists) {
             // Se agrupó en cascada con un reporte existente de Animal Herido
@@ -3671,7 +4319,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       contextTargetUrl:
         post.kind === 'PET_ADOPTION' && post.petData
           ? `/adopciones/${post.petData.id}`
-          : '/',
+          : `/publicacion/${post.id}`,
       contextWhatsappPhone:
         post.contactPhone || post.petData?.owner?.phone || undefined,
       prefilledDraft: customMessage,
@@ -3723,6 +4371,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   closeSightingModal(): void {
+    this.stopCameraStream();
     if (typeof document !== 'undefined') {
       document.body.classList.remove('modal-open');
     }
@@ -3742,6 +4391,49 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  selectedLostPetPetIsResguardo(): boolean {
+    return this.selectedLostPetForSighting()?.type === 'EN_RESGUARDO';
+  }
+
+  getSightingQuickChips(type?: LostPetType): string[] {
+    if (type === 'ANIMAL_HERIDO') {
+      return [
+        '🚑 Voy en camino a auxiliarlo',
+        '🚗 Puedo apoyar con traslado a veterinaria',
+        '🏠 Ofrezco resguardo temporal',
+        '📍 Sigue en la ubicación reportada',
+      ];
+    }
+    if (type === 'EN_RESGUARDO') {
+      return [
+        '🙋‍♂️ ¡Es mi mascota! Quiero coordinar para recogerla',
+        '🏡 Puedo brindarle hogar temporal',
+        '🤝 Apoyo con alimento o insumos',
+      ];
+    }
+    return [
+      '📍 Lo acabo de ver hace unos minutos',
+      '🏡 Lo tengo resguardado temporalmente',
+      '🐕 Iba caminando por esta calle',
+    ];
+  }
+
+  selectSightingQuickChip(chip: string): void {
+    this.sightingForm.locationDescription = chip;
+  }
+
+  openSightingPhotoInLightbox(post: FeedPost, photoUrl: string): void {
+    if (!photoUrl) return;
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
+    this.lightboxPost.set({
+      ...post,
+      photos: [photoUrl],
+    });
+    this.lightboxIndex.set(0);
+  }
+
   submitSighting(): void {
     const report = this.selectedLostPetForSighting();
     if (!report) return;
@@ -3750,26 +4442,61 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
     const executeSighting = (photoUrl?: string) => {
       const payload = {
-        locationDescription: this.sightingForm.locationDescription.trim(),
+        locationDescription: this.sightingForm.locationDescription.trim().slice(0, 245),
         photoUrl: photoUrl || undefined,
         additionalNotes: this.sightingForm.additionalNotes.trim() || undefined,
       };
 
       this.lostPetService.addSighting(report.id, payload).subscribe({
-        next: () => {
+        next: (createdSighting) => {
           this.isSubmittingSighting.set(false);
+          const currentUser = this.authService.currentUser();
+          const enrichedSighting: PetSighting = {
+            ...createdSighting,
+            id: createdSighting?.id || `sighting-${Date.now()}`,
+            reportId: report.id,
+            notifierId: createdSighting?.notifierId || currentUser?.id,
+            notifier: createdSighting?.notifier || currentUser || undefined,
+            locationDescription: createdSighting?.locationDescription || payload.locationDescription,
+            additionalNotes: createdSighting?.additionalNotes ?? payload.additionalNotes,
+            photoUrl: createdSighting?.photoUrl ?? payload.photoUrl,
+            createdAt: createdSighting?.createdAt || new Date().toISOString(),
+          };
+
+          const postId = `lost-${report.id}`;
+          this.allPosts.update((posts) =>
+            posts.map((p) => {
+              if (p.id !== postId) return p;
+              const updatedSightings = [...(p.sightings || []), enrichedSighting];
+              return {
+                ...p,
+                sightings: updatedSightings,
+                reportsCount: updatedSightings.length,
+              };
+            }),
+          );
+
+          this.highlightedPostId.set(postId);
           this.closeSightingModal();
-          this.notify.success('¡Aviso de avistamiento enviado con éxito!');
+          this.notify.success(
+            '¡Reporte guardado en la Bitácora!',
+            'Ya es visible dentro de la tarjeta de la publicación y se notificó al autor.',
+          );
         },
-        error: () => {
+        error: (err) => {
           this.isSubmittingSighting.set(false);
-          this.notify.info('Avistamiento registrado temporalmente.');
-          this.closeSightingModal();
+          const msg =
+            err?.error?.message ||
+            'No se pudo guardar el reporte. Verifica tu sesión e intenta de nuevo.';
+          this.notify.error(Array.isArray(msg) ? msg.join(', ') : msg);
         },
       });
     };
 
-    if (this.sightingPhotoSource() === 'FILE' && this.sightingSelectedFile()) {
+    if (
+      (this.sightingPhotoSource() === 'FILE' || this.sightingPhotoSource() === 'CAMERA') &&
+      this.sightingSelectedFile()
+    ) {
       this.imageUploadService.uploadImage(this.sightingSelectedFile()!, 'sightings').subscribe({
         next: (uploadedUrl) => executeSighting(uploadedUrl),
         error: () => executeSighting(this.sightingPhotoPreview() || undefined),
@@ -3780,33 +4507,108 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
+  canDeleteSighting(sighting: PetSighting): boolean {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    const creatorId = sighting.notifierId || sighting.notifier?.id;
+    return Boolean(creatorId && creatorId === user.id);
+  }
+
+  async deleteSightingReport(post: FeedPost, sighting: PetSighting): Promise<void> {
+    if (!post.lostData?.id || !sighting?.id) return;
+
+    const confirmed = await this.confirmService.confirm({
+      title: '¿Eliminar reporte de la bitácora?',
+      message: `¿Deseas eliminar el reporte "${sighting.locationDescription}" de la bitácora de esta publicación?`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: '🗑️',
+    });
+    if (!confirmed) return;
+
+    this.lostPetService.deleteSighting(post.lostData.id, sighting.id).subscribe({
+      next: () => {
+        this.allPosts.update((posts) =>
+          posts.map((p) => {
+            if (p.id !== post.id) return p;
+            const remaining = (p.sightings || []).filter((s) => s.id !== sighting.id);
+            return {
+              ...p,
+              sightings: remaining,
+              reportsCount: Math.max(1, remaining.length),
+            };
+          }),
+        );
+        this.notify.success('Reporte eliminado de la bitácora');
+      },
+      error: (err) => {
+        this.notify.error(
+          err?.error?.message || 'No tienes permiso o no se pudo eliminar el reporte',
+        );
+      },
+    });
+  }
+
+  contactSightingNotifier(post: FeedPost, sighting: any): void {
+    const targetUserId = sighting?.notifierId || sighting?.notifier?.id;
+    if (!targetUserId) return;
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para enviar un mensaje directo');
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+    this.dmService.openChatWithContext({
+      recipientId: targetUserId,
+      recipientName: sighting.notifier?.fullName || 'Ciudadano solidario',
+      contextType: 'LOST_PET',
+      contextId: post.lostData?.id || post.id,
+      contextTitle: `Reporte en: ${post.title}`,
+      contextSubtitle: `Bitácora: ${sighting.locationDescription}`,
+      contextImageUrl: sighting.photoUrl || post.photoUrl,
+      contextTargetUrl: `/publicacion/${post.id}`,
+      prefilledDraft: `¡Hola ${sighting.notifier?.fullName?.split(' ')[0] || ''}! Vi tu reporte "${sighting.locationDescription}" en la bitácora de la publicación (${post.title}). ¿Podemos coordinarnos por aquí? 🙏🐾`,
+    });
+  }
+
   // ==========================================
   // SOCIAL SHARE HELPERS
   // ==========================================
-  shareToWhatsApp(post: FeedPost): void {
-    const postUrl = post.kind === 'PET_ADOPTION' && post.petData
-      ? `${window.location.origin}/adopciones/${post.petData.id}`
-      : `${window.location.origin}/perdidas`;
-    const text = encodeURIComponent(
-      `🐾 *${post.title}* en ${this.brand.name} (${this.brand.city})\n\n"${post.description}"\n\nVer publicación completa: ${postUrl}`,
-    );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  getPostDirectUrl(post: FeedPost): string {
+    if (post.kind === 'PET_ADOPTION' && post.petData?.id) {
+      return `${window.location.origin}/adopciones/${post.petData.id}`;
+    }
+    if (post.kind === 'LOST_PET' && post.lostData?.id) {
+      return `${window.location.origin}/publicacion/${post.lostData.id}`;
+    }
+    const cleanId = post.id.replace(/^(lost-|pet-)/, '');
+    return `${window.location.origin}/publicacion/${cleanId}`;
   }
 
   shareToFacebook(post: FeedPost): void {
-    const postUrl = post.kind === 'PET_ADOPTION' && post.petData
-      ? `${window.location.origin}/adopciones/${post.petData.id}`
-      : `${window.location.origin}/perdidas`;
+    const postUrl = this.getPostDirectUrl(post);
+    const locationPart = post.lastSeenLocation || post.coloniaName || this.brand.city;
+    const shareSummary = `🐾 ${post.title}\n📍 Zona: ${locationPart}\n\n"${post.description}"\n\n👉 Ver publicación directa en ${this.brand.name}: ${postUrl}`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareSummary).catch(() => {});
+    }
+
+    this.notify.info(
+      '🌐 Tarjeta de Facebook lista (y texto copiado)',
+      'La tarjeta del enlace cargará automáticamente la foto, título y datos de la mascota. Si gustas, también puedes presionar Ctrl+V arriba.',
+    );
+
     const url = encodeURIComponent(postUrl);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+    const quote = encodeURIComponent(shareSummary);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, '_blank');
   }
 
   copyPostLink(post: FeedPost): void {
-    const postUrl = post.kind === 'PET_ADOPTION' && post.petData
-      ? `${window.location.origin}/adopciones/${post.petData.id}`
-      : `${window.location.origin}/perdidas`;
+    const postUrl = this.getPostDirectUrl(post);
     navigator.clipboard.writeText(postUrl);
-    this.notify.success('Enlace de la publicación copiado al portapapeles');
+    this.notify.success('🔗 Enlace directo a la publicación copiado al portapapeles');
   }
 
   formatExactDateTime(dateStr: string): string {
@@ -3831,6 +4633,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopCameraStream();
     if (this.commentsPollingTimer) {
       clearInterval(this.commentsPollingTimer);
       this.commentsPollingTimer = null;

@@ -100,7 +100,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold'
                   : verification()?.level3Status === 'PENDIENTE'
                     ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300 font-bold'
-                    : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-400'
+                    : verification()?.level3Status === 'RECHAZADO'
+                      ? 'bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300 font-bold'
+                      : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-400'
               "
             >
               <span class="text-lg">🏡</span>
@@ -111,6 +113,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     ✓ Adoptante Verificado
                   } @else if (verification()?.level3Status === 'PENDIENTE') {
                     ⏳ En Revisión
+                  } @else if (verification()?.level3Status === 'RECHAZADO') {
+                    ⚠️ Con Observaciones
                   } @else if (!verification()?.isLevel2Completed) {
                     🔒 Requiere Nivel 2 Aprobado
                   } @else {
@@ -123,12 +127,35 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
       </section>
 
-      @if (verification()?.reviewNotes) {
+      @if (isRescuerOrAdmin()) {
+        <div class="p-4 sm:p-5 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 text-xs text-slate-800 dark:text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl flex-shrink-0">🛡️</span>
+            <div>
+              <strong class="block font-black text-emerald-700 dark:text-emerald-300 uppercase text-[11px]">
+                Rol de Rescatista / Administrador Activo
+              </strong>
+              <p class="mt-0.5 leading-relaxed text-slate-700 dark:text-slate-300">
+                Como Administrador o Rescatista Verificado puedes revisar, aprobar, rechazar o actualizar las solicitudes de Nivel 2 y Nivel 3 de los ciudadanos desde el Panel de Evaluación.
+              </p>
+            </div>
+          </div>
+          <a
+            routerLink="/panel-rescatista"
+            [queryParams]="{ tab: 'verifications' }"
+            class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md whitespace-nowrap text-center"
+          >
+            Ir a Evaluar Solicitudes →
+          </a>
+        </div>
+      }
+
+      @if (verification()?.reviewNotes && (verification()?.level2Status === 'RECHAZADO' || verification()?.level3Status === 'RECHAZADO')) {
         <div class="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs text-slate-800 dark:text-slate-100 flex items-start gap-3 shadow-md">
           <span class="text-xl flex-shrink-0">💬</span>
           <div>
             <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[11px]">
-              Observaciones del Rescatista / Administrador:
+              Observaciones del Rescatista / Administrador para corregir tu solicitud:
             </strong>
             <p class="mt-0.5 leading-relaxed">{{ verification()!.reviewNotes }}</p>
           </div>
@@ -314,6 +341,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             } @else if (verification()?.level3Status === 'PENDIENTE') {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                 ⏳ En Revisión por Rescatista/Admin
+              </span>
+            } @else if (verification()?.level3Status === 'RECHAZADO') {
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                ⚠️ Requiere Corrección
               </span>
             } @else if (!verification()?.isLevel2Completed) {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">

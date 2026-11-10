@@ -22,22 +22,22 @@
   <footer class="relative z-10 py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#070c18]/60 backdrop-blur-xl text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
       <p>© 2026 {{ brand.fullName }} • {{ brand.city }}. Todos los derechos reservados.</p>
-      <div class="flex items-center gap-4 text-[11px]">
-        <span class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          API v1 Conectada
-        </span>
-        <span class="text-slate-400 dark:text-slate-600">|</span>
-        <span class="font-medium text-slate-600 dark:text-slate-300">RBAC Activo</span>
-      </div>
+      <button
+        type="button"
+        (click)="isManualPrivacyOpen = true"
+        class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+      >
+        📜 Aviso de Privacidad y Términos Legales
+      </button>
     </div>
   </footer>
 
-  <!-- Modal Global Obligatorio si el usuario tiene una versión desactualizada del Aviso de Privacidad -->
+  <!-- Modal Global Obligatorio o Informativo del Aviso de Privacidad -->
   <app-privacy-modal
-    [isOpen]="authService.needsPrivacyAcceptance()"
-    [isMandatory]="true"
+    [isOpen]="authService.needsPrivacyAcceptance() || isManualPrivacyOpen"
+    [isMandatory]="authService.needsPrivacyAcceptance()"
     (accepted)="onAcceptUpdatedPrivacy()"
+    (closed)="isManualPrivacyOpen = false"
   />
 
   <!-- Toasts -->

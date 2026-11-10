@@ -23,6 +23,11 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'publicacion/:id',
+    loadComponent: () =>
+      import('./features/feed/community-feed.component').then((m) => m.CommunityFeedComponent),
+  },
+  {
     path: 'perdidas',
     loadComponent: () =>
       import('./features/feed/community-feed.component').then((m) => m.CommunityFeedComponent),

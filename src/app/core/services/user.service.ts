@@ -28,6 +28,22 @@ export interface UserPublications {
   adoptionRequests: any[];
 }
 
+export interface PrivacyPolicyConfig {
+  version: string;
+  title: string;
+  introBanner: string;
+  content: string;
+  updatedAt?: string;
+}
+
+export interface UpdatePrivacyPolicyPayload {
+  newVersion?: string;
+  title?: string;
+  introBanner?: string;
+  content?: string;
+  invalidateUsers?: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -77,9 +93,22 @@ export class UserService {
       .pipe(map(() => void 0));
   }
 
-  resetPrivacyTerms(newVersion = '2026-v2.0'): Observable<{ message: string }> {
+  getPrivacyPolicy(): Observable<PrivacyPolicyConfig> {
     return this.http
-      .post<ApiResponse<{ message: string }>>(`${this.USERS_URL}/admin/reset-privacy`, { newVersion })
+      .get<ApiResponse<PrivacyPolicyConfig>>(`${this.USERS_URL}/privacy-policy`)
+      .pipe(map((res) => res.data));
+  }
+
+  resetPrivacyTerms(
+    payload: UpdatePrivacyPolicyPayload | string = '2026-v2.0',
+  ): Observable<{ message: string; updatedUsersCount: number; policy: PrivacyPolicyConfig }> {
+    const body: UpdatePrivacyPolicyPayload =
+      typeof payload === 'string' ? { newVersion: payload, invalidateUsers: true } : payload;
+    return this.http
+      .post<ApiResponse<{ message: string; updatedUsersCount: number; policy: PrivacyPolicyConfig }>>(
+        `${this.USERS_URL}/admin/reset-privacy`,
+        body,
+      )
       .pipe(map((res) => res.data));
   }
 }

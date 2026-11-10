@@ -420,6 +420,8 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
             <!-- ================================================== -->
             @if (activeConversation()!.contextTitle) {
               <div
+                (click)="openContextPublication(activeConversation()!)"
+                [ngClass]="hasNavigableContext(activeConversation()!) ? 'cursor-pointer hover:from-emerald-500/20 hover:to-teal-500/20 transition-colors' : ''"
                 class="px-4 py-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border-b border-emerald-500/20 flex items-center justify-between gap-3 flex-shrink-0"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
@@ -457,13 +459,14 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                   </div>
                 </div>
 
-                @if (activeConversation()!.contextTargetUrl) {
-                  <a
-                    [routerLink]="activeConversation()!.contextTargetUrl!"
-                    class="px-2.5 py-1 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200/70 dark:border-slate-700 transition-colors flex-shrink-0"
+                @if (hasNavigableContext(activeConversation()!)) {
+                  <button
+                    type="button"
+                    (click)="openContextPublication(activeConversation()!, $event)"
+                    class="px-2.5 py-1 rounded-xl bg-white/80 dark:bg-slate-800/80 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-200 text-[10px] font-bold border border-slate-200/70 dark:border-slate-700 transition-colors flex-shrink-0 cursor-pointer"
                   >
-                    Ver ↗
-                  </a>
+                    Ver publicación ↗
+                  </button>
                 }
               </div>
             }
@@ -505,7 +508,10 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                     <!-- Embedded Context Card if this specific message attached a publication -->
                     @if (msg.contextTitle) {
                       <div
+                        (click)="openContextPublication(msg)"
+                        [ngClass]="hasNavigableContext(msg) ? 'cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all group/ctx' : ''"
                         class="mb-1.5 p-2.5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-500/30 shadow-sm flex items-center gap-2.5 max-w-[85%] sm:max-w-sm"
+                        title="Ir a la publicación original"
                       >
                         @if (msg.contextImageUrl) {
                           <img
@@ -515,13 +521,22 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                           />
                         }
                         <div class="min-w-0 flex-1">
-                          <span
-                            class="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 block"
-                          >
-                            📌 En referencia a:
-                          </span>
+                          <div class="flex items-center justify-between gap-2">
+                            <span
+                              class="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 block"
+                            >
+                              📌 En referencia a:
+                            </span>
+                            @if (hasNavigableContext(msg)) {
+                              <span
+                                class="text-[9px] font-black text-emerald-600 dark:text-emerald-400 group-hover/ctx:underline shrink-0"
+                              >
+                                Ver publicación ↗
+                              </span>
+                            }
+                          </div>
                           <p
-                            class="text-xs font-bold text-slate-900 dark:text-white truncate"
+                            class="text-xs font-bold text-slate-900 dark:text-white truncate group-hover/ctx:text-emerald-600 dark:group-hover/ctx:text-emerald-400 transition-colors"
                           >
                             {{ msg.contextTitle }}
                           </p>
@@ -821,6 +836,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   private readonly imageUpload = inject(ImageUploadService);
   private readonly toast = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly brand = BRAND_CONFIG;
 
   @ViewChild('messagesScrollContainer')
@@ -1111,6 +1127,85 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
           }
         },
       });
+  }
+
+  hasNavigableContext(ctx?: {
+    contextType?: string | null;
+    contextId?: string | null;
+    contextTargetUrl?: string | null;
+  } | null): boolean {
+    return !!this.resolveContextPublicationUrl(ctx);
+  }
+
+  resolveContextPublicationUrl(ctx?: {
+    contextType?: string | null;
+    contextId?: string | null;
+    contextTargetUrl?: string | null;
+  } | null): string | null {
+    if (!ctx) return null;
+
+    if (ctx.contextType === 'LOST_REPORT' && ctx.contextId) {
+      const cleanId = ctx.contextId.startsWith('lost-')
+        ? ctx.contextId
+        : `lost-${ctx.contextId}`;
+      return `/publicacion/${cleanId}`;
+    }
+
+    if (
+      (ctx.contextType === 'PET' || ctx.contextType === 'ADOPTION_REQUEST') &&
+      ctx.contextId
+    ) {
+      const cleanPetId = ctx.contextId.replace(/^pet-/, '');
+      return `/adopciones/${cleanPetId}`;
+    }
+
+    if (ctx.contextTargetUrl && ctx.contextTargetUrl.trim() && ctx.contextTargetUrl.trim() !== '/') {
+      const raw = ctx.contextTargetUrl.trim();
+      try {
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+          const parsed = new URL(raw);
+          return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+      } catch {}
+      return raw;
+    }
+
+    // Fallback a la conversación activa si el mensaje individual no trajo el contextId pero la conversación sí
+    const activeConv = this.activeConversation();
+    if (activeConv && ctx !== activeConv) {
+      if (activeConv.contextType === 'LOST_REPORT' && activeConv.contextId) {
+        const cleanId = activeConv.contextId.startsWith('lost-')
+          ? activeConv.contextId
+          : `lost-${activeConv.contextId}`;
+        return `/publicacion/${cleanId}`;
+      }
+      if (
+        (activeConv.contextType === 'PET' ||
+          activeConv.contextType === 'ADOPTION_REQUEST') &&
+        activeConv.contextId
+      ) {
+        const cleanPetId = activeConv.contextId.replace(/^pet-/, '');
+        return `/adopciones/${cleanPetId}`;
+      }
+    }
+
+    return null;
+  }
+
+  openContextPublication(
+    ctx?: {
+      contextType?: string | null;
+      contextId?: string | null;
+      contextTargetUrl?: string | null;
+    } | null,
+    event?: Event,
+  ): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    const targetUrl = this.resolveContextPublicationUrl(ctx);
+    if (!targetUrl) return;
+    this.router.navigateByUrl(targetUrl);
   }
 
   getActiveConversationWhatsAppPhone(): string | null {

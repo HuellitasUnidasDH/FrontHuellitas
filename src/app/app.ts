@@ -26,8 +26,12 @@ import { BRAND_CONFIG } from './core/constants/brand.constants';
 export class App {
   brand = BRAND_CONFIG;
   authService = inject(AuthService);
+  isManualPrivacyOpen = false;
 
   onAcceptUpdatedPrivacy(): void {
-    this.authService.acceptPrivacy().subscribe();
+    this.isManualPrivacyOpen = false;
+    if (this.authService.isAuthenticated()) {
+      this.authService.acceptPrivacy().subscribe();
+    }
   }
 }

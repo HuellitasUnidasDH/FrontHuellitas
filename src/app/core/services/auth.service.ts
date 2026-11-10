@@ -14,6 +14,42 @@ import {
   RegisterDto,
 } from '../models/user.model';
 import { ApiResponse } from '../models/api-response.model';
+import { PrivacyPolicyConfig } from './user.service';
+
+export const DEFAULT_PRIVACY_POLICY_CONFIG: PrivacyPolicyConfig = {
+  version: '2026-v1.0',
+  title: 'Aviso de Privacidad Integral y Términos Legales',
+  introBanner:
+    '🛡️ Al registrarse y hacer uso de la plataforma Huellitas Dolores Hidalgo (VetRegistro), el usuario otorga su consentimiento expreso e informado para la recopilación, almacenamiento seguro y tratamiento de sus datos personales y de sus animales de compañía bajo las normas legales vigentes.',
+  content: `1. Identidad y Domicilio del Responsable
+Huellitas Dolores Hidalgo / VetRegistro Enterprise Systems S.A.P.I. de C.V. (en adelante "El Responsable"), con domicilio legal y plataformas digitales autorizadas, es el responsable del uso, confidencialidad, integridad y protección de los datos personales proporcionados por los usuarios en estricto cumplimiento con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y estándares internacionales (GDPR).
+
+2. Datos Personales Recabados
+Para la prestación de los servicios del sistema, se recopilan de manera directa y lícita:
+• Datos de Identificación del Titular: Nombre completo, correo electrónico, número telefónico celular verificado de 10 dígitos y colonia de residencia.
+• Datos de Identificación Animal: Nombre de la mascota, especie, raza, peso, edad, número de microchip de identificación única, fotografías y datos biológicos.
+• Historial Clínico Veterinario: Vacunas, desparasitaciones, diagnósticos médicos, tratamientos farmacológicos y prescripciones expedidas por profesionales autorizados.
+• Datos Técnicos de Seguridad y Auditoría: Dirección IP, registros de acceso (timestamps), tipo de navegador y registros inmutables de auditoría forense para prevenir accesos no autorizados.
+
+3. Finalidades del Tratamiento de Datos
+Los datos recabados serán utilizados para las siguientes finalidades primarias y necesarias:
+• Creación, autenticación y administración segura de su cuenta de usuario con tecnología de cifrado JWT y hashing criptográfico.
+• Emisión, consulta y resguardo del expediente médico, adopciones responsables, reportes de extravío y cartilla digital de vacunación de sus animales de compañía.
+• Verificación y asignación de controles de acceso basados en roles (Dueño, Adoptante, Rescatista, Médico Veterinario o Administrador).
+• Seguridad y defensa perimetral: Detección y bloqueo automático de ciberataques, denegación de servicio (DoS) e intentos maliciosos de intrusión.
+
+4. Medidas de Seguridad y Cifrado
+El Responsable implementa medidas de seguridad técnicas, físicas y administrativas reconocidas por la industria, que incluyen: cifrado de contraseñas con algoritmo Bcrypt (factor de costo 12), protección de cabeceras HTTP mediante Helmet CSP/HSTS, prevención de inyecciones SQL mediante consultas parametrizadas tipadas y limitación de tasa de solicitudes (Rate Limiting).
+
+5. Deslinde de Responsabilidad Médica Veterinaria
+La plataforma opera exclusivamente como un medio tecnológico de vinculación comunitaria, registro y gestión de información. La veracidad, precisión y consecuencias de los diagnósticos, prescripciones, tratamientos médicos o procesos de adopción son responsabilidad única y exclusiva del Médico Veterinario tratante, rescatista o usuario que los registre.
+
+6. Derechos ARCO (Acceso, Rectificación, Cancelación y Oposición)
+Usted tiene el derecho constitucional de acceder a sus datos personales en nuestra posesión, rectificarlos en caso de inexactitud, solicitar su cancelación cuando considere que no se requieren para las finalidades señaladas, u oponerse al tratamiento de los mismos para fines específicos mediante solicitud formal al oficial de privacidad en privacidad@vetregistro.com.
+
+7. Transferencia de Datos
+Se hace constar expresamente que El Responsable NO vende, arrienda, comercializa ni transfiere datos personales o historiales médicos a terceros con fines publicitarios o lucrativos. Únicamente se transferirán datos cuando sea requerido formalmente por mandato judicial o autoridad sanitaria competente en materia de bienestar animal.`,
+};
 
 @Injectable({
   providedIn: 'root',
@@ -27,6 +63,9 @@ export class AuthService {
 
   private readonly API_URL = `${environment.apiUrl}/auth`;
   public static readonly CURRENT_PRIVACY_VERSION = '2026-v1.0';
+
+  private privacyPolicySignal = signal<PrivacyPolicyConfig>({ ...DEFAULT_PRIVACY_POLICY_CONFIG });
+  public privacyPolicy = this.privacyPolicySignal.asReadonly();
 
   // Shared observable to deduplicate concurrent token refresh calls
   private refreshInProgress$: Observable<{ accessToken: string; refreshToken: string }> | null = null;
@@ -63,11 +102,40 @@ export class AuthService {
   public needsPrivacyAcceptance = computed(() => {
     const user = this.currentUserSignal();
     if (!user) return false;
-    return user.acceptedPrivacyVersion !== AuthService.CURRENT_PRIVACY_VERSION;
+    const activeVersion = this.privacyPolicySignal().version || AuthService.CURRENT_PRIVACY_VERSION;
+    return !user.acceptedPrivacyVersion || user.acceptedPrivacyVersion === 'OUTDATED' || user.acceptedPrivacyVersion !== activeVersion;
   });
 
   constructor() {
     this.validateSessionOnStartup();
+    this.refreshPrivacyPolicy();
+  }
+
+  public refreshPrivacyPolicy(): void {
+    this.http.get<ApiResponse<PrivacyPolicyConfig>>(`${environment.apiUrl}/users/privacy-policy`).subscribe({
+      next: (res) => {
+        if (res?.data?.version) {
+          this.privacyPolicySignal.set(res.data);
+        }
+      },
+      error: () => {
+        // Fallback to default policy
+      },
+    });
+  }
+
+  public applyUpdatedPrivacyPolicy(policy: PrivacyPolicyConfig): void {
+    this.privacyPolicySignal.set(policy);
+    const user = this.currentUserSignal();
+    if (user) {
+      const updatedUser: User = {
+        ...user,
+        acceptedPrivacyVersion: policy.version,
+        privacyAcceptedAt: new Date().toISOString(),
+      };
+      this.storage.setItem('user', JSON.stringify(updatedUser));
+      this.currentUserSignal.set(updatedUser);
+    }
   }
 
   /**
@@ -136,17 +204,18 @@ export class AuthService {
     this.currentUserSignal.set(null);
   }
 
-  acceptPrivacy(version: string = AuthService.CURRENT_PRIVACY_VERSION): Observable<any> {
+  acceptPrivacy(version?: string): Observable<any> {
+    const targetVersion = version || this.privacyPolicySignal().version || AuthService.CURRENT_PRIVACY_VERSION;
     return this.http
-      .post<ApiResponse<any>>(`${environment.apiUrl}/users/accept-privacy`, { version })
+      .post<ApiResponse<any>>(`${environment.apiUrl}/users/accept-privacy`, { version: targetVersion })
       .pipe(
         map((res) => res.data),
-        tap(() => {
+        tap((data) => {
           const user = this.currentUserSignal();
           if (user) {
             const updatedUser: User = {
               ...user,
-              acceptedPrivacyVersion: version,
+              acceptedPrivacyVersion: data?.acceptedPrivacyVersion || targetVersion,
               privacyAcceptedAt: new Date().toISOString(),
             };
             this.storage.setItem('user', JSON.stringify(updatedUser));

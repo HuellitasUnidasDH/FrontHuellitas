@@ -72,34 +72,6 @@ import { Pet } from '../../core/models/pet.model';
         </div>
       </div>
 
-      <!-- Security & Production Status Card -->
-      <div class="liquid-glass rounded-2xl p-5">
-        <div class="flex items-center gap-2 mb-3">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-300">
-            Escudo de Seguridad & Cumplimiento en Producción
-          </h3>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div class="p-2.5 rounded-xl bg-white/50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2">
-            <span class="text-emerald-500">🛡️</span>
-            <span class="text-slate-700 dark:text-slate-300">Helmet CSP & HSTS</span>
-          </div>
-          <div class="p-2.5 rounded-xl bg-white/50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2">
-            <span class="text-emerald-500">⚡</span>
-            <span class="text-slate-700 dark:text-slate-300">Rate Limiting Activo</span>
-          </div>
-          <div class="p-2.5 rounded-xl bg-white/50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2">
-            <span class="text-emerald-500">🔐</span>
-            <span class="text-slate-700 dark:text-slate-300">JWT + RBAC Guards</span>
-          </div>
-          <div class="p-2.5 rounded-xl bg-white/50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2">
-            <span class="text-emerald-500">🔍</span>
-            <span class="text-slate-700 dark:text-slate-300">Logs de Auditoría</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Recent Pets Preview -->
       <div class="liquid-glass rounded-3xl p-6 sm:p-8">
         <div class="flex items-center justify-between mb-6">
