@@ -322,15 +322,15 @@ interface PetRequestGroup {
                 @for (ver of verifications(); track ver.id) {
                   <article class="liquid-glass rounded-3xl p-5 sm:p-6 border border-slate-200/70 dark:border-slate-700/70 shadow-lg space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800/60 pb-3">
-                      <div class="flex items-center gap-3">
-                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white font-black flex items-center justify-center text-base shadow-md">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white font-black flex items-center justify-center text-base shadow-md flex-shrink-0">
                           {{ (ver.user?.fullName || 'U').charAt(0).toUpperCase() }}
                         </div>
-                        <div>
-                          <h3 class="font-black text-slate-900 dark:text-white text-base">
+                        <div class="min-w-0">
+                          <h3 class="font-black text-slate-900 dark:text-white text-base truncate">
                             {{ ver.user?.fullName || 'Usuario' }}
                           </h3>
-                          <span class="text-xs text-slate-500">
+                          <span class="text-xs text-slate-500 break-all block">
                             {{ ver.user?.email }} • 📱 {{ ver.user?.phone || 'Sin teléfono' }}
                           </span>
                         </div>
@@ -481,7 +481,7 @@ interface PetRequestGroup {
                         [alt]="group.pet.name"
                         class="w-16 h-16 rounded-2xl object-cover shadow-md border-2 border-emerald-500/30 flex-shrink-0"
                       />
-                      <div>
+                      <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
                           <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
                           <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black" [ngClass]="badge.badgeClass">
@@ -493,7 +493,7 @@ interface PetRequestGroup {
                           Progreso: <strong class="text-emerald-600 dark:text-emerald-400">{{ group.completedCount }} de {{ group.totalCount }} hitos</strong>
                         </p>
                         <!-- Barra de progreso -->
-                        <div class="w-48 sm:w-64 h-2 rounded-full bg-slate-200 dark:bg-slate-800 mt-1.5 overflow-hidden">
+                        <div class="w-full max-w-xs h-2 rounded-full bg-slate-200 dark:bg-slate-800 mt-1.5 overflow-hidden">
                           <div
                             class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                             [style.width.%]="group.progressPercent"

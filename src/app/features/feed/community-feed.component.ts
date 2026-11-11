@@ -842,14 +842,30 @@ interface FeedPost {
               <div class="mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-2.5">
                 <div class="flex flex-wrap items-center gap-2 flex-1 min-w-fit">
                   @if (post.kind === 'PET_ADOPTION' && post.petData) {
-                    <!-- Main CTA: Quiero Adoptar -->
-                    <button
-                      (click)="openAdoptionModal(post.petData)"
-                      class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>💚</span>
-                      <span>Adoptar</span>
-                    </button>
+                    <!-- Main CTA: Quiero Adoptar / Ver Progreso / Estado -->
+                    @if (isOwnFeedPet(post.petData)) {
+                      <a
+                        [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
+                        [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 active:scale-95 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>📊</span>
+                        <span>Ver Progreso</span>
+                      </a>
+                    } @else if (!isFeedPetAdoptable(post.petData)) {
+                      <span class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5">
+                        <span>🏡</span>
+                        <span>{{ post.petData.status === 'ADOPTADA' || post.petData.status === 'EN_SEGUIMIENTO' ? 'Adoptada' : 'No disponible' }}</span>
+                      </span>
+                    } @else {
+                      <button
+                        (click)="openAdoptionModal(post.petData)"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>💚</span>
+                        <span>Adoptar</span>
+                      </button>
+                    }
 
                     @if (canMessagePostAuthor(post)) {
                       <button
@@ -894,7 +910,12 @@ interface FeedPost {
                       }
                     } @else if (post.postType === 'EN_ADOPCION') {
                       <!-- CTA para Mascota en Adopción reportada en muro: Mensaje Directo -->
-                      @if (canMessagePostAuthor(post)) {
+                      @if (post.lostData.status === 'REENCONTRADA' || post.lostData.status === 'CERRADO') {
+                        <span class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5">
+                          <span>🏡</span>
+                          <span>Adoptada</span>
+                        </span>
+                      } @else if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
                           (click)="contactAuthorInApp(post, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo 💚')"
@@ -904,13 +925,14 @@ interface FeedPost {
                           <span>Quiero Adoptar</span>
                         </button>
                       } @else {
-                        <button
-                          (click)="toggleComments(post)"
-                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+                        <a
+                          [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
+                          [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
+                          class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 active:scale-95 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>💚</span>
-                          <span>Preguntar por Adopción</span>
-                        </button>
+                          <span>📊</span>
+                          <span>Ver Progreso</span>
+                        </a>
                       }
                     } @else if (post.postType === 'ANIMAL_HERIDO') {
                       <!-- CTA para Animal Herido -->
@@ -1122,13 +1144,19 @@ interface FeedPost {
       <!-- MODAL ITEM #2: FLUJO INTELIGENTE "QUIERO ADOPTAR"        -->
       <!-- ======================================================== -->
       @if (selectedPetForAdoption()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-          <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 overflow-hidden space-y-5 max-h-[90vh] overflow-y-auto">
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn overscroll-contain"
+          (click)="closeAdoptionModal()"
+        >
+          <div
+            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 space-y-5 max-h-[90vh] overflow-y-auto overscroll-contain"
+            (click)="$event.stopPropagation()"
+          >
             
             <!-- Close Button -->
             <button
               (click)="closeAdoptionModal()"
-              class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
+              class="sticky top-0 ml-auto -mt-1 w-8 h-8 rounded-full bg-slate-200/90 dark:bg-slate-800/90 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold z-10 shadow-sm"
             >
               ✕
             </button>
@@ -4249,7 +4277,27 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // ==========================================
   // ITEM #2: FLUJO "QUIERO ADOPTAR"
   // ==========================================
+  isOwnFeedPet(pet?: Pet): boolean {
+    if (!pet) return false;
+    const myId = this.authService.currentUser()?.id;
+    const ownerId = pet.ownerId || pet.owner?.id;
+    return !!myId && !!ownerId && myId === ownerId;
+  }
+
+  isFeedPetAdoptable(pet?: Pet): boolean {
+    if (!pet?.status) return true;
+    return pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO';
+  }
+
   openAdoptionModal(pet: Pet): void {
+    if (!this.isFeedPetAdoptable(pet)) {
+      this.notify.warning('Esta mascota ya no está disponible para nuevas postulaciones.');
+      return;
+    }
+    if (this.isOwnFeedPet(pet)) {
+      this.notify.warning('No puedes postularte para adoptar tu propia publicación.');
+      return;
+    }
     if (!this.authService.isAuthenticated()) {
       this.notify.warning('Inicia sesión para postularte a la adopción de una mascota');
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });

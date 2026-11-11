@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
 import { Pet } from '../../../core/models/pet.model';
+import { UserRole } from '../../../core/models/user.model';
 import { CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
 import { AdoptionRequestFormComponent } from '../../adoptions/shared/adoption-request-form.component';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
@@ -116,14 +117,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </p>
             </div>
 
-            <!-- Floating CTA: Quiero Adoptar -->
-            <button
-              (click)="openAdoptionModal()"
-              class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span class="text-lg">💚</span>
-              <span>¡Quiero Adoptar a {{ pet()!.name }}!</span>
-            </button>
+            <!-- Floating CTA: Quiero Adoptar / Estado -->
+            @if (isOwnPet()) {
+              <a
+                [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
+                [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
+                class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-700 dark:text-sky-300 font-black text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span class="text-lg">📊</span>
+                <span>Ver Progreso de {{ pet()!.name }}</span>
+              </a>
+            } @else if (!isPetAdoptable()) {
+              <span class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-black text-xs sm:text-sm text-center">
+                {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? '🏡 ¡Esta mascota ya encontró hogar!' : '🏠 No disponible en adopción' }}
+              </span>
+            } @else {
+              <button
+                (click)="openAdoptionModal()"
+                class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span class="text-lg">💚</span>
+                <span>¡Quiero Adoptar a {{ pet()!.name }}!</span>
+              </button>
+            }
           </div>
 
           <!-- 3. Medical & Health Passport (Semáforo de Salud) -->
@@ -268,21 +284,35 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 >
                   <span>💬</span> Mensaje Directo
                 </button>
+                <a
+                  [href]="getWhatsAppUrl()"
+                  target="_blank"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
+                  title="Contactar también por WhatsApp"
+                >
+                  <span>📲</span> WhatsApp Rescatista
+                </a>
               }
-              <a
-                [href]="getWhatsAppUrl()"
-                target="_blank"
-                class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
-                title="Contactar también por WhatsApp"
-              >
-                <span>📲</span> WhatsApp Rescatista
-              </a>
-              <button
-                (click)="openAdoptionModal()"
-                class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all text-center flex items-center justify-center gap-1 shadow-md cursor-pointer"
-              >
-                <span>💚</span> Adoptar
-              </button>
+              @if (isOwnPet()) {
+                <a
+                  [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
+                  [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-black transition-all text-center flex items-center justify-center gap-1 shadow-sm"
+                >
+                  <span>📊</span> Ver Progreso
+                </a>
+              } @else if (isPetAdoptable()) {
+                <button
+                  (click)="openAdoptionModal()"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all text-center flex items-center justify-center gap-1 shadow-md cursor-pointer"
+                >
+                  <span>💚</span> Adoptar
+                </button>
+              } @else {
+                <span class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold text-center">
+                  {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? '✓ Adoptada' : 'No disponible' }}
+                </span>
+              }
             </div>
           </div>
         </div>
@@ -290,11 +320,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
       <!-- ITEM #2 ADOPTION MODAL (REUSED FOR DETAIL VIEW) -->
       @if (showAdoptionModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-          <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 overflow-hidden space-y-5">
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn overscroll-contain"
+          (click)="closeAdoptionModal()"
+        >
+          <div
+            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 max-h-[90vh] overflow-y-auto overscroll-contain space-y-5"
+            (click)="$event.stopPropagation()"
+          >
             <button
               (click)="closeAdoptionModal()"
-              class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
+              class="sticky top-0 ml-auto -mt-1 w-8 h-8 rounded-full bg-slate-200/90 dark:bg-slate-800/90 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold z-10 shadow-sm"
             >
               ✕
             </button>
@@ -383,7 +419,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     </div>
   `,
 })
-export class PetPublicDetailComponent implements OnInit {
+export class PetPublicDetailComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   private route = inject(ActivatedRoute);
   private petService = inject(PetService);
@@ -427,12 +463,53 @@ export class PetPublicDetailComponent implements OnInit {
     this.activePhoto.set(url);
   }
 
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  isOwnPet(): boolean {
+    const p = this.pet();
+    const myId = this.authService.currentUser()?.id;
+    const ownerId = p?.ownerId || p?.owner?.id;
+    return !!myId && !!ownerId && myId === ownerId;
+  }
+
+  isPetAdoptable(): boolean {
+    const status = this.pet()?.status;
+    return !status || status === 'DISPONIBLE' || status === 'EN_PROCESO';
+  }
+
+  isRescuerOrAdmin(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return (
+      role === UserRole.RESCATISTA_VERIFICADO ||
+      role === UserRole.ALBERGUE ||
+      role === UserRole.ADMIN
+    );
+  }
+
   openAdoptionModal(): void {
+    if (!this.isPetAdoptable()) {
+      this.notify.warning('Esta mascota ya no se encuentra disponible para nuevas postulaciones.');
+      return;
+    }
+    if (this.isOwnPet()) {
+      this.notify.warning('No puedes postularte a tu propia publicación.');
+      return;
+    }
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     this.showAdoptionModal.set(true);
     this.adoptionSubmitted.set(false);
   }
 
   closeAdoptionModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
     this.showAdoptionModal.set(false);
   }
 

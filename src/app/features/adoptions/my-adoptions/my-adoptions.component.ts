@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -175,7 +175,7 @@ import {
                       ></div>
                     </div>
 
-                    <div class="grid grid-cols-4 gap-1.5 pt-1 text-[10px] sm:text-[11px] font-bold">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[10px] sm:text-[11px] font-bold">
                       @for (s of stepLabels; track s.num) {
                         <div
                           class="p-2 rounded-xl text-center border"
@@ -247,12 +247,12 @@ import {
                         [alt]="group.pet.name"
                         class="w-16 h-16 rounded-2xl object-cover shadow-md border-2 border-emerald-500/30 flex-shrink-0"
                       />
-                      <div>
+                      <div class="min-w-0 flex-1">
                         <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
                         <span class="text-xs text-slate-500 block">
                           Avance del seguimiento: <strong class="text-emerald-600 dark:text-emerald-400">{{ group.completedCount }} de {{ group.totalCount }} hitos validados</strong>
                         </span>
-                        <div class="w-48 sm:w-64 h-2.5 rounded-full bg-slate-200 dark:bg-slate-800 mt-1.5 overflow-hidden">
+                        <div class="w-full max-w-xs h-2.5 rounded-full bg-slate-200 dark:bg-slate-800 mt-1.5 overflow-hidden">
                           <div
                             class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
                             [style.width.%]="group.progressPercent"
@@ -412,14 +412,14 @@ import {
       <!-- MODAL CONVENIO DIGITAL -->
       @if (selectedAgreementReq()) {
         <div
-          class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm overflow-y-auto p-3 sm:p-6 flex items-start justify-center"
+          class="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm overflow-y-auto overscroll-contain p-3 sm:p-6 flex items-start justify-center"
           (click)="closeAgreementModal()"
         >
-          <div class="w-full max-w-4xl my-4 relative" (click)="$event.stopPropagation()">
+          <div class="w-full max-w-4xl my-2 sm:my-4 relative" (click)="$event.stopPropagation()">
             <button
               type="button"
               (click)="closeAgreementModal()"
-              class="mb-2 ml-auto flex items-center gap-1 px-3.5 py-2 rounded-xl bg-white text-slate-900 font-black text-xs shadow-lg cursor-pointer"
+              class="sticky top-2 z-20 mb-2 ml-auto flex items-center gap-1 px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 font-black text-xs shadow-lg cursor-pointer"
             >
               ✕ Cerrar Convenio
             </button>
@@ -436,7 +436,7 @@ import {
     </div>
   `,
 })
-export class MyAdoptionsComponent implements OnInit {
+export class MyAdoptionsComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private adoptionService = inject(AdoptionService);
   private notify = inject(NotificationService);
@@ -543,12 +543,24 @@ export class MyAdoptionsComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
   openAgreementModal(req: AdoptionRequest, mode: 'sign' | 'view'): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
     this.agreementMode.set(mode);
     this.selectedAgreementReq.set(req);
   }
 
   closeAgreementModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
     this.selectedAgreementReq.set(null);
   }
 
@@ -560,7 +572,7 @@ export class MyAdoptionsComponent implements OnInit {
     this.adoptionService.signAgreement(req.id, payload).subscribe({
       next: () => {
         this.isSigningAgreement.set(false);
-        this.selectedAgreementReq.set(null);
+        this.closeAgreementModal();
         this.notify.success(
           '¡Convenio firmado con éxito!',
           'El rescatista recibió notificación. Presenta tu INE físicamente el día de entrega.',
