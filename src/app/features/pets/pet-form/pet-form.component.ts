@@ -7,7 +7,7 @@ import { GroupService } from '../../../core/services/group.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { PetGender } from '../../../core/models/pet.model';
+import { AdoptionStatus, PetGender, PetSize } from '../../../core/models/pet.model';
 import { UserRole } from '../../../core/models/user.model';
 import { PetGroup } from '../../../core/models/group.model';
 
@@ -294,7 +294,34 @@ import { PetGroup } from '../../../core/models/group.model';
               </div>
             </div>
 
-            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Edad Aproximada
+                </label>
+                <input
+                  type="text"
+                  formControlName="approximateAge"
+                  placeholder="Ej. 4 meses, 2 años..."
+                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Tamaño / Talla
+                </label>
+                <select
+                  formControlName="size"
+                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                >
+                  <option value="CHICO">Chico</option>
+                  <option value="MEDIANO">Mediano</option>
+                  <option value="GRANDE">Grande</option>
+                  <option value="GIGANTE">Gigante</option>
+                </select>
+              </div>
+
               <div>
                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Número de Microchip (Opcional)
@@ -306,17 +333,67 @@ import { PetGroup } from '../../../core/models/group.model';
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
+            </div>
 
-              <div class="flex items-center pt-6">
-                <label class="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    formControlName="isSterilized"
-                    class="w-5 h-5 rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-emerald-500 focus:ring-emerald-500"
-                  />
-                  <span class="text-sm font-medium text-slate-700 dark:text-slate-300">¿Está esterilizado / castrado?</span>
+            <div class="mt-4 space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Señas Particulares (Manchas, collar, cicatrices...)
                 </label>
+                <input
+                  type="text"
+                  formControlName="specialMarks"
+                  placeholder="Ej. Mancha blanca en el pecho, patitas blancas, oreja caída..."
+                  class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                />
               </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Vacunas Aplicadas (separadas por coma)
+                  </label>
+                  <input
+                    type="text"
+                    formControlName="vaccinesText"
+                    placeholder="Ej. Quíntuple, Rabia"
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  />
+                </div>
+
+                <div class="flex flex-wrap items-center gap-5 pt-2 sm:pt-5">
+                  <label class="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      formControlName="isSterilized"
+                      class="w-5 h-5 rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Esterilizado(a)</span>
+                  </label>
+                  <label class="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      formControlName="isDewormed"
+                      class="w-5 h-5 rounded bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Desparasitado(a)</span>
+                  </label>
+                </div>
+              </div>
+
+              @if (petForm.get('isForAdoption')?.value || isEditMode()) {
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Historia de Rescate / Descripción de Adopción
+                  </label>
+                  <textarea
+                    formControlName="rescueStory"
+                    rows="2"
+                    placeholder="Historia del rescate o requisitos especiales para su adopción..."
+                    class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                  ></textarea>
+                </div>
+              }
             </div>
 
             <!-- Nota de Privacidad: Mis Mascotas es exclusivamente personal -->
@@ -396,6 +473,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
   cameraFacingMode = signal<'environment' | 'user'>('environment');
   cameraError = signal<string | null>(null);
   private activeCameraStream: MediaStream | null = null;
+  private loadedPetStatus?: AdoptionStatus;
 
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
@@ -405,11 +483,17 @@ export class PetFormComponent implements OnInit, OnDestroy {
     groupId: [null as string | null],
     photoUrl: [''],
     birthDate: [''],
+    approximateAge: [''],
+    size: ['MEDIANO' as PetSize],
     weightKg: [null as number | null],
     color: [''],
+    specialMarks: [''],
     microchipNumber: [''],
     isSterilized: [false],
+    isDewormed: [false],
+    vaccinesText: [''],
     isForAdoption: [false],
+    rescueStory: [''],
     notes: [''],
   });
 
@@ -445,6 +529,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           return;
         }
 
+        this.loadedPetStatus = pet.status;
         this.petForm.patchValue({
           name: pet.name,
           species: pet.species,
@@ -453,11 +538,17 @@ export class PetFormComponent implements OnInit, OnDestroy {
           groupId: pet.groupId || null,
           photoUrl: pet.photoUrl || '',
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
+          approximateAge: pet.approximateAge || '',
+          size: pet.size || 'MEDIANO',
           weightKg: pet.weightKg ? Number(pet.weightKg) : null,
           color: pet.color || '',
+          specialMarks: pet.specialMarks || '',
           microchipNumber: pet.microchipNumber || '',
           isSterilized: pet.isSterilized,
+          isDewormed: !!pet.isDewormed,
+          vaccinesText: (pet.vaccinesList || []).join(', '),
           isForAdoption: pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO',
+          rescueStory: pet.rescueStory || '',
           notes: pet.notes || '',
         });
 
@@ -604,19 +695,40 @@ export class PetFormComponent implements OnInit, OnDestroy {
         userRole === UserRole.ALBERGUE ||
         userRole === UserRole.ADMIN;
 
+      const parsedVaccines = (formVal.vaccinesText || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      const resolvedStatus: AdoptionStatus =
+        this.isEditMode() &&
+        this.loadedPetStatus &&
+        this.loadedPetStatus !== 'DISPONIBLE' &&
+        this.loadedPetStatus !== 'NO_EN_ADOPCION'
+          ? this.loadedPetStatus
+          : formVal.isForAdoption && isRescuerOrAdmin
+            ? 'DISPONIBLE'
+            : 'NO_EN_ADOPCION';
+
       const payload: any = {
         name: formVal.name!,
         species: formVal.species!,
         breed: formVal.breed || undefined,
         gender: formVal.gender || PetGender.MALE,
+        size: formVal.size || 'MEDIANO',
         groupId: formVal.groupId || null,
         photoUrl: finalPhotoUrl || undefined,
         birthDate: formVal.birthDate || undefined,
+        approximateAge: formVal.approximateAge?.trim() || undefined,
         weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
         color: formVal.color || undefined,
+        specialMarks: formVal.specialMarks?.trim() || undefined,
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
-        status: formVal.isForAdoption && isRescuerOrAdmin ? 'DISPONIBLE' : 'NO_EN_ADOPCION',
+        isDewormed: !!formVal.isDewormed,
+        vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
+        status: resolvedStatus,
+        rescueStory: formVal.rescueStory?.trim() || undefined,
         notes: formVal.notes || undefined,
       };
 

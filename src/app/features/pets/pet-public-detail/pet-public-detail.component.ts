@@ -246,13 +246,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </div>
           </div>
 
-          <!-- 5. Rescue Story & Background -->
+          <!-- 5. Rescue Story & Physical Marks -->
           <div class="space-y-3">
             <h2 class="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <span>📖</span> Historia de Rescate
+              <span>📖</span> Historia de Rescate y Señas Particulares
             </h2>
-            <div class="p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
-              {{ pet()!.rescueStory || 'Este peludito fue rescatado con amor en Dolores Hidalgo y ha recibido todos los cuidados médicos necesarios. Ahora espera a una familia que le brinde el hogar que merece.' }}
+            <div class="p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line space-y-2">
+              <p>{{ pet()!.rescueStory || 'Este peludito fue rescatado con amor en Dolores Hidalgo y espera una familia responsable que le brinde el hogar que merece.' }}</p>
+              @if (pet()!.color || pet()!.specialMarks) {
+                <div class="pt-2 border-t border-slate-200/70 dark:border-slate-800 text-xs flex flex-wrap gap-3">
+                  @if (pet()!.color) {
+                    <span>🎨 <strong>Color:</strong> {{ pet()!.color }}</span>
+                  }
+                  @if (pet()!.specialMarks) {
+                    <span>🔍 <strong>Señas particulares:</strong> {{ pet()!.specialMarks }}</span>
+                  }
+                </div>
+              }
             </div>
           </div>
 

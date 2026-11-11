@@ -12,7 +12,7 @@ import { DirectMessageService } from '../../core/services/direct-message.service
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { PushNotificationService } from '../../core/services/push-notification.service';
-import { Pet, AdoptionStatus } from '../../core/models/pet.model';
+import { Pet, AdoptionStatus, PetSize } from '../../core/models/pet.model';
 import { UserRole } from '../../core/models/user.model';
 import { CreateAdoptionRequestPayload } from '../../core/models/adoption.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
@@ -1797,6 +1797,107 @@ interface FeedPost {
                     ></textarea>
                   </div>
 
+                  @if (reportLostForm.type === 'EN_ADOPCION') {
+                    <div class="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/25 space-y-3">
+                      <div>
+                        <span class="font-black text-emerald-700 dark:text-emerald-400 uppercase text-[11px] block">
+                          📋 Ficha Descriptiva para Adopción y Convenio
+                        </span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">
+                          Estos datos aparecerán en la ficha pública de la mascota y en el Convenio Digital oficial.
+                        </span>
+                      </div>
+
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                            Edad Aproximada
+                          </label>
+                          <input
+                            type="text"
+                            [(ngModel)]="reportLostForm.approximateAge"
+                            placeholder="Ej: 4 meses, 1 año y medio..."
+                            class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                            Tamaño / Talla
+                          </label>
+                          <select
+                            [(ngModel)]="reportLostForm.size"
+                            class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          >
+                            <option value="CHICO">Chico</option>
+                            <option value="MEDIANO">Mediano</option>
+                            <option value="GRANDE">Grande</option>
+                            <option value="GIGANTE">Gigante</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                            Raza o Cruza
+                          </label>
+                          <input
+                            type="text"
+                            [(ngModel)]="reportLostForm.breed"
+                            placeholder="Ej: Mestizo, Criollo, Chihuahua..."
+                            class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                            Color / Pelaje
+                          </label>
+                          <input
+                            type="text"
+                            [(ngModel)]="reportLostForm.color"
+                            placeholder="Ej: Miel con blanco, atigrado..."
+                            class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                          Señas Particulares (Manchas, orejas, collar, cicatrices...)
+                        </label>
+                        <input
+                          type="text"
+                          [(ngModel)]="reportLostForm.specialMarks"
+                          placeholder="Ej: Mancha blanca en el pecho, patitas blancas, orejita caída..."
+                          class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-center">
+                        <div>
+                          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                            Vacunas Aplicadas (Opcional)
+                          </label>
+                          <input
+                            type="text"
+                            [(ngModel)]="reportLostForm.vaccinesText"
+                            placeholder="Ej: Quíntuple, Rabia (separadas por coma)"
+                            class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                          />
+                        </div>
+
+                        <label class="flex items-center gap-2 pt-3 sm:pt-5 cursor-pointer font-bold text-slate-700 dark:text-slate-200">
+                          <input
+                            type="checkbox"
+                            [(ngModel)]="reportLostForm.isDewormed"
+                            class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                          />
+                          <span>💊 Desparasitación al corriente</span>
+                        </label>
+                      </div>
+                    </div>
+                  }
+
                   <!-- Temperamento y Convivencia (Condicional) -->
                   @if (currentCategoryConfig.showTemperamentTags) {
                     <div class="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
@@ -2715,6 +2816,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     lastSeenLocation: '',
     incidentDate: new Date().toISOString().split('T')[0],
     distinctiveFeatures: '',
+    approximateAge: '',
+    breed: '',
+    size: 'MEDIANO' as PetSize,
+    color: '',
+    specialMarks: '',
+    isDewormed: false,
+    vaccinesText: '',
     contactPhone: '',
     rewardOffered: false,
     rewardDetails: '',
@@ -3593,6 +3701,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.reportLostForm.petName = '';
     this.reportLostForm.lastSeenLocation = '';
     this.reportLostForm.distinctiveFeatures = '';
+    this.reportLostForm.approximateAge = '';
+    this.reportLostForm.breed = '';
+    this.reportLostForm.size = 'MEDIANO';
+    this.reportLostForm.color = '';
+    this.reportLostForm.specialMarks = '';
+    this.reportLostForm.isDewormed = false;
+    this.reportLostForm.vaccinesText = '';
     this.reportLostForm.photoUrl = '';
     this.reportLostForm.temperamentTags = [];
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
@@ -4111,10 +4226,19 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
       // Caso B: Nueva publicación de "3. Dar en Adopción" -> Se registra en el catálogo de Adopciones con cuestionario activo
       if (this.reportLostForm.type === 'EN_ADOPCION') {
+        const parsedVaccines = this.reportLostForm.vaccinesText
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean);
         const petPayload: any = {
           name: this.reportLostForm.petName.trim(),
           species: this.reportLostForm.species,
+          breed: this.reportLostForm.breed.trim() || undefined,
+          approximateAge: this.reportLostForm.approximateAge.trim() || 'No especificada',
           gender: this.reportLostForm.gender === 'Hembra' ? 'FEMALE' : 'MALE',
+          size: this.reportLostForm.size || 'MEDIANO',
+          color: this.reportLostForm.color.trim() || undefined,
+          specialMarks: this.reportLostForm.specialMarks.trim() || undefined,
           status: 'DISPONIBLE',
           coloniaId: this.reportLostForm.coloniaId || undefined,
           photoUrl: primaryPhoto,
@@ -4123,6 +4247,8 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           notes: `Tel. de contacto: ${this.reportLostForm.contactPhone.trim()}`,
           temperamentTags: this.reportLostForm.temperamentTags,
           isSterilized: this.reportLostForm.temperamentTags.includes('Esterilizado(a)'),
+          isDewormed: !!this.reportLostForm.isDewormed,
+          vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
           goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
           goodWithOtherPets:
             this.reportLostForm.temperamentTags.includes('Sociable con perros') ||
@@ -4153,9 +4279,13 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
               photos: photosList,
               activePhotoIndex: 0,
               species: createdPet.species,
-              gender: createdPet.gender,
+              breed: createdPet.breed,
+              approxAge: createdPet.approximateAge,
+              size: createdPet.size,
+              gender: createdPet.gender === 'FEMALE' ? 'Hembra' : 'Macho',
               coloniaName,
               isSterilized: createdPet.isSterilized,
+              isVaccinated: Boolean(createdPet.vaccinesList && createdPet.vaccinesList.length > 0),
               goodWithKids: createdPet.goodWithKids,
               goodWithOtherPets: createdPet.goodWithOtherPets,
               petData: createdPet,

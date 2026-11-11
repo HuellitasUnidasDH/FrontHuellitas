@@ -103,7 +103,7 @@ import { NotificationService } from '../../../core/services/notification.service
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Vacunas / Salud</span>
               <span class="font-bold">
-                {{ request().pet?.vaccinesList?.length ? request().pet?.vaccinesList?.join(', ') : 'Esquema básico' }}
+                {{ request().pet?.vaccinesList?.length ? request().pet?.vaccinesList?.join(', ') : 'Por confirmar según carnet' }}
               </span>
             </div>
           </div>
