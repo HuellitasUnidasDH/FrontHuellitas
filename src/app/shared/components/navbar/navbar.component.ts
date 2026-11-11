@@ -198,6 +198,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       </a>
                     }
 
+                    <!-- Mis Adopciones y Progreso (Portal Adoptante / Dueño) -->
+                    <a
+                      routerLink="/mis-adopciones"
+                      routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      (click)="closeAllDropdowns()"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <span class="text-sm">🐾</span>
+                      <span>Mis Adopciones y Progreso</span>
+                    </a>
+
                     <!-- Verificación de Adoptante -->
                     <a
                       routerLink="/verificacion"
@@ -893,6 +904,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 >
                   <span class="text-lg">👤</span>
                   <span>Mi Perfil y Publicaciones</span>
+                </a>
+
+                <a
+                  routerLink="/mis-adopciones"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                >
+                  <span class="text-lg">🐾</span>
+                  <span>Mis Adopciones y Progreso</span>
                 </a>
 
                 <a

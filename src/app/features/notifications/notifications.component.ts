@@ -632,7 +632,7 @@ export class NotificationsComponent implements OnInit {
       case SocialNotificationType.ADOPTION_REQUEST_STATUS:
         return 'Resolución de Adopción';
       case SocialNotificationType.FOLLOWUP_PROOF_SUBMITTED:
-        return 'Seguimiento 7/30/90 Días';
+        return 'Seguimiento Post-Adopción';
       case SocialNotificationType.GROUP_ACTIVITY:
         return 'Actividad Familiar';
       default:

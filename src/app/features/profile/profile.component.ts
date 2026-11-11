@@ -15,6 +15,8 @@ import { Colonia } from '../../core/models/colonia.model';
 import { Pet } from '../../core/models/pet.model';
 import { LostPetReport } from '../../core/models/lost-pet.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import { getStageMeta } from '../adoptions/shared/adoption-helpers.util';
+import { AdoptionRequestStatus } from '../../core/models/adoption.model';
 
 type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 
@@ -340,6 +342,18 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 
         <!-- TAB 3: MIS SOLICITUDES DE ADOPCIÓN -->
         @if (activeTab() === 'ADOPTIONS') {
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs text-slate-600 dark:text-slate-300">
+              Visualiza el avance oficial de 4 pasos de tus postulaciones, firma Convenios y sube seguimientos en tu portal dedicado.
+            </p>
+            <a
+              routerLink="/mis-adopciones"
+              class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-sm hover:brightness-105"
+            >
+              🐾 Ir a Portal Mis Adopciones →
+            </a>
+          </div>
+
           @if (!publications()?.adoptionRequests || publications()!.adoptionRequests.length === 0) {
             <div class="liquid-glass rounded-3xl p-10 text-center space-y-3 border border-slate-200/80 dark:border-slate-800/80">
               <span class="text-4xl">📋</span>
@@ -359,6 +373,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
           } @else {
             <div class="space-y-3">
               @for (req of publications()!.adoptionRequests; track req.id) {
+                @let stage = adoptionStageMeta(req.status);
                 <div class="liquid-glass rounded-2xl p-4 sm:p-5 shadow-lg border border-slate-200/80 dark:border-slate-800/80 space-y-3">
                   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
@@ -377,21 +392,22 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 
                     <span
                       class="px-3 py-1 rounded-full text-xs font-extrabold uppercase shadow-sm border"
-                      [ngClass]="req.status === 'PENDIENTE'
-                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30'
-                        : req.status === 'APROBADA'
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
-                        : 'bg-rose-500/20 text-rose-700 dark:text-rose-400 border-rose-500/30'"
+                      [ngClass]="stage.colorClass"
                     >
-                      @if (req.status === 'PENDIENTE') { ⏳ En Revisión (Pendiente) }
-                      @else if (req.status === 'APROBADA') { 🎉 ¡Solicitud Aprobada! }
-                      @else { ❌ {{ req.status }} }
+                      {{ stage.label }}
                     </span>
+                  </div>
+
+                  <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                      [style.width.%]="stage.progress"
+                    ></div>
                   </div>
 
                   @if (req.publisherNotes) {
                     <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-slate-700 dark:text-slate-300">
-                      <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">💬 Respuesta del rescatista / publicador:</span>
+                      <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-0.5">💬 Nota del rescatista:</span>
                       {{ req.publisherNotes }}
                     </div>
                   }
@@ -983,6 +999,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
       default:
         return 'Ciudadano / Tutor';
     }
+  }
+
+  adoptionStageMeta(status?: string) {
+    return getStageMeta((status || 'PENDIENTE') as AdoptionRequestStatus);
   }
 
   formatDate(dateStr?: string): string {

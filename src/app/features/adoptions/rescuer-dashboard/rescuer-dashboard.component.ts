@@ -7,21 +7,37 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
+import { ImageUploadService } from '../../../core/services/image-upload.service';
 import {
   AdoptionRequest,
   AdoptionFollowup,
   AdoptionRequestStatus,
   AdopterVerification,
+  FollowupStatus,
 } from '../../../core/models/adoption.model';
+import { Pet } from '../../../core/models/pet.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
+import {
+  getCandidateVerificationBadge,
+  getMilestoneLabel,
+  getStageMeta,
+  groupFollowupsByPet,
+} from '../shared/adoption-helpers.util';
+
+interface PetRequestGroup {
+  pet: Pet;
+  requests: AdoptionRequest[];
+  activeCount: number;
+  approvedReq?: AdoptionRequest;
+}
 
 @Component({
   selector: 'app-rescuer-dashboard',
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   template: `
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
       <!-- Header -->
       <section class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-500/20">
@@ -35,7 +51,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 Panel del Rescatista y Evaluación
               </h1>
               <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
-                Gestión de solicitudes de adopción, aprobación de niveles 2 y 3 de adoptantes y seguimientos 7, 30 y 90 días.
+                Protocolo oficial de 4 pasos, niveles de adoptantes y seguimientos agrupados por mascota (2 semanas, 1 mes, medio año y 1 año).
               </p>
             </div>
           </div>
@@ -68,7 +84,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
             [ngClass]="activeTab() === 'REQUESTS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
-            📥 Solicitudes de Adopción ({{ requests().length }})
+            📥 Solicitudes por Mascota ({{ requests().length }})
           </button>
 
           <button
@@ -89,151 +105,235 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
             [ngClass]="activeTab() === 'FOLLOWUPS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
-            🗓️ Seguimientos 7, 30 y 90 Días ({{ followups().length }})
+            📸 Seguimientos por Mascota ({{ followupGroups().length }})
           </button>
+
+          <span class="ml-auto text-[11px] font-semibold text-slate-400 hidden sm:inline">
+            Actualizado: {{ lastUpdatedFormatted() }}
+          </span>
         </div>
       </section>
 
       @if (isLoading()) {
-        <div class="liquid-glass rounded-3xl p-16 text-center space-y-3">
-          <div class="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p class="text-xs font-bold text-slate-500">Cargando bandeja de control...</p>
+        <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
+          <div class="text-4xl animate-bounce">🐾</div>
+          <p class="text-sm font-bold text-slate-500">Cargando módulo de rescate y adopciones...</p>
         </div>
       } @else {
-        <!-- TAB 1: SOLICITUDES DE ADOPCIÓN -->
+        <!-- ========================================================== -->
+        <!-- TAB 1: SOLICITUDES AGRUPADAS POR MASCOTA (MASTER VIEW) -->
+        <!-- ========================================================== -->
         @if (activeTab() === 'REQUESTS') {
-          <section class="space-y-4">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-1 text-xs">
-              <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Detección en tiempo real activa
-                </span>
-                <span class="text-[11px] text-slate-500">
-                  Última sincronización: <strong>{{ lastUpdatedFormatted() }}</strong>
-                </span>
+          <section class="space-y-5">
+            <!-- Filtros y Búsqueda -->
+            <div class="liquid-glass rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                <button
+                  type="button"
+                  (click)="requestFilter.set('ALL')"
+                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                  [ngClass]="requestFilter() === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  (click)="requestFilter.set('ACTIVE')"
+                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                  [ngClass]="requestFilter() === 'ACTIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                >
+                  Activas / En Evaluación
+                </button>
+                <button
+                  type="button"
+                  (click)="requestFilter.set('READY')"
+                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                  [ngClass]="requestFilter() === 'READY' ? 'bg-indigo-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                >
+                  Convenio / Entrega
+                </button>
+                <button
+                  type="button"
+                  (click)="requestFilter.set('CLOSED')"
+                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                  [ngClass]="requestFilter() === 'CLOSED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                >
+                  Finalizadas
+                </button>
               </div>
+
+              <input
+                type="text"
+                [(ngModel)]="searchTerm"
+                placeholder="🔍 Buscar por nombre de mascota o candidato..."
+                class="w-full md:w-72 px-3.5 py-2 rounded-xl bg-white/80 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+              />
             </div>
 
-            @if (requests().length === 0) {
-              <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
-                <span class="text-4xl">📭</span>
-                <p class="text-sm font-bold text-slate-800 dark:text-white">No tienes solicitudes pendientes</p>
-                <p class="text-xs text-slate-500">Cuando un adoptante postule para una de tus mascotas en el Muro, aparecerá aquí.</p>
+            @if (filteredPetRequestGroups().length === 0) {
+              <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
+                <div class="text-4xl">📭</div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay solicitudes en esta categoría</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto">
+                  Las publicaciones eliminadas se depuran automáticamente. Cuando recibas una postulación activa aparecerá agrupada aquí por mascota.
+                </p>
               </div>
             } @else {
-              <div class="grid grid-cols-1 gap-4">
-                @for (req of requests(); track req.id) {
-                  <div class="liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border border-slate-200/80 dark:border-slate-800">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div class="flex items-center gap-3">
-                        <img
-                          [src]="req.pet?.photoUrl || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80'"
-                          [alt]="req.pet?.name"
-                          class="w-14 h-14 rounded-2xl object-cover shadow-sm border"
-                        />
-                        <div>
-                          <h3 class="text-base font-bold text-slate-900 dark:text-white">
-                            Interés por: {{ req.pet?.name || 'Mascota' }}
-                          </h3>
-                          <p class="text-xs text-slate-500">
-                            Candidato: <strong>{{ req.adopter?.fullName }}</strong> (Nivel {{ req.adopter?.verificationLevel ?? 1 }})
-                          </p>
+              @for (group of filteredPetRequestGroups(); track group.pet.id) {
+                <article class="liquid-glass rounded-3xl p-5 sm:p-6 border border-slate-200/70 dark:border-slate-700/70 shadow-lg space-y-4">
+                  <!-- Cabecera de Mascota -->
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
+                    <div class="flex items-center gap-3.5">
+                      <img
+                        [src]="group.pet.photoUrl || group.pet.photos?.[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=200&q=80'"
+                        [alt]="group.pet.name"
+                        class="w-14 h-14 rounded-2xl object-cover shadow-sm flex-shrink-0"
+                      />
+                      <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <h2 class="text-lg font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
+                          <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                            {{ group.pet.species }} • {{ group.pet.breed || 'Mestizo' }}
+                          </span>
+                          @if (group.approvedReq) {
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-600 text-white">
+                              ✓ Adoptada
+                            </span>
+                          }
                         </div>
+                        <span class="text-xs text-slate-500 block mt-0.5">
+                          {{ group.requests.length }} postulación(es) registrada(s) • {{ group.activeCount }} activa(s)
+                        </span>
                       </div>
-
-                      <span
-                        class="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider"
-                        [ngClass]="getStatusBadge(req.status)"
-                      >
-                        {{ req.status }}
-                      </span>
                     </div>
 
-                    @if (req.adopterMessage) {
-                      <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/70 border border-emerald-500/20 shadow-inner text-xs text-slate-800 dark:text-slate-200 whitespace-pre-line leading-relaxed font-sans">
-                        <div class="flex items-center gap-1.5 font-bold text-[11px] text-emerald-600 dark:text-emerald-400 mb-2 uppercase tracking-wide">
-                          <span>📋</span>
-                          <span>Respuestas y Compromisos del Protocolo de Adopción:</span>
-                        </div>
-                        <div class="pl-1 text-slate-700 dark:text-slate-300">
-                          {{ req.adopterMessage }}
-                        </div>
-                      </div>
-                    }
+                    <a
+                      [routerLink]="['/adopciones', group.pet.id]"
+                      class="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline self-start sm:self-center"
+                    >
+                      Ver publicación →
+                    </a>
+                  </div>
 
-                    <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
-                      <div class="flex flex-wrap items-center gap-2">
-                        @if (req.adopter?.id) {
+                  <!-- Lista limpia de Postulantes -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (req of group.requests; track req.id) {
+                      @let badge = candidateBadge(req.adopter);
+                      @let stage = stageMeta(req.status);
+                      <div class="p-4 rounded-2xl bg-white/75 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-3 hover:border-emerald-500/40 transition-colors">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="flex items-center gap-3 min-w-0">
+                            @if (req.adopter?.profilePhotoUrl) {
+                              <img
+                                [src]="req.adopter!.profilePhotoUrl!"
+                                [alt]="req.adopter?.fullName"
+                                class="w-12 h-12 rounded-2xl object-cover flex-shrink-0 border border-slate-200 dark:border-slate-700"
+                              />
+                            } @else {
+                              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white font-black text-lg flex items-center justify-center flex-shrink-0">
+                                {{ (req.adopter?.fullName || 'A').charAt(0).toUpperCase() }}
+                              </div>
+                            }
+                            <div class="min-w-0">
+                              <h3 class="font-black text-slate-900 dark:text-white text-sm truncate">
+                                {{ req.adopter?.fullName }}
+                              </h3>
+                              <span class="text-[11px] text-slate-500 block truncate">
+                                📍 {{ req.adopter?.colonia?.name || 'Dolores Hidalgo' }} • {{ req.createdAt | date:'dd/MM/yy' }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span
+                            class="px-2.5 py-1 rounded-xl text-[11px] font-black flex items-center gap-1 flex-shrink-0"
+                            [ngClass]="badge.badgeClass"
+                            [title]="badge.subtitle"
+                          >
+                            <span>{{ badge.icon }}</span> Nivel {{ badge.level }}
+                          </span>
+                        </div>
+
+                        <!-- Progreso y Etapa -->
+                        <div class="space-y-1.5">
+                          <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span class="px-2 py-0.5 rounded-lg border text-[10px] font-black" [ngClass]="stage.colorClass">
+                              {{ stage.label }}
+                            </span>
+                            <span class="text-slate-500">{{ stage.progress }}%</span>
+                          </div>
+                          <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                            <div
+                              class="h-full rounded-full transition-all duration-500"
+                              [ngClass]="req.status === 'RECHAZADA' || req.status === 'CANCELADA' ? 'bg-rose-400' : 'bg-gradient-to-r from-emerald-500 to-teal-400'"
+                              [style.width.%]="stage.progress"
+                            ></div>
+                          </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex items-center gap-2 pt-1">
+                          <a
+                            [routerLink]="['/panel-rescatista/solicitud', req.id]"
+                            class="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-105 text-slate-950 font-black text-xs text-center shadow-sm transition-all"
+                          >
+                            🔎 Evaluar Expediente →
+                          </a>
+
                           <button
                             type="button"
                             (click)="contactAdopterInApp(req)"
-                            class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow-md hover:from-teal-400 hover:to-emerald-300 cursor-pointer"
+                            class="py-2.5 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold text-xs cursor-pointer"
+                            title="Abrir Chat Directo"
                           >
-                            <span>💬</span> Mensaje en Huellitas
+                            💬
                           </button>
-                        }
-                        @if (req.adopter?.phone) {
-                          <a
-                            [href]="getAdopterWhatsAppUrl(req)"
-                            target="_blank"
-                            class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center gap-1 shadow-sm transition-colors"
-                            title="Contactar también por WhatsApp"
-                          >
-                            <span>📲</span> WhatsApp Adoptante
-                          </a>
-                        }
-                      </div>
 
-                      @if (req.status === 'PENDIENTE') {
-                        <div class="flex items-center gap-2">
-                          <button
-                            (click)="updateStatus(req.id, 'APROBADA')"
-                            class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
+                          <a
+                            [href]="req.whatsappDirectUrl || getAdopterWhatsAppUrl(req)"
+                            target="_blank"
+                            class="py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs"
+                            title="WhatsApp Directo"
                           >
-                            ✓ Aprobar Adopción
-                          </button>
-                          <button
-                            (click)="updateStatus(req.id, 'RECHAZADA')"
-                            class="px-3 py-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 text-xs font-bold cursor-pointer"
-                          >
-                            ✕ Desestimar
-                          </button>
+                            📲
+                          </a>
                         </div>
-                      }
-                    </div>
+                      </div>
+                    }
                   </div>
-                }
-              </div>
+                </article>
+              }
             }
           </section>
         }
 
-        <!-- TAB 2: APROBACIÓN DE VERIFICACIONES DE ADOPTANTES (NIVELES 2 Y 3) -->
+        <!-- ========================================================== -->
+        <!-- TAB 2: APROBACIÓN DE VERIFICACIÓN DE ADOPTANTES (N2 & N3) -->
+        <!-- ========================================================== -->
         @if (activeTab() === 'VERIFICATIONS') {
           <section class="space-y-4">
-            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-slate-700 dark:text-slate-300">
-              🛡️ <strong>Control de Seguridad de Adoptantes:</strong> Ningún usuario puede auto-asignarse el Nivel 2 o el Nivel 3. Como Rescatista Verificado o Administrador, aquí puedes revisar sus respuestas socioambientales y autorizar cada nivel.
-            </div>
-
             @if (verifications().length === 0) {
-              <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
-                <span class="text-4xl">🛡️</span>
-                <p class="text-sm font-bold text-slate-800 dark:text-white">No hay solicitudes de verificación registradas</p>
-                <p class="text-xs text-slate-500">Cuando un ciudadano envíe su Cuestionario Nivel 2 o Carta Compromiso Nivel 3, aparecerá aquí para tu aprobación.</p>
+              <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
+                <div class="text-4xl">🛡️</div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay expedientes de verificación registrados aún</h3>
+                <p class="text-xs text-slate-500">Cuando un usuario envíe su Cuestionario Socioambiental (Nivel 2) o Carta Compromiso (Nivel 3) aparecerá aquí.</p>
               </div>
             } @else {
-              <div class="grid grid-cols-1 gap-4">
+              <div class="space-y-4">
                 @for (ver of verifications(); track ver.id) {
-                  <div class="liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border border-slate-200/80 dark:border-slate-800">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
-                      <div>
-                        <h3 class="text-base font-black text-slate-900 dark:text-white">
-                          {{ ver.user?.fullName || 'Ciudadano Solicitud' }}
-                        </h3>
-                        <p class="text-xs text-slate-500">
-                          📧 {{ ver.user?.email }} • 📱 {{ ver.user?.phone || 'Sin teléfono' }}
-                        </p>
+                  <article class="liquid-glass rounded-3xl p-5 sm:p-6 border border-slate-200/70 dark:border-slate-700/70 shadow-lg space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800/60 pb-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white font-black flex items-center justify-center text-base shadow-md">
+                          {{ (ver.user?.fullName || 'U').charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                          <h3 class="font-black text-slate-900 dark:text-white text-base">
+                            {{ ver.user?.fullName || 'Usuario' }}
+                          </h3>
+                          <span class="text-xs text-slate-500">
+                            {{ ver.user?.email }} • 📱 {{ ver.user?.phone || 'Sin teléfono' }}
+                          </span>
+                        </div>
                       </div>
 
                       <div class="flex flex-wrap items-center gap-2 text-[11px] font-extrabold">
@@ -270,20 +370,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     </div>
 
                     @if (ver.reviewNotes && (ver.level2Status === 'RECHAZADO' || ver.level3Status === 'RECHAZADO')) {
-                      <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-2.5">
-                          <span class="text-base">💬</span>
-                          <div>
-                            <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[10px]">
-                              Observación activa enviada al solicitante:
-                            </strong>
-                            <p class="mt-0.5 text-slate-800 dark:text-slate-200">{{ ver.reviewNotes }}</p>
-                          </div>
+                      <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs flex items-start gap-2.5">
+                        <span class="text-base">💬</span>
+                        <div>
+                          <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[10px]">
+                            Observación activa enviada al solicitante:
+                          </strong>
+                          <p class="mt-0.5 text-slate-800 dark:text-slate-200">{{ ver.reviewNotes }}</p>
                         </div>
                       </div>
                     }
 
-                    <!-- Questionnaire Answers -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-white/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
                       <div>
                         <span class="text-[10px] font-extrabold uppercase text-slate-400 block">Tipo de Vivienda</span>
@@ -312,7 +409,6 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       }
                     </div>
 
-                    <!-- Reviewer Actions -->
                     <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
                       @if (!ver.isLevel2Completed) {
                         <button
@@ -344,106 +440,215 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                         >
                           ✕ Rechazar Nivel 3
                         </button>
-                      } @else if (ver.isLevel3Completed) {
-                        <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                          ✅ Expediente Completo (Nivel 3 Autorizado)
-                        </span>
                       } @else {
-                        <span class="text-xs text-slate-500">
-                          Nivel 2 aprobado • Esperando que el usuario firme su Carta Compromiso (Nivel 3)
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          ✓ Expediente verificado por completo
                         </span>
                       }
                     </div>
-                  </div>
+                  </article>
                 }
               </div>
             }
           </section>
         }
 
-        <!-- TAB 3: SEGUIMIENTOS POST-ADOPCIÓN 7, 30 Y 90 DÍAS -->
+        <!-- ====================================================================== -->
+        <!-- TAB 3: SEGUIMIENTOS AGRUPADOS EN UNA SOLA TARJETA CONTENEDORA POR MASCOTA -->
+        <!-- ====================================================================== -->
         @if (activeTab() === 'FOLLOWUPS') {
-          <section class="space-y-4">
-            <div class="p-4 rounded-2xl bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border border-teal-500/20 text-xs text-slate-700 dark:text-slate-300">
-              💡 <strong>Protocolo Oficial Huellitas Dolores Hidalgo:</strong> Los seguimientos a los 7, 30 y 90 días previenen el abandono secundario y verifican la adaptación familiar. Utiliza el botón prellenado para solicitar su fotografía con 1 clic por WhatsApp.
-            </div>
-
-            @if (followups().length === 0) {
-              <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
-                <span class="text-4xl">🐾</span>
-                <p class="text-sm font-bold text-slate-800 dark:text-white">Sin seguimientos activos aún</p>
-                <p class="text-xs text-slate-500">Se programarán automáticamente a los 7, 30 y 90 días tras aprobar una adopción.</p>
+          <section class="space-y-5">
+            @if (followupGroups().length === 0) {
+              <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
+                <div class="text-4xl">🗓️</div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay seguimientos programados aún</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto">
+                  Cuando formalices una adopción con Convenio firmado e INE cotejado, aquí se agruparán los 4 hitos oficiales de cada mascota (2 semanas, 1 mes, medio año y 1 año).
+                </p>
               </div>
             } @else {
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                @for (fol of followups(); track fol.id) {
-                  <div class="liquid-glass rounded-3xl p-5 shadow-xl space-y-3 border border-slate-200/80 dark:border-slate-800">
-                    <div class="flex items-center justify-between">
-                      <span class="px-3 py-1 rounded-full text-xs font-black uppercase bg-teal-500/15 text-teal-700 dark:text-teal-400 border border-teal-500/30">
-                        Hito: {{ fol.dayMilestone }} Días
-                      </span>
-                      <span class="text-[11px] font-bold text-slate-400">
-                        Fecha: {{ fol.scheduledDate | slice:0:10 }}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h4 class="text-sm font-bold text-slate-900 dark:text-white">
-                        Mascota: {{ fol.pet?.name || 'Mascota Adoptada' }}
-                      </h4>
-                      <p class="text-xs text-slate-500">
-                        Adoptante: {{ fol.adopter?.fullName || 'Familia adoptante' }}
-                      </p>
-                    </div>
-
-                    <div class="text-xs">
-                      <span class="font-bold text-slate-600 dark:text-slate-300">Estado: </span>
-                      <span class="font-black text-emerald-600 dark:text-emerald-400">{{ fol.status }}</span>
-                    </div>
-
-                    @if (fol.proofPhotoUrl) {
-                      <div class="w-full h-36 rounded-xl overflow-hidden border">
-                        <img [src]="fol.proofPhotoUrl" alt="Foto de bienestar recibida" class="w-full h-full object-cover" />
+              @for (group of followupGroups(); track group.petId + group.adopter?.id) {
+                @let badge = candidateBadge(group.adopter);
+                <article
+                  class="liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border"
+                  [ngClass]="group.hasAlert ? 'border-rose-500/60' : 'border-emerald-500/25'"
+                >
+                  <!-- Header de la Mascota Contenedora -->
+                  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/70 dark:border-slate-800">
+                    <div class="flex items-center gap-4">
+                      <img
+                        [src]="group.pet.photoUrl || group.pet.photos?.[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=200&q=80'"
+                        [alt]="group.pet.name"
+                        class="w-16 h-16 rounded-2xl object-cover shadow-md border-2 border-emerald-500/30 flex-shrink-0"
+                      />
+                      <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
+                          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black" [ngClass]="badge.badgeClass">
+                            {{ badge.icon }} Nivel {{ badge.level }}
+                          </span>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                          Adoptante: <strong>{{ group.adopter?.fullName || 'Adoptante' }}</strong> •
+                          Progreso: <strong class="text-emerald-600 dark:text-emerald-400">{{ group.completedCount }} de {{ group.totalCount }} hitos</strong>
+                        </p>
+                        <!-- Barra de progreso -->
+                        <div class="w-48 sm:w-64 h-2 rounded-full bg-slate-200 dark:bg-slate-800 mt-1.5 overflow-hidden">
+                          <div
+                            class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                            [style.width.%]="group.progressPercent"
+                          ></div>
+                        </div>
                       </div>
-                    }
+                    </div>
 
-                    <!-- Actions -->
-                    <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center gap-2">
-                      @if (fol.adopter?.id) {
+                    <div class="flex flex-wrap items-center gap-2">
+                      @if (group.milestones[0]; as firstFol) {
                         <button
                           type="button"
-                          (click)="contactFollowupAdopterInApp(fol)"
-                          class="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-black text-xs text-center flex items-center justify-center gap-1 shadow-md hover:from-teal-400 hover:to-emerald-300 cursor-pointer"
+                          (click)="contactFollowupAdopterInApp(firstFol)"
+                          class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
                         >
-                          <span>💬</span> Pedir Foto por Huellitas
+                          <span>💬</span> Chat
                         </button>
+                        <a
+                          [href]="firstFol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(firstFol)"
+                          target="_blank"
+                          class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5"
+                        >
+                          <span>📲</span> WhatsApp
+                        </a>
                       }
                       <a
-                        [href]="fol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(fol)"
-                        target="_blank"
-                        class="flex-1 py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs text-center flex items-center justify-center gap-1 shadow-sm"
-                        title="Pedir foto por WhatsApp"
+                        [routerLink]="['/adopciones', group.petId]"
+                        class="px-3.5 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs"
                       >
-                        <span>📲</span> WhatsApp
+                        Ver Ficha
                       </a>
-
-                      @if (fol.status !== 'COMPLETADO') {
-                        <button
-                          (click)="registerProofModal(fol)"
-                          class="py-2 px-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
-                        >
-                          📷 Registrar
-                        </button>
-                      }
                     </div>
                   </div>
-                }
-              </div>
+
+                  <!-- Recordatorio de Esterilización (5-6 meses) -->
+                  @if (!group.pet.isSterilized) {
+                    <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div class="flex items-start gap-2.5 text-amber-900 dark:text-amber-200">
+                        <span class="text-lg flex-shrink-0">🩺</span>
+                        <div>
+                          <strong class="font-black block">Compromiso de Esterilización Pendiente (5 - 6 meses de edad)</strong>
+                          <span>{{ group.pet.name }} fue entregada con compromiso obligatorio de esterilización. Confirma aquí cuando el adoptante entregue su comprobante médico.</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        (click)="confirmSterilization(group.pet)"
+                        class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex-shrink-0 cursor-pointer shadow-sm"
+                      >
+                        ✅ Confirmar Esterilización
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1.5">
+                      <span>✓</span> Mascota esterilizada — compromiso cumplido
+                    </div>
+                  }
+
+                  <!-- 4 Hitos Dentro de la Misma Tarjeta Contenedora -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (fol of group.milestones; track fol.id) {
+                      @let mLabel = milestoneLabel(fol.dayMilestone);
+                      <div
+                        class="p-4 rounded-2xl border bg-white/75 dark:bg-slate-900/70 space-y-3"
+                        [ngClass]="
+                          fol.status === 'COMPLETADO'
+                            ? 'border-emerald-500/40'
+                            : fol.status === 'ALERTA_REABANDONO'
+                              ? 'border-rose-500/60 bg-rose-500/5'
+                              : 'border-slate-200 dark:border-slate-800'
+                        "
+                      >
+                        <div class="flex items-center justify-between gap-2">
+                          <div>
+                            <span class="text-xs font-black text-slate-900 dark:text-white block">
+                              📅 Seguimiento {{ mLabel.label }} ({{ mLabel.badge }})
+                            </span>
+                            <span class="text-[11px] text-slate-500">
+                              Fecha programada: {{ fol.scheduledDate | date:'dd/MM/yyyy' }}
+                            </span>
+                          </div>
+
+                          <span
+                            class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase"
+                            [ngClass]="followupStatusBadge(fol.status)"
+                          >
+                            {{ followupStatusLabel(fol.status) }}
+                          </span>
+                        </div>
+
+                        @if (fol.proofPhotoUrl) {
+                          <div class="space-y-1.5">
+                            <a [href]="fol.proofPhotoUrl" target="_blank" class="block">
+                              <img
+                                [src]="fol.proofPhotoUrl"
+                                [alt]="'Evidencia ' + mLabel.label"
+                                class="w-full h-36 rounded-xl object-cover border border-emerald-500/30 hover:opacity-95"
+                              />
+                            </a>
+                            @if (fol.proofNotes) {
+                              <p class="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 p-2 rounded-lg">
+                                💬 {{ fol.proofNotes }}
+                              </p>
+                            }
+                          </div>
+                        }
+
+                        <!-- Acciones del Rescatista por Hito -->
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                          <label class="flex-1 py-2 px-3 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer text-center transition-colors">
+                            @if (uploadingFollowupId() === fol.id) {
+                              ⏳ Subiendo foto...
+                            } @else {
+                              📷 {{ fol.proofPhotoUrl ? 'Cambiar Foto' : 'Subir / Tomar Foto' }}
+                            }
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              class="hidden"
+                              (change)="onUploadFollowupPhoto($event, fol)"
+                              [disabled]="uploadingFollowupId() === fol.id"
+                            />
+                          </label>
+
+                          @if (fol.status !== 'COMPLETADO') {
+                            <button
+                              type="button"
+                              (click)="setFollowupStatus(fol, 'COMPLETADO')"
+                              class="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer"
+                            >
+                              ✓ Validar
+                            </button>
+                          }
+
+                          @if (fol.status !== 'ALERTA_REABANDONO') {
+                            <button
+                              type="button"
+                              (click)="setFollowupStatus(fol, 'ALERTA_REABANDONO')"
+                              class="py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
+                              title="Reportar incidencia o alerta de seguimiento"
+                            >
+                              ⚠️ Alerta
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
             }
           </section>
         }
       }
-
     </div>
   `,
 })
@@ -456,13 +661,18 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   private notify = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private dmService = inject(DirectMessageService);
+  private imageUpload = inject(ImageUploadService);
 
   activeTab = signal<'REQUESTS' | 'VERIFICATIONS' | 'FOLLOWUPS'>('REQUESTS');
+  requestFilter = signal<'ALL' | 'ACTIVE' | 'READY' | 'CLOSED'>('ALL');
+  searchTerm = '';
+
   requests = signal<AdoptionRequest[]>([]);
   verifications = signal<AdopterVerification[]>([]);
   followups = signal<AdoptionFollowup[]>([]);
   isLoading = signal<boolean>(true);
   isRefreshing = signal<boolean>(false);
+  uploadingFollowupId = signal<string | null>(null);
   lastUpdated = signal<Date>(new Date());
 
   pendingVerificationsCount = computed(() => {
@@ -470,6 +680,59 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
       (v) => v.level2Status === 'PENDIENTE' || v.level3Status === 'PENDIENTE',
     ).length;
   });
+
+  followupGroups = computed(() => groupFollowupsByPet(this.followups()));
+
+  petRequestGroups = computed<PetRequestGroup[]>(() => {
+    const map = new Map<string, PetRequestGroup>();
+    for (const req of this.requests()) {
+      if (!req.pet || req.pet.isDeleted) continue;
+      let grp = map.get(req.petId);
+      if (!grp) {
+        grp = {
+          pet: req.pet,
+          requests: [],
+          activeCount: 0,
+        };
+        map.set(req.petId, grp);
+      }
+      grp.requests.push(req);
+      if (req.status === 'APROBADA') {
+        grp.approvedReq = req;
+      } else if (req.status !== 'RECHAZADA' && req.status !== 'CANCELADA') {
+        grp.activeCount++;
+      }
+    }
+    return Array.from(map.values());
+  });
+
+  filteredPetRequestGroups(): PetRequestGroup[] {
+    const q = this.searchTerm.trim().toLowerCase();
+    const filter = this.requestFilter();
+
+    return this.petRequestGroups()
+      .map((grp) => {
+        const filteredReqs = grp.requests.filter((r) => {
+          if (q) {
+            const matchesPet = grp.pet.name?.toLowerCase().includes(q);
+            const matchesAdopter = r.adopter?.fullName?.toLowerCase().includes(q);
+            if (!matchesPet && !matchesAdopter) return false;
+          }
+          if (filter === 'ACTIVE') {
+            return ['PENDIENTE', 'EN_EVALUACION', 'EN_ENTREVISTA', 'VISITA_DOMICILIARIA'].includes(r.status);
+          }
+          if (filter === 'READY') {
+            return ['ESPERANDO_CONVENIO', 'CONVENIO_FIRMADO'].includes(r.status);
+          }
+          if (filter === 'CLOSED') {
+            return ['APROBADA', 'RECHAZADA', 'CANCELADA'].includes(r.status);
+          }
+          return true;
+        });
+        return { ...grp, requests: filteredReqs };
+      })
+      .filter((grp) => grp.requests.length > 0);
+  }
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -484,6 +747,8 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     const tabParam = this.route.snapshot.queryParamMap.get('tab');
     if (tabParam === 'verifications') {
       this.activeTab.set('VERIFICATIONS');
+    } else if (tabParam === 'followups') {
+      this.activeTab.set('FOLLOWUPS');
     }
 
     this.loadData();
@@ -496,9 +761,7 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   startAutoRefresh(): void {
     this.stopAutoRefresh();
-    this.pollTimer = setInterval(() => {
-      this.silentRefresh();
-    }, 20000);
+    this.pollTimer = setInterval(() => this.silentRefresh(), 20000);
   }
 
   stopAutoRefresh(): void {
@@ -509,8 +772,7 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   }
 
   lastUpdatedFormatted(): string {
-    const d = this.lastUpdated();
-    return d.toLocaleTimeString('es-MX', {
+    return this.lastUpdated().toLocaleTimeString('es-MX', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -575,6 +837,46 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  candidateBadge(user?: AdoptionRequest['adopter'] | null) {
+    return getCandidateVerificationBadge(user);
+  }
+
+  stageMeta(status: AdoptionRequestStatus) {
+    return getStageMeta(status);
+  }
+
+  milestoneLabel(day: number) {
+    return getMilestoneLabel(day);
+  }
+
+  followupStatusBadge(status: FollowupStatus): string {
+    switch (status) {
+      case 'COMPLETADO':
+        return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400';
+      case 'FOTO_RECIBIDA':
+        return 'bg-sky-500/20 text-sky-700 dark:text-sky-300';
+      case 'ALERTA_REABANDONO':
+        return 'bg-rose-500 text-white';
+      default:
+        return 'bg-amber-500/20 text-amber-800 dark:text-amber-300';
+    }
+  }
+
+  followupStatusLabel(status: FollowupStatus): string {
+    switch (status) {
+      case 'COMPLETADO':
+        return '✓ Validado';
+      case 'FOTO_RECIBIDA':
+        return '📷 Evidencia Recibida';
+      case 'ALERTA_REABANDONO':
+        return '⚠️ Alerta Activa';
+      case 'SOLICITADO':
+        return 'Solicitado';
+      default:
+        return 'Programado';
+    }
+  }
+
   async reviewAdopterLevel(ver: AdopterVerification, level: 2 | 3, approved: boolean): Promise<void> {
     let notes: string | undefined;
     if (!approved) {
@@ -606,31 +908,61 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  updateStatus(requestId: string, status: AdoptionRequestStatus): void {
-    this.adoptionService.updateRequestStatus(requestId, status).subscribe({
-      next: () => {
-        this.notify.success(`Solicitud marcada como ${status}`);
-        this.loadData();
+  onUploadFollowupPhoto(event: Event, fol: AdoptionFollowup): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.uploadingFollowupId.set(fol.id);
+    this.imageUpload.uploadImage(file, 'followups').subscribe({
+      next: (url) => {
+        this.adoptionService
+          .registerFollowupProof(fol.id, url, 'Evidencia cargada y validada por rescatista', true)
+          .subscribe({
+            next: () => {
+              this.uploadingFollowupId.set(null);
+              this.notify.success('¡Fotografía de seguimiento registrada y validada!');
+              this.loadData();
+            },
+            error: () => {
+              this.uploadingFollowupId.set(null);
+              this.notify.error('Error al guardar seguimiento');
+            },
+          });
       },
-      error: (err) => this.notify.error(err.error?.message || 'Error al actualizar estatus'),
+      error: () => {
+        this.uploadingFollowupId.set(null);
+        this.notify.error('No se pudo subir la imagen');
+      },
     });
   }
 
-  getStatusBadge(status: string): string {
-    switch (status) {
-      case 'APROBADA':
-        return 'bg-emerald-500/20 text-emerald-600 border border-emerald-500/30';
-      case 'RECHAZADA':
-        return 'bg-rose-500/20 text-rose-600 border border-rose-500/30';
-      default:
-        return 'bg-amber-500/20 text-amber-600 border border-amber-500/30';
-    }
+  setFollowupStatus(fol: AdoptionFollowup, status: FollowupStatus): void {
+    this.adoptionService.updateFollowupStatus(fol.id, status).subscribe({
+      next: () => {
+        this.notify.success('Hito de seguimiento actualizado');
+        this.loadData();
+      },
+      error: (err) => this.notify.error(err.error?.message || 'Error al actualizar seguimiento'),
+    });
+  }
+
+  confirmSterilization(pet: Pet): void {
+    this.adoptionService
+      .updatePetSterilization(pet.id, true, 'Comprobante de esterilización verificado por rescatista')
+      .subscribe({
+        next: () => {
+          this.notify.success(`¡Esterilización de ${pet.name} confirmada!`);
+          this.loadData();
+        },
+        error: (err) => this.notify.error(err.error?.message || 'No se pudo actualizar esterilización'),
+      });
   }
 
   getAdopterWhatsAppUrl(req: AdoptionRequest): string {
     const phone = req.adopter?.phone || '';
     const text = encodeURIComponent(
-      `¡Hola ${req.adopter?.fullName}! Te escribo de ${this.brand.name} Dolores Hidalgo sobre tu solicitud para adoptar a ${req.pet?.name}. ¿Cuándo tendrías oportunidad de platicar o realizar una visita de conocimiento?`,
+      `¡Hola ${req.adopter?.fullName}! Te escribo de ${this.brand.name} respecto a tu solicitud para adoptar a ${req.pet?.name}.`,
     );
     return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
   }
@@ -643,57 +975,37 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
       contextType: 'ADOPTION_REQUEST',
       contextId: req.pet?.id || req.id,
       contextTitle: `Solicitud de ${req.adopter.fullName} para ${req.pet?.name || 'Mascota'}`,
-      contextSubtitle: `Estado actual: ${req.status} • Dolores Hidalgo`,
+      contextSubtitle: `${this.stageMeta(req.status).label}`,
       contextImageUrl: req.pet?.photoUrl || req.pet?.photos?.[0],
-      contextTargetUrl: req.pet ? `/adopciones/${req.pet.id}` : '/panel-rescatista',
+      contextTargetUrl: `/mis-adopciones`,
       contextWhatsappPhone: req.adopter.phone || undefined,
-      prefilledDraft: `¡Hola ${req.adopter.fullName.split(' ')[0]}! Revisé tu solicitud para adoptar a ${req.pet?.name || 'nuestro peludito'}. ¿Cuándo tendrías oportunidad de platicar o realizar una visita de conocimiento? 💚`,
+      prefilledDraft: `¡Hola ${req.adopter.fullName.split(' ')[0]}! Revisé tu solicitud para adoptar a ${req.pet?.name || 'nuestro peludito'}. 💚`,
     });
   }
 
   contactFollowupAdopterInApp(fol: AdoptionFollowup): void {
     if (!fol.adopter?.id) return;
+    const m = this.milestoneLabel(fol.dayMilestone);
     this.dmService.openChatWithContext({
       recipientId: fol.adopter.id,
       recipientName: fol.adopter.fullName,
       contextType: 'FOLLOWUP',
       contextId: fol.id,
-      contextTitle: `Seguimiento de ${fol.dayMilestone} días: ${fol.pet?.name || 'Mascota'}`,
-      contextSubtitle: `Hito programado: ${fol.scheduledDate?.slice(0, 10)} • Dolores Hidalgo`,
+      contextTitle: `Seguimiento ${m.label}: ${fol.pet?.name || 'Mascota'}`,
+      contextSubtitle: `Hito programado: ${fol.scheduledDate?.slice(0, 10)}`,
       contextImageUrl: fol.pet?.photoUrl || fol.pet?.photos?.[0],
-      contextTargetUrl: '/panel-rescatista',
+      contextTargetUrl: '/mis-adopciones',
       contextWhatsappPhone: fol.adopter.phone || undefined,
-      prefilledDraft: `¡Hola ${fol.adopter.fullName.split(' ')[0]}! Te escribo en el seguimiento de los ${fol.dayMilestone} días de ${fol.pet?.name || 'tu peludito'} 🐾 ¿Nos podrías compartir por aquí una fotito reciente para registrar su carnet de bienestar?`,
+      prefilledDraft: `¡Hola ${fol.adopter.fullName.split(' ')[0]}! Te escribo por el seguimiento de ${m.label} de ${fol.pet?.name || 'tu peludito'} 🐾 ¿Nos compartes una fotito reciente?`,
     });
   }
 
   getFollowupWhatsAppUrl(fol: AdoptionFollowup): string {
     const phone = fol.adopter?.phone || '';
+    const m = this.milestoneLabel(fol.dayMilestone);
     const text = encodeURIComponent(
-      `¡Hola! Te escribimos de ${this.brand.name} Dolores Hidalgo en el seguimiento de los ${fol.dayMilestone} días de ${fol.pet?.name || 'tu peludito'}. ¿Cómo ha estado? ¿Nos podrías compartir una fotito reciente para su carnet de bienestar? ¡Muchas gracias!`,
+      `¡Hola! Te escribimos de ${this.brand.name} por el seguimiento de ${m.label} de ${fol.pet?.name || 'tu peludito'}. ¿Nos podrías compartir una fotito reciente para su carnet de bienestar?`,
     );
     return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
-  }
-
-  async registerProofModal(fol: AdoptionFollowup): Promise<void> {
-    const photoUrl = await this.confirmService.prompt({
-      title: 'Fotografía de Seguimiento',
-      message: `Registrar evidencia de bienestar para ${fol.pet?.name || 'la mascota'} (Hito: ${fol.dayMilestone} días)`,
-      submessage: 'Ingresa el enlace directo o URL de la fotografía enviada por el adoptante.',
-      inputPlaceholder: 'https://...',
-      confirmText: 'Registrar Evidencia',
-      cancelText: 'Cancelar',
-      type: 'info',
-      icon: '📸',
-    });
-    if (photoUrl && photoUrl.trim()) {
-      this.adoptionService.registerFollowupProof(fol.id, photoUrl.trim(), 'Fotografía recibida por WhatsApp').subscribe({
-        next: () => {
-          this.notify.success('¡Foto de seguimiento registrada con éxito!');
-          this.loadData();
-        },
-        error: () => this.notify.error('Error al registrar fotografía'),
-      });
-    }
   }
 }

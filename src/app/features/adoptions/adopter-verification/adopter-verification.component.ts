@@ -371,7 +371,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <li>No mantener al animal en azoteas desprotegidas, balcones peligrosos ni atado a cadenas.</li>
                 <li>Brindarle alimento digno, agua limpia y resguardo de la lluvia y frío.</li>
                 <li>Mantener al día su cuadro de vacunación anual y esterilización.</li>
-                <li>Aceptar el seguimiento preventivo a los 7, 30 y 90 días enviando una fotografía de su estado al rescatista.</li>
+                <li>Aceptar el seguimiento preventivo a las 2 semanas, 1 mes, medio año y 1 año enviando evidencia fotográfica de su bienestar al rescatista.</li>
                 <li>Prohibición estricta de reventa, cruza lucrativa o abandono.</li>
               </ul>
             </div>

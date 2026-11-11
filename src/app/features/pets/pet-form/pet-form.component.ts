@@ -8,6 +8,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PetGender } from '../../../core/models/pet.model';
+import { UserRole } from '../../../core/models/user.model';
 import { PetGroup } from '../../../core/models/group.model';
 
 @Component({
@@ -326,7 +327,7 @@ import { PetGroup } from '../../../core/models/group.model';
                   Registro Personal en "Mis Mascotas"
                 </span>
                 <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Esta ficha es <strong>exclusivamente para tu mascota personal</strong> (expediente clínico y álbum de recuerdos). No se publicará en adopción. Si deseas publicar un animalito en adopción, hazlo desde el botón <strong>"3. Dar en Adopción"</strong> del Muro Comunitario.
+                  Esta ficha es <strong>exclusivamente para tu mascota personal</strong> (expediente clínico y álbum de recuerdos). No se publicará en adopción. Si rescatas un animalito y necesitas encontrarle hogar responsable, repórtalo en el Muro Comunitario como <strong>"En Resguardo"</strong> para recibir acompañamiento de rescatistas verificados.
                 </p>
               </div>
             </div>
@@ -597,6 +598,12 @@ export class PetFormComponent implements OnInit, OnDestroy {
     const formVal = this.petForm.value;
 
     const finalizeSubmission = (finalPhotoUrl?: string) => {
+      const userRole = this.authService.currentUser()?.role;
+      const isRescuerOrAdmin =
+        userRole === UserRole.RESCATISTA_VERIFICADO ||
+        userRole === UserRole.ALBERGUE ||
+        userRole === UserRole.ADMIN;
+
       const payload: any = {
         name: formVal.name!,
         species: formVal.species!,
@@ -609,7 +616,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
         color: formVal.color || undefined,
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
-        status: formVal.isForAdoption ? 'DISPONIBLE' : 'NO_EN_ADOPCION',
+        status: formVal.isForAdoption && isRescuerOrAdmin ? 'DISPONIBLE' : 'NO_EN_ADOPCION',
         notes: formVal.notes || undefined,
       };
 

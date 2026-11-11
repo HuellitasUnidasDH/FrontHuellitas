@@ -62,11 +62,27 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'mis-adopciones',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/adoptions/my-adoptions/my-adoptions.component').then(
+        (m) => m.MyAdoptionsComponent,
+      ),
+  },
+  {
     path: 'panel-rescatista',
     canActivate: [authGuard, roleGuard([UserRole.RESCATISTA_VERIFICADO, UserRole.ALBERGUE, UserRole.ADMIN])],
     loadComponent: () =>
       import('./features/adoptions/rescuer-dashboard/rescuer-dashboard.component').then(
         (m) => m.RescuerDashboardComponent,
+      ),
+  },
+  {
+    path: 'panel-rescatista/solicitud/:id',
+    canActivate: [authGuard, roleGuard([UserRole.RESCATISTA_VERIFICADO, UserRole.ALBERGUE, UserRole.ADMIN])],
+    loadComponent: () =>
+      import('./features/adoptions/adoption-evaluation-detail/adoption-evaluation-detail.component').then(
+        (m) => m.AdoptionEvaluationDetailComponent,
       ),
   },
   {
