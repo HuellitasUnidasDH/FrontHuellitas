@@ -31,13 +31,13 @@ interface NotificationTimeGroup {
   standalone: true,
   imports: [CommonModule, RouterLink, PushSettingsCardComponent],
   template: `
-    <div class="max-w-4xl mx-auto px-3.5 sm:px-6 py-5 sm:py-7 space-y-6">
+    <div class="max-w-4xl mx-auto px-2.5 sm:px-6 py-3 sm:py-7 space-y-4 sm:space-y-6">
 
       <!-- ======================================================== -->
       <!-- Hero Header: Centro de Actividad Social (Liquid Glass)   -->
       <!-- ======================================================== -->
       <section
-        class="liquid-glass rounded-3xl p-5 sm:p-7 shadow-2xl relative overflow-hidden border border-emerald-500/25 transition-all"
+        class="liquid-glass rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-xl relative overflow-hidden border border-emerald-500/25 transition-all"
       >
         <!-- Decorative Ambient Glows -->
         <div
@@ -47,64 +47,64 @@ interface NotificationTimeGroup {
           class="absolute -left-12 -bottom-12 w-40 h-40 rounded-full bg-gradient-to-tr from-cyan-500/15 via-emerald-400/10 to-transparent blur-2xl pointer-events-none"
         ></div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div class="flex items-center gap-3.5 sm:gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 relative z-10">
+          <div class="flex items-center gap-3 sm:gap-4">
             <!-- Animated Pulse Bell Icon Box -->
             <div class="relative flex-shrink-0">
               <div
-                class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-emerald-500/25 text-slate-950"
+                class="w-11 h-11 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-xl sm:text-3xl shadow-lg shadow-emerald-500/25 text-slate-950"
               >
                 🔔
               </div>
               @if (socialNotifications.unreadCount() > 0) {
                 <span
-                  class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center shadow-lg shadow-rose-500/40 ring-2 ring-white dark:ring-slate-900 animate-bounce"
+                  class="absolute -top-1 -right-1 min-w-[18px] h-[18px] sm:min-w-[22px] sm:h-[22px] px-1 sm:px-1.5 rounded-full bg-rose-500 text-white text-[10px] sm:text-[11px] font-black flex items-center justify-center shadow-lg shadow-rose-500/40 ring-2 ring-white dark:ring-slate-900 animate-bounce"
                 >
                   {{ socialNotifications.unreadCount() > 99 ? '99+' : socialNotifications.unreadCount() }}
                 </span>
               }
             </div>
 
-            <div>
-              <div class="flex flex-wrap items-center gap-2">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <h1
-                  class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight"
+                  class="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight"
                 >
                   Actividad y Notificaciones
                 </h1>
                 <span
-                  class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                  class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0"
                 >
                   En Vivo • {{ brand.city }}
                 </span>
               </div>
-              <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+              <p class="text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none">
                 Comentarios en tus publicaciones, avistamientos en cascada, solicitudes de adopción y actividad de tu familia.
               </p>
             </div>
           </div>
 
           <!-- Top Action Toolbar -->
-          <div class="flex items-center gap-2 self-end sm:self-center">
+          <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
             <button
               type="button"
               (click)="refreshFeed()"
               [disabled]="socialNotifications.isLoading()"
-              class="px-3.5 py-2 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700/60 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700/60 text-[11px] sm:text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50"
               title="Sincronizar actividad"
             >
               <span [class.animate-spin]="socialNotifications.isLoading()">🔄</span>
-              <span class="hidden sm:inline">Sincronizar</span>
+              <span class="hidden xs:inline">Sincronizar</span>
             </button>
 
             @if (socialNotifications.unreadCount() > 0) {
               <button
                 type="button"
                 (click)="onMarkAllAsRead()"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-extrabold shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-[11px] sm:text-xs font-extrabold shadow-md shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
               >
                 <span>✓✓</span>
-                <span>Marcar todas leídas</span>
+                <span>Marcar leídas</span>
               </button>
             }
           </div>
@@ -114,13 +114,13 @@ interface NotificationTimeGroup {
         <!-- Interactive Category Filter Pills (Instagram Style)    -->
         <!-- ====================================================== -->
         <div
-          class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-800/60"
+          class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar mt-3 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-200/60 dark:border-slate-800/60"
         >
           @for (tab of filterTabs(); track tab.id) {
             <button
               type="button"
               (click)="activeFilter.set(tab.id)"
-              class="px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 border"
+              class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 border"
               [ngClass]="
                 activeFilter() === tab.id
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border-emerald-400 shadow-md shadow-emerald-500/20 font-black scale-[1.02]'
@@ -131,7 +131,7 @@ interface NotificationTimeGroup {
               <span>{{ tab.label }}</span>
               @if (tab.count > 0) {
                 <span
-                  class="px-1.5 py-0.5 rounded-full text-[10px] font-black leading-none"
+                  class="px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black leading-none"
                   [ngClass]="
                     activeFilter() === tab.id
                       ? 'bg-slate-950/20 text-slate-950'
@@ -229,40 +229,40 @@ interface NotificationTimeGroup {
               </div>
 
               <!-- Notification Cards Stack -->
-              <div class="space-y-2.5">
+              <div class="space-y-2 sm:space-y-2.5">
                 @for (item of group.items; track item.id) {
                   <article
                     (click)="onOpenNotification(item)"
-                    class="liquid-glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 transition-all duration-200 cursor-pointer group relative overflow-hidden border"
+                    class="liquid-glass rounded-2xl sm:rounded-3xl p-3 sm:p-4.5 transition-all duration-200 cursor-pointer group relative overflow-hidden border"
                     [ngClass]="
                       !item.isRead
-                        ? 'border-emerald-500/45 bg-emerald-500/[0.06] dark:bg-emerald-500/[0.09] shadow-lg shadow-emerald-500/5 hover:border-emerald-500/70'
+                        ? 'border-emerald-500/45 bg-emerald-500/[0.06] dark:bg-emerald-500/[0.09] shadow-md sm:shadow-lg shadow-emerald-500/5 hover:border-emerald-500/70'
                         : 'border-slate-200/70 dark:border-slate-800/80 hover:border-emerald-500/30 opacity-90 hover:opacity-100'
                     "
                   >
                     <!-- Left Accent Bar for Unread Items -->
                     @if (!item.isRead) {
                       <div
-                        class="absolute left-0 inset-y-0 w-1.5 bg-gradient-to-b from-emerald-400 via-teal-500 to-cyan-500"
+                        class="absolute left-0 inset-y-0 w-1 sm:w-1.5 bg-gradient-to-b from-emerald-400 via-teal-500 to-cyan-500"
                       ></div>
                     }
 
-                    <div class="flex items-start gap-3.5 sm:gap-4">
-                      <!-- 1. Left Composite Avatar + Category Floating Badge -->
+                    <div class="flex items-start gap-2.5 sm:gap-4">
+                      <!-- 1. Left Composite Avatar + Category Floating Badge (Proporción compacta en móvil) -->
                       <div class="relative flex-shrink-0 mt-0.5">
                         <div
-                          class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden p-0.5 shadow-md"
+                          class="w-10 h-10 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl overflow-hidden p-0.5 shadow-md"
                           [ngClass]="getCategoryRingGradient(item.type)"
                         >
                           @if (item.actor?.profilePhotoUrl) {
                             <img
                               [src]="item.actor!.profilePhotoUrl"
                               [alt]="getActorName(item)"
-                              class="w-full h-full object-cover rounded-[14px] bg-white dark:bg-slate-900"
+                              class="w-full h-full object-cover rounded-[10px] sm:rounded-[14px] bg-white dark:bg-slate-900"
                             />
                           } @else {
                             <div
-                              class="w-full h-full rounded-[14px] bg-white dark:bg-slate-900 flex items-center justify-center font-black text-base sm:text-lg text-emerald-600 dark:text-emerald-400"
+                              class="w-full h-full rounded-[10px] sm:rounded-[14px] bg-white dark:bg-slate-900 flex items-center justify-center font-black text-sm sm:text-base text-emerald-600 dark:text-emerald-400"
                             >
                               {{ getActorInitial(item) }}
                             </div>
@@ -271,7 +271,7 @@ interface NotificationTimeGroup {
 
                         <!-- Category Mini-Badge on Bottom-Right of Avatar (Instagram/FB style) -->
                         <div
-                          class="absolute -bottom-1 -right-1 w-6 h-6 rounded-xl flex items-center justify-center text-xs shadow-md ring-2 ring-white dark:ring-slate-900"
+                          class="absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-lg sm:rounded-xl flex items-center justify-center text-[10px] sm:text-xs shadow-md ring-1.5 sm:ring-2 ring-white dark:ring-slate-900"
                           [ngClass]="getCategoryBadgeClass(item.type)"
                           [title]="getCategoryLabel(item.type)"
                         >
@@ -280,29 +280,29 @@ interface NotificationTimeGroup {
                       </div>
 
                       <!-- 2. Center Narrative + Quote Pill + Relative Time -->
-                      <div class="flex-1 min-w-0 space-y-1.5">
-                        <div class="flex flex-wrap items-center gap-1.5">
+                      <div class="flex-1 min-w-0 space-y-1 sm:space-y-1.5">
+                        <div class="flex flex-wrap items-center gap-1 sm:gap-1.5">
                           <span
-                            class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider"
+                            class="px-1.5 sm:px-2 py-0.5 rounded-md text-[8px] sm:text-[9px] font-black uppercase tracking-wider"
                             [ngClass]="getCategoryPillClass(item.type)"
                           >
                             {{ getCategoryLabel(item.type) }}
                           </span>
 
-                          <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                          <span class="text-[10px] sm:text-[11px] font-semibold text-slate-400 dark:text-slate-500">
                             • {{ getTimeAgo(item.createdAt) }}
                           </span>
 
                           @if (!item.isRead) {
-                            <span class="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
-                              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span class="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                               Nueva
                             </span>
                           }
                         </div>
 
                         <!-- Headline: Actor + Action -->
-                        <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-snug">
+                        <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-100 leading-snug break-words">
                           <strong class="font-black text-slate-950 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                             {{ getActorName(item) }}
                           </strong>
@@ -314,14 +314,14 @@ interface NotificationTimeGroup {
                         <!-- Comment / Sighting / Adoption Message Quote Bubble -->
                         @if (item.message) {
                           <div
-                            class="p-2.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/60 dark:bg-slate-950/55 border border-slate-200/70 dark:border-slate-800/80 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2"
+                            class="p-2 sm:px-3.5 sm:py-2 rounded-xl bg-white/60 dark:bg-slate-950/55 border border-slate-200/70 dark:border-slate-800/80 text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2"
                           >
                             {{ item.message }}
                           </div>
                         }
 
                         <!-- Action Footer Row -->
-                        <div class="pt-1 flex flex-wrap items-center gap-3 text-[11px] font-bold">
+                        <div class="pt-0.5 sm:pt-1 flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-[11px] font-bold">
                           <span
                             class="text-emerald-600 dark:text-emerald-400 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1"
                           >
@@ -335,7 +335,7 @@ interface NotificationTimeGroup {
                               (click)="onMarkSingleRead($event, item)"
                               class="text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
                             >
-                              ✓ Marcar como leída
+                              ✓ Leída
                             </button>
                           }
 
@@ -345,15 +345,15 @@ interface NotificationTimeGroup {
                             class="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors cursor-pointer ml-auto"
                             title="Eliminar notificación"
                           >
-                            🗑️ Eliminar
+                            🗑️
                           </button>
                         </div>
                       </div>
 
-                      <!-- 3. Right Pet / Post Square Thumbnail Preview (Instagram Style) -->
+                      <!-- 3. Right Pet / Post Square Thumbnail Preview (Proporción compacta en móvil) -->
                       @if (item.previewImageUrl) {
                         <div
-                          class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-200/80 dark:border-slate-700/70 shadow-sm group-hover:scale-105 transition-transform bg-slate-100 dark:bg-slate-900"
+                          class="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden flex-shrink-0 border border-slate-200/80 dark:border-slate-700/70 shadow-sm group-hover:scale-105 transition-transform bg-slate-100 dark:bg-slate-900"
                         >
                           <img
                             [src]="item.previewImageUrl"

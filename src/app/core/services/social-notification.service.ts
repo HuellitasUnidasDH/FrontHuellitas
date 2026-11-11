@@ -186,9 +186,20 @@ export class SocialNotificationService {
 
     if (typeof document !== 'undefined' && !(window as any).__huellitasNotifVisAttached) {
       (window as any).__huellitasNotifVisAttached = true;
+      let resumeTimeout: any = null;
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && this.authService.isAuthenticated()) {
-          this.refreshUnreadCount();
+          // Esperar 1.2 segundos al volver a la app para permitir que la red móvil/Wi-Fi del celular se reconecte
+          clearTimeout(resumeTimeout);
+          resumeTimeout = setTimeout(() => {
+            if (
+              typeof document !== 'undefined' &&
+              document.visibilityState === 'visible' &&
+              (typeof navigator === 'undefined' || navigator.onLine)
+            ) {
+              this.refreshUnreadCount();
+            }
+          }, 1200);
         }
       });
     }

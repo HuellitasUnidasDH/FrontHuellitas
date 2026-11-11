@@ -1,14 +1,34 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, switchMap, throwError, retry, timer } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
+
+let lastConnectionErrorToastTs = 0;
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const notification = inject(NotificationService);
 
   return next(req).pipe(
+    // Reintento automático transparente (auto-healing): si el celular estaba dormido y la antena
+    // apenas está levantando el socket, o si Render tiene un retardo de arranque en frío (502/503/504),
+    // reintentar automáticamente 2 veces antes de dar por fallida la llamada.
+    retry({
+      count: 2,
+      delay: (error: HttpErrorResponse, retryCount: number) => {
+        const isTransientNetworkOrColdStart =
+          error.status === 0 ||
+          error.status === 502 ||
+          error.status === 503 ||
+          error.status === 504;
+
+        if (isTransientNetworkOrColdStart) {
+          return timer(retryCount * 1200);
+        }
+        return throwError(() => error);
+      },
+    }),
     catchError((error: HttpErrorResponse) => {
       let errorMessage = 'Ha ocurrido un error inesperado';
 
@@ -58,6 +78,17 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
+      // Identificar si es una consulta automática en segundo plano / polling para no interrumpir la UX
+      const isBackgroundPolling =
+        req.url.includes('/unread-count') ||
+        req.url.includes('/public-key') ||
+        req.url.includes('/preferences') ||
+        req.headers.has('X-Silent') ||
+        (req.method === 'GET' &&
+          (req.url.includes('/notifications') ||
+            req.url.includes('/comments') ||
+            req.url.includes('/messages')));
+
       switch (error.status) {
         case 403:
           notification.error('Acceso denegado', 'No posees los permisos necesarios para esta acción');
@@ -75,18 +106,34 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           break;
 
         case 500:
-          notification.error('Error del servidor', 'Ocurrió una falla interna en el servidor.');
+        case 502:
+        case 503:
+        case 504:
+          // Si es un polling de fondo, no interrumpir con avisos ruidosos
+          if (!isBackgroundPolling) {
+            notification.error('Error del servidor', 'Ocurrió una falla interna en el servidor.');
+          }
           break;
 
-        case 0:
-          notification.error(
-            'Error de conexión',
-            'No se pudo conectar con el servidor. Verifica tu conexión a internet o el estado del backend.',
-          );
+        case 0: {
+          // Status 0 ocurre habitualmente cuando el móvil entra en reposo y corta los sockets.
+          // Si es un polling de fondo, la app mantiene los datos existentes sin alarmar al usuario.
+          // Si es una acción del usuario (guardar, enviar, etc.), mostrar aviso con anti-spam.
+          const now = Date.now();
+          if (!isBackgroundPolling && now - lastConnectionErrorToastTs > 6000) {
+            lastConnectionErrorToastTs = now;
+            notification.error(
+              'Sin conexión',
+              'Verifica tu señal de internet o conexión de datos e intenta de nuevo.',
+            );
+          }
           break;
+        }
 
         default:
-          notification.error('Error', errorMessage);
+          if (!isBackgroundPolling) {
+            notification.error('Error', errorMessage);
+          }
           break;
       }
 

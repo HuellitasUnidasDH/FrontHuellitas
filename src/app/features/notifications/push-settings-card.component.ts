@@ -12,7 +12,7 @@ import {
   template: `
     @if (push.supported()) {
       <section
-        class="liquid-glass rounded-3xl p-4 sm:p-5 border relative overflow-hidden transition-all"
+        class="liquid-glass rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border relative overflow-hidden transition-all"
         [ngClass]="
           push.status() === 'on'
             ? 'border-emerald-500/40'
@@ -23,10 +23,10 @@ import {
           class="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-gradient-to-br from-teal-400/20 via-emerald-400/10 to-transparent blur-2xl pointer-events-none"
         ></div>
 
-        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-          <div class="flex items-start gap-3 min-w-0">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-3.5">
+          <div class="flex items-start gap-2.5 sm:gap-3 min-w-0">
             <div
-              class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 shadow-md"
+              class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl flex-shrink-0 shadow-md"
               [ngClass]="
                 push.status() === 'on'
                   ? 'bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950'
@@ -36,13 +36,13 @@ import {
               {{ push.status() === 'on' ? '🔔' : '🔕' }}
             </div>
             <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h3 class="text-sm font-black text-slate-900 dark:text-white">
+              <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 class="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
                   Alertas en tu dispositivo
                 </h3>
                 @if (push.status() === 'on') {
                   <span
-                    class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                    class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
                   >
                     Activadas ✓
                   </span>
@@ -81,13 +81,13 @@ import {
             </div>
           </div>
 
-          <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex items-center gap-2 self-start sm:self-center flex-shrink-0">
             @if (push.status() === 'off') {
               <button
                 type="button"
                 (click)="push.enable()"
                 [disabled]="push.busy()"
-                class="px-4 py-2 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/25 cursor-pointer transition-all active:scale-95"
+                class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/25 cursor-pointer transition-all active:scale-95"
               >
                 {{ push.busy() ? 'Activando…' : '🔔 Activar alertas' }}
               </button>
@@ -96,7 +96,7 @@ import {
                 type="button"
                 (click)="push.disable()"
                 [disabled]="push.busy()"
-                class="px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-600 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
+                class="px-3 py-1.5 sm:py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-rose-500/15 hover:text-rose-600 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer transition-colors disabled:opacity-50"
               >
                 Desactivar
               </button>
