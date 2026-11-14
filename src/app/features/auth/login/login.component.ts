@@ -10,7 +10,7 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, PrivacyNoticeModalComponent],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative">
+    <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
       <div class="w-full max-w-md liquid-glass rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-all">
         <div class="text-center mb-8">
           <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl shadow-lg shadow-emerald-500/25 mb-3">

@@ -1,11 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
 import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
 import { PrivacyNoticeModalComponent } from './shared/components/privacy-modal/privacy-modal.component';
 import { ConfirmationModalComponent } from './shared/components/confirm-modal/confirm-modal.component';
 import { PwaInstallComponent } from './shared/components/pwa-install/pwa-install.component';
 import { AuthService } from './core/services/auth.service';
+import { NavigationHistoryService } from './core/services/navigation-history.service';
 
 import { BRAND_CONFIG } from './core/constants/brand.constants';
 
@@ -14,6 +15,7 @@ import { BRAND_CONFIG } from './core/constants/brand.constants';
   standalone: true,
   imports: [
     RouterOutlet,
+    RouterLink,
     NavbarComponent,
     ToastContainerComponent,
     PrivacyNoticeModalComponent,
@@ -27,6 +29,7 @@ export class App {
   brand = BRAND_CONFIG;
   authService = inject(AuthService);
   private router = inject(Router);
+  private readonly navHistory = inject(NavigationHistoryService);
   isManualPrivacyOpen = false;
 
   isMessagesRoute(): boolean {

@@ -29,6 +29,20 @@ import { Pet } from '../../../core/models/pet.model';
         </a>
       </div>
 
+      <!-- Shortcut toward published adoptions -->
+      <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <span class="text-slate-700 dark:text-slate-200">
+          ¿Buscas tus mascotas publicadas en adopción responsable? Las publicaciones activas o pausadas se administran por separado de tus mascotas personales.
+        </span>
+        <a
+          routerLink="/panel-rescatista"
+          [queryParams]="{ tab: 'publications' }"
+          class="font-black text-emerald-700 dark:text-emerald-300 hover:underline whitespace-nowrap"
+        >
+          Ir a Mis Publicaciones →
+        </a>
+      </div>
+
       <!-- Filters & Search Bar (Liquid Glass) -->
       <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between liquid-glass p-4 rounded-2xl shadow-md">
         <!-- Search Input -->

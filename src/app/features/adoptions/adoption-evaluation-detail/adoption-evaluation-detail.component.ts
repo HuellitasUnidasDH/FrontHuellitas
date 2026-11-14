@@ -1,13 +1,14 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import {
   AdopterVerification,
   AdoptionRequest,
@@ -16,6 +17,7 @@ import {
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 import {
+  formatActorRoleLabel,
   getCandidateVerificationBadge,
   getRequestStepIndex,
   getStageMeta,
@@ -33,21 +35,21 @@ interface SectionDef {
 @Component({
   selector: 'app-adoption-evaluation-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AdoptionAgreementDocumentComponent],
+  imports: [CommonModule, FormsModule, AdoptionAgreementDocumentComponent],
   template: `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       <!-- Top Return & Breadcrumb Bar -->
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <a
-          [routerLink]="backRoute()"
-          [queryParams]="backQueryParams()"
-          class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+        <button
+          type="button"
+          (click)="goBack()"
+          class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m15 18-6-6 6-6" />
           </svg>
-          <span>Volver a gestión de adopciones</span>
-        </a>
+          <span>{{ navHistory.getBackLabel('Volver a gestión de adopciones') }}</span>
+        </button>
 
         @if (request(); as req) {
           <span
@@ -370,6 +372,42 @@ interface SectionDef {
                       </div>
                     </div>
                   }
+                </div>
+              }
+
+              <!-- Bitácora de Evaluación y Auditoría de Etapas -->
+              @if (req.evaluationHistory && req.evaluationHistory.length > 0) {
+                <div class="p-4 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Bitácora de Evaluación y Cambios de Etapa
+                    </h3>
+                    <span class="text-[11px] font-bold text-slate-400">
+                      {{ req.evaluationHistory.length }} movimiento(s)
+                    </span>
+                  </div>
+                  <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    @for (entry of req.evaluationHistory; track entry.timestamp + $index) {
+                      <div class="p-3 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 text-xs flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                        <div class="space-y-0.5 min-w-0">
+                          <div class="flex flex-wrap items-center gap-1.5">
+                            <span class="font-black text-slate-900 dark:text-white">{{ entry.action }}</span>
+                            <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                              {{ entry.actorName }} ({{ formatActorRole(entry.actorRole) }})
+                            </span>
+                          </div>
+                          @if (entry.note) {
+                            <p class="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                              {{ entry.note }}
+                            </p>
+                          }
+                        </div>
+                        <span class="text-[10px] font-semibold text-slate-400 whitespace-nowrap flex-shrink-0">
+                          {{ entry.timestamp | date:'dd/MM/yyyy HH:mm' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
                 </div>
               }
             </div>
@@ -907,6 +945,7 @@ export class AdoptionEvaluationDetailComponent implements OnInit {
   private confirm = inject(ConfirmService);
   private dmService = inject(DirectMessageService);
   private imageUpload = inject(ImageUploadService);
+  public navHistory = inject(NavigationHistoryService);
 
   request = signal<AdoptionRequest | null>(null);
   verification = signal<AdopterVerification | null>(null);
@@ -921,6 +960,10 @@ export class AdoptionEvaluationDetailComponent implements OnInit {
   rejectionError = signal<string>('');
   visitValidationError = signal<string>('');
   formalizeValidationError = signal<string>('');
+
+  formatActorRole(role?: string | null): string {
+    return formatActorRoleLabel(role);
+  }
 
   readonly sections: SectionDef[] = [
     {
@@ -970,17 +1013,21 @@ export class AdoptionEvaluationDetailComponent implements OnInit {
 
   backRoute = computed(() => {
     const role = this.authService.currentUser()?.role;
-    return role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ADMIN
+    return role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE || role === UserRole.ADMIN
       ? ['/panel-rescatista']
       : ['/mis-adopciones'];
   });
 
   backQueryParams = computed(() => {
     const role = this.authService.currentUser()?.role;
-    return role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ADMIN
+    return role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE || role === UserRole.ADMIN
       ? {}
       : { tab: 'published' };
   });
+
+  goBack(): void {
+    this.navHistory.goBack(this.backRoute(), { queryParams: this.backQueryParams() });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

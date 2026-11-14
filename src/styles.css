@@ -139,10 +139,25 @@
   animation: float-blob-reverse 24s ease-in-out infinite;
 }
 
-/* Desvanecimiento y ocultamiento dinámico de las barras de navegación al abrir cualquier modal */
+/* Bloqueo real de scroll del documento detrás de modales y menú móvil */
+html:has(body.modal-open),
+html:has(body.privacy-modal-active),
+html:has(body.mobile-drawer-open),
+html.modal-scroll-lock,
+body.modal-open,
+body.privacy-modal-active,
+body.mobile-drawer-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+/* Desvanecimiento y ocultamiento dinámico de las barras de navegación y banner PWA al abrir cualquier modal */
 body.privacy-modal-active app-navbar header,
 body.privacy-modal-active app-navbar nav,
 body.modal-open app-navbar header,
-body.modal-open app-navbar nav {
+body.modal-open app-navbar nav,
+body.modal-open app-pwa-install,
+body.privacy-modal-active app-pwa-install,
+body.mobile-drawer-open app-pwa-install {
   display: none !important;
 }

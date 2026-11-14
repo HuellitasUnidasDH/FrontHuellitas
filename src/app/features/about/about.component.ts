@@ -1,12 +1,12 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import { NavigationHistoryService } from '../../core/services/navigation-history.service';
 
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <!-- Hero del Proyecto -->
@@ -26,12 +26,13 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
             </p>
           </div>
 
-          <a
-            routerLink="/"
-            class="self-start md:self-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:brightness-105 transition-all whitespace-nowrap"
+          <button
+            type="button"
+            (click)="goBack()"
+            class="self-start md:self-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:brightness-105 transition-all whitespace-nowrap cursor-pointer"
           >
-            ← Volver al Muro Principal
-          </a>
+            {{ navHistory.getBackLabel('← Volver al Muro Principal') }}
+          </button>
         </div>
 
         <!-- 3 Pilares del Proyecto -->
@@ -182,7 +183,12 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 })
 export class AboutComponent {
   brand = BRAND_CONFIG;
+  navHistory = inject(NavigationHistoryService);
   hideTeamPhoto = signal(false);
   hideSamaelPhoto = signal(false);
   hideDiegoPhoto = signal(false);
+
+  goBack(): void {
+    this.navHistory.goBack(['/']);
+  }
 }

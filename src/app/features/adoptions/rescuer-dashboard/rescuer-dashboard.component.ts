@@ -8,17 +8,20 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
+import { PetService } from '../../../core/services/pet.service';
 import {
   AdoptionRequest,
   AdoptionFollowup,
   AdoptionRequestStatus,
   AdopterVerification,
   FollowupStatus,
+  PublishedPetProgress,
 } from '../../../core/models/adoption.model';
 import { Pet } from '../../../core/models/pet.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 import {
+  extractQuestionnairePills,
   getCandidateVerificationBadge,
   getMilestoneLabel,
   getStageMeta,
@@ -43,8 +46,10 @@ interface PetRequestGroup {
       <section class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-500/20">
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div class="flex items-center gap-4 text-center sm:text-left">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/25 flex-shrink-0">
-              📋
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/25 flex-shrink-0">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
             </div>
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -53,8 +58,8 @@ interface PetRequestGroup {
               <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
                 {{
                   isRescuerOrAdmin()
-                    ? 'Protocolo oficial de 4 pasos, niveles de adoptantes y seguimientos agrupados por mascota (2 semanas, 1 mes, medio año y 1 año).'
-                    : 'Evalúa a tus candidatos con el protocolo oficial de 4 pasos, libera convenios y lleva el seguimiento de las mascotas que tú publicaste.'
+                    ? 'Protocolo oficial de 4 pasos, niveles de adoptantes, publicaciones propias y seguimientos agrupados por mascota.'
+                    : 'Evalúa postulantes con el protocolo oficial de 4 pasos, administra tus publicaciones en adopción y valida seguimientos.'
                 }}
               </p>
             </div>
@@ -68,12 +73,15 @@ interface PetRequestGroup {
               class="px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-slate-700"
               title="Actualizar bandeja"
             >
-              <span [class.animate-spin]="isRefreshing()">🔄</span>
+              <svg class="w-4 h-4" [class.animate-spin]="isRefreshing()" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              </svg>
               <span>Actualizar</span>
             </button>
 
             <a
               routerLink="/adopciones"
+              [queryParams]="{ compose: 'EN_ADOPCION' }"
               class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-1 hover:brightness-105 transition-all"
             >
               <span>+</span> Publicar en Adopción
@@ -85,19 +93,36 @@ interface PetRequestGroup {
         <div class="flex flex-wrap items-center gap-2 mt-6 pt-5 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
           <button
             (click)="activeTab.set('REQUESTS')"
-            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
             [ngClass]="activeTab() === 'REQUESTS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
-            📥 Solicitudes por Mascota ({{ requests().length }})
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+            Solicitudes por Mascota ({{ requests().length }})
+          </button>
+
+          <button
+            (click)="activeTab.set('PUBLICATIONS')"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+            [ngClass]="activeTab() === 'PUBLICATIONS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            Mis Publicaciones ({{ publishedPets().length }})
           </button>
 
           @if (isRescuerOrAdmin()) {
             <button
               (click)="activeTab.set('VERIFICATIONS')"
-              class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
               [ngClass]="activeTab() === 'VERIFICATIONS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
             >
-              <span>🛡️ Aprobar Niveles 2 y 3</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              <span>Aprobar Niveles 2 y 3</span>
               @if (pendingVerificationsCount() > 0) {
                 <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
                   {{ pendingVerificationsCount() }}
@@ -108,10 +133,14 @@ interface PetRequestGroup {
 
           <button
             (click)="activeTab.set('FOLLOWUPS')"
-            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer"
+            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
             [ngClass]="activeTab() === 'FOLLOWUPS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
           >
-            📸 Seguimientos por Mascota ({{ followupGroups().length }})
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            Seguimientos por Mascota ({{ followupGroups().length }})
           </button>
 
           <span class="ml-auto text-[11px] font-semibold text-slate-400 hidden sm:inline">
@@ -122,7 +151,7 @@ interface PetRequestGroup {
 
       @if (isLoading()) {
         <div class="liquid-glass rounded-3xl p-12 text-center space-y-3">
-          <div class="text-4xl animate-bounce">🐾</div>
+          <div class="w-10 h-10 mx-auto rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
           <p class="text-sm font-bold text-slate-500">Cargando módulo de rescate y adopciones...</p>
         </div>
       } @else {
@@ -132,53 +161,89 @@ interface PetRequestGroup {
         @if (activeTab() === 'REQUESTS') {
           <section class="space-y-5">
             <!-- Filtros y Búsqueda -->
-            <div class="liquid-glass rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div class="flex flex-wrap items-center gap-1.5 text-xs">
-                <button
-                  type="button"
-                  (click)="requestFilter.set('ALL')"
-                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
-                  [ngClass]="requestFilter() === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
-                >
-                  Todas
-                </button>
-                <button
-                  type="button"
-                  (click)="requestFilter.set('ACTIVE')"
-                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
-                  [ngClass]="requestFilter() === 'ACTIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
-                >
-                  Activas / En Evaluación
-                </button>
-                <button
-                  type="button"
-                  (click)="requestFilter.set('READY')"
-                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
-                  [ngClass]="requestFilter() === 'READY' ? 'bg-indigo-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
-                >
-                  Convenio / Entrega
-                </button>
-                <button
-                  type="button"
-                  (click)="requestFilter.set('CLOSED')"
-                  class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
-                  [ngClass]="requestFilter() === 'CLOSED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
-                >
-                  Finalizadas
-                </button>
+            <div class="liquid-glass rounded-2xl p-4 space-y-3">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    (click)="requestFilter.set('ALL')"
+                    class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                    [ngClass]="requestFilter() === 'ALL' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Todas
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestFilter.set('ACTIVE')"
+                    class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                    [ngClass]="requestFilter() === 'ACTIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Activas / En Evaluación
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestFilter.set('READY')"
+                    class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                    [ngClass]="requestFilter() === 'READY' ? 'bg-indigo-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Convenio / Entrega
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestFilter.set('CLOSED')"
+                    class="px-3 py-1.5 rounded-xl font-bold cursor-pointer transition-all"
+                    [ngClass]="requestFilter() === 'CLOSED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Finalizadas
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  [(ngModel)]="searchTerm"
+                  placeholder="Buscar por nombre de mascota o candidato..."
+                  class="w-full md:w-72 px-3.5 py-2 rounded-xl bg-white/80 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:ring-2 focus:ring-emerald-500"
+                />
               </div>
 
-              <input
-                type="text"
-                [(ngModel)]="searchTerm"
-                placeholder="🔍 Buscar por nombre de mascota o candidato..."
-                class="w-full md:w-72 px-3.5 py-2 rounded-xl bg-white/80 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+              @if (isRescuerOrAdmin()) {
+                <div class="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px]">
+                  <span class="font-bold text-slate-500 uppercase tracking-wider mr-1">Origen:</span>
+                  <button
+                    type="button"
+                    (click)="requestScope.set('ALL')"
+                    class="px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors"
+                    [ngClass]="requestScope() === 'ALL' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/35' : 'bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Todas las adopciones
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestScope.set('MINE')"
+                    class="px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors"
+                    [ngClass]="requestScope() === 'MINE' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/35' : 'bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Mis publicaciones
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestScope.set('COMMUNITY')"
+                    class="px-2.5 py-1 rounded-lg font-bold cursor-pointer transition-colors"
+                    [ngClass]="requestScope() === 'COMMUNITY' ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border border-sky-500/35' : 'bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    Apoyo comunitario (ciudadanos)
+                  </button>
+                </div>
+              }
             </div>
 
             @if (filteredPetRequestGroups().length === 0) {
               <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
-                <div class="text-4xl">📭</div>
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-200/70 dark:bg-slate-800 text-slate-500 flex items-center justify-center">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                  </svg>
+                </div>
                 <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay solicitudes en esta categoría</h3>
                 <p class="text-xs text-slate-500 max-w-md mx-auto">
                   Las publicaciones eliminadas se depuran automáticamente. Cuando recibas una postulación activa aparecerá agrupada aquí por mascota.
@@ -201,9 +266,20 @@ interface PetRequestGroup {
                           <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                             {{ group.pet.species }} • {{ group.pet.breed || 'Mestizo' }}
                           </span>
+                          @if (isRescuerOrAdmin()) {
+                            @if (group.pet.ownerId === authService.currentUser()?.id) {
+                              <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                                Tu publicación
+                              </span>
+                            } @else {
+                              <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                                Apoyo comunitario{{ group.pet.owner?.fullName ? ' · ' + group.pet.owner!.fullName : '' }}
+                              </span>
+                            }
+                          }
                           @if (group.approvedReq) {
                             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-600 text-white">
-                              ✓ Adoptada
+                              Adoptada
                             </span>
                           }
                         </div>
@@ -226,6 +302,7 @@ interface PetRequestGroup {
                     @for (req of group.requests; track req.id) {
                       @let badge = candidateBadge(req.adopter);
                       @let stage = stageMeta(req.status);
+                      @let qPills = getQuestionnairePills(req);
                       <div class="p-4 rounded-2xl bg-white/75 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-3 hover:border-emerald-500/40 transition-colors">
                         <div class="flex items-start justify-between gap-3">
                           <div class="flex items-center gap-3 min-w-0">
@@ -245,7 +322,7 @@ interface PetRequestGroup {
                                 {{ req.adopter?.fullName }}
                               </h3>
                               <span class="text-[11px] text-slate-500 block truncate">
-                                📍 {{ req.adopter?.colonia?.name || 'Dolores Hidalgo' }} • {{ req.createdAt | date:'dd/MM/yy' }}
+                                {{ req.adopter?.colonia?.name || 'Dolores Hidalgo' }} • {{ req.createdAt | date:'dd/MM/yy' }}
                               </span>
                             </div>
                           </div>
@@ -255,9 +332,30 @@ interface PetRequestGroup {
                             [ngClass]="badge.badgeClass"
                             [title]="badge.subtitle"
                           >
-                            <span>{{ badge.icon }}</span> Nivel {{ badge.level }}
+                            <span>{{ badge.icon }}</span>
+                            <span>Nivel {{ badge.level }}</span>
                           </span>
                         </div>
+
+                        <!-- Resumen comparativo del cuestionario -->
+                        @if (qPills.length > 0) {
+                          <div class="flex flex-wrap gap-1.5">
+                            @for (pill of qPills; track pill.label) {
+                              <span
+                                class="px-2 py-0.5 rounded-lg text-[10px] font-bold border"
+                                [ngClass]="
+                                  pill.tone === 'emerald'
+                                    ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300'
+                                    : pill.tone === 'amber'
+                                      ? 'bg-amber-500/10 border-amber-500/25 text-amber-800 dark:text-amber-300'
+                                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+                                "
+                              >
+                                {{ pill.label }}: {{ pill.value }}
+                              </span>
+                            }
+                          </div>
+                        }
 
                         <!-- Progreso y Etapa -->
                         <div class="space-y-1.5">
@@ -282,7 +380,7 @@ interface PetRequestGroup {
                             [routerLink]="['/panel-rescatista/solicitud', req.id]"
                             class="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-105 text-slate-950 font-black text-xs text-center shadow-sm transition-all"
                           >
-                            🔎 Evaluar Expediente →
+                            Evaluar Expediente →
                           </a>
 
                           <button
@@ -291,17 +389,20 @@ interface PetRequestGroup {
                             class="py-2.5 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold text-xs cursor-pointer"
                             title="Abrir Chat Directo"
                           >
-                            💬
+                            Chat
                           </button>
 
-                          <a
-                            [href]="req.whatsappDirectUrl || getAdopterWhatsAppUrl(req)"
-                            target="_blank"
-                            class="py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs"
-                            title="WhatsApp Directo"
-                          >
-                            📲
-                          </a>
+                          @if (req.adopter?.phone) {
+                            <a
+                              [href]="getAdopterWhatsAppUrl(req)"
+                              target="_blank"
+                              rel="noopener"
+                              class="py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs"
+                              title="WhatsApp del Postulante"
+                            >
+                              WhatsApp
+                            </a>
+                          }
                         </div>
                       </div>
                     }
@@ -313,13 +414,141 @@ interface PetRequestGroup {
         }
 
         <!-- ========================================================== -->
+        <!-- TAB: MIS PUBLICACIONES EN ADOPCIÓN (CRUD / PAUSA) -->
+        <!-- ========================================================== -->
+        @if (activeTab() === 'PUBLICATIONS') {
+          <section class="space-y-4">
+            @if (publishedPets().length === 0) {
+              <div class="liquid-glass rounded-3xl p-10 text-center space-y-3 border border-dashed border-slate-300 dark:border-slate-700">
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                </div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base">Aún no tienes mascotas publicadas en adopción</h3>
+                <p class="text-xs text-slate-500 max-w-md mx-auto">
+                  Cuando publiques una mascota en adopción podrás editar sus datos, pausar o reactivar su visibilidad en el catálogo y monitorear tus postulantes aquí mismo.
+                </p>
+                <a
+                  routerLink="/adopciones"
+                  [queryParams]="{ compose: 'EN_ADOPCION' }"
+                  class="inline-block px-5 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs hover:brightness-105 transition-all"
+                >
+                  + Publicar en Adopción
+                </a>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @for (item of publishedPets(); track item.pet.id) {
+                  <article class="liquid-glass rounded-3xl p-5 border border-slate-200/80 dark:border-slate-700/80 shadow-lg flex flex-col justify-between gap-4">
+                    <div class="space-y-3">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3.5 min-w-0">
+                          <img
+                            [src]="item.pet.photoUrl || item.pet.photos?.[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=200&q=80'"
+                            [alt]="item.pet.name"
+                            class="w-16 h-16 rounded-2xl object-cover shadow-sm flex-shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                          <div class="min-w-0">
+                            <h2 class="text-lg font-black text-slate-900 dark:text-white truncate">{{ item.pet.name }}</h2>
+                            <span class="text-xs text-slate-500 block truncate">
+                              {{ item.pet.species }} • {{ item.pet.breed || 'Mestizo' }}
+                            </span>
+                            <span class="mt-1 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border" [ngClass]="publicationStatusBadge(item.pet.status)">
+                              {{ publicationStatusLabel(item.pet.status) }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 space-y-1.5 text-xs">
+                        <div class="flex items-center justify-between font-bold">
+                          <span class="text-slate-700 dark:text-slate-200">{{ item.stageLabel }}</span>
+                          <span class="text-emerald-600 dark:text-emerald-400 font-black">{{ item.progressPercent }}%</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                          <div
+                            class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500"
+                            [style.width.%]="item.progressPercent"
+                          ></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                          <span>Postulaciones totales: <strong>{{ item.totalRequests }}</strong></span>
+                          <span>En curso: <strong>{{ item.activeRequests }}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+                      <a
+                        [routerLink]="['/adopciones', item.pet.id]"
+                        class="px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold hover:brightness-105 transition-all"
+                      >
+                        Ver Ficha
+                      </a>
+                      <a
+                        [routerLink]="['/pets/edit', item.pet.id]"
+                        class="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-700 dark:text-sky-300 font-bold transition-all"
+                      >
+                        Editar
+                      </a>
+                      <button
+                        type="button"
+                        (click)="copyPetLink(item.pet)"
+                        class="px-3 py-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold cursor-pointer hover:brightness-105 transition-all"
+                      >
+                        Copiar enlace
+                      </button>
+
+                      @if (item.totalRequests > 0) {
+                        <button
+                          type="button"
+                          (click)="viewPetRequests(item.pet.name)"
+                          class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold cursor-pointer transition-all"
+                        >
+                          Ver solicitudes
+                        </button>
+                      }
+
+                      @if (item.pet.status === 'DISPONIBLE' || item.pet.status === 'EN_PROCESO') {
+                        <button
+                          type="button"
+                          (click)="togglePublicationStatus(item, true)"
+                          [disabled]="togglingPublicationId() === item.pet.id"
+                          class="ml-auto px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-800 dark:text-amber-300 font-bold cursor-pointer disabled:opacity-50 transition-all"
+                        >
+                          {{ togglingPublicationId() === item.pet.id ? 'Actualizando...' : 'Pausar publicación' }}
+                        </button>
+                      } @else if (item.pet.status === 'NO_EN_ADOPCION') {
+                        <button
+                          type="button"
+                          (click)="togglePublicationStatus(item, false)"
+                          [disabled]="togglingPublicationId() === item.pet.id"
+                          class="ml-auto px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black cursor-pointer disabled:opacity-50 transition-all"
+                        >
+                          {{ togglingPublicationId() === item.pet.id ? 'Actualizando...' : 'Reactivar en adopción' }}
+                        </button>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        <!-- ========================================================== -->
         <!-- TAB 2: APROBACIÓN DE VERIFICACIÓN DE ADOPTANTES (N2 & N3) -->
         <!-- ========================================================== -->
         @if (activeTab() === 'VERIFICATIONS') {
           <section class="space-y-4">
             @if (verifications().length === 0) {
               <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
-                <div class="text-4xl">🛡️</div>
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
                 <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay expedientes de verificación registrados aún</h3>
                 <p class="text-xs text-slate-500">Cuando un usuario envíe su Cuestionario Socioambiental (Nivel 2) o Carta Compromiso (Nivel 3) aparecerá aquí.</p>
               </div>
@@ -337,7 +566,7 @@ interface PetRequestGroup {
                             {{ ver.user?.fullName || 'Usuario' }}
                           </h3>
                           <span class="text-xs text-slate-500 break-all block">
-                            {{ ver.user?.email }} • 📱 {{ ver.user?.phone || 'Sin teléfono' }}
+                            {{ ver.user?.email }} • Tel. {{ ver.user?.phone || 'Sin teléfono' }}
                           </span>
                         </div>
                       </div>
@@ -355,7 +584,7 @@ interface PetRequestGroup {
                                   : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
                           "
                         >
-                          Nivel 2: {{ ver.isLevel2Completed ? '✓ Aprobado' : ver.level2Status === 'RECHAZADO' ? '⚠️ Con Observación' : ver.level2Status || 'Pendiente' }}
+                          Nivel 2: {{ ver.isLevel2Completed ? 'Aprobado' : ver.level2Status === 'RECHAZADO' ? 'Con Observación' : ver.level2Status || 'Pendiente' }}
                         </span>
 
                         <span
@@ -370,14 +599,13 @@ interface PetRequestGroup {
                                   : 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-transparent'
                           "
                         >
-                          Nivel 3: {{ ver.isLevel3Completed ? '✓ Aprobado' : ver.level3Status === 'RECHAZADO' ? '⚠️ Con Observación' : ver.level3Status || 'No solicitado' }}
+                          Nivel 3: {{ ver.isLevel3Completed ? 'Aprobado' : ver.level3Status === 'RECHAZADO' ? 'Con Observación' : ver.level3Status || 'No solicitado' }}
                         </span>
                       </div>
                     </div>
 
                     @if (ver.reviewNotes && (ver.level2Status === 'RECHAZADO' || ver.level3Status === 'RECHAZADO')) {
                       <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs flex items-start gap-2.5">
-                        <span class="text-base">💬</span>
                         <div>
                           <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[10px]">
                             Observación activa enviada al solicitante:
@@ -410,7 +638,7 @@ interface PetRequestGroup {
                       </div>
                       @if (ver.signedCommitmentLetter) {
                         <div class="sm:col-span-2 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-emerald-700 dark:text-emerald-400 font-bold">
-                          📜 Carta Compromiso de Nivel 3 firmada digitalmente por el solicitante.
+                          Carta Compromiso de Nivel 3 firmada digitalmente por el solicitante.
                         </div>
                       }
                     </div>
@@ -422,14 +650,14 @@ interface PetRequestGroup {
                           (click)="reviewAdopterLevel(ver, 2, true)"
                           class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
                         >
-                          ✓ Aprobar Nivel 2
+                          Aprobar Nivel 2
                         </button>
                         <button
                           type="button"
                           (click)="reviewAdopterLevel(ver, 2, false)"
                           class="px-3.5 py-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
                         >
-                          ✕ Rechazar Nivel 2
+                          Rechazar Nivel 2
                         </button>
                       } @else if (ver.isLevel2Completed && !ver.isLevel3Completed && (ver.level3Status === 'PENDIENTE' || ver.signedCommitmentLetter)) {
                         <button
@@ -437,18 +665,18 @@ interface PetRequestGroup {
                           (click)="reviewAdopterLevel(ver, 3, true)"
                           class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs cursor-pointer shadow-md"
                         >
-                          ✓ Aprobar Nivel 3 (Adoptante Verificado)
+                          Aprobar Nivel 3 (Adoptante Verificado)
                         </button>
                         <button
                           type="button"
                           (click)="reviewAdopterLevel(ver, 3, false)"
                           class="px-3.5 py-2 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
                         >
-                          ✕ Rechazar Nivel 3
+                          Rechazar Nivel 3
                         </button>
                       } @else {
                         <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          ✓ Expediente verificado por completo
+                          Expediente verificado por completo
                         </span>
                       }
                     </div>
@@ -466,7 +694,11 @@ interface PetRequestGroup {
           <section class="space-y-5">
             @if (followupGroups().length === 0) {
               <div class="liquid-glass rounded-3xl p-10 text-center space-y-2 border border-dashed border-slate-300 dark:border-slate-700">
-                <div class="text-4xl">🗓️</div>
+                <div class="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
                 <h3 class="font-bold text-slate-900 dark:text-white text-base">No hay seguimientos programados aún</h3>
                 <p class="text-xs text-slate-500 max-w-md mx-auto">
                   Cuando formalices una adopción con Convenio firmado e INE cotejado, aquí se agruparán los 4 hitos oficiales de cada mascota (2 semanas, 1 mes, medio año y 1 año).
@@ -491,7 +723,7 @@ interface PetRequestGroup {
                         <div class="flex flex-wrap items-center gap-2">
                           <h2 class="text-xl font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
                           <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black" [ngClass]="badge.badgeClass">
-                            {{ badge.icon }} Nivel {{ badge.level }}
+                            {{ badge.icon }} · Nivel {{ badge.level }}
                           </span>
                         </div>
                         <p class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
@@ -515,14 +747,15 @@ interface PetRequestGroup {
                           (click)="contactFollowupAdopterInApp(firstFol)"
                           class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-bold text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
                         >
-                          <span>💬</span> Chat
+                          Chat
                         </button>
                         <a
                           [href]="firstFol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(firstFol)"
                           target="_blank"
+                          rel="noopener"
                           class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5"
                         >
-                          <span>📲</span> WhatsApp
+                          WhatsApp
                         </a>
                       }
                       <a
@@ -537,24 +770,21 @@ interface PetRequestGroup {
                   <!-- Recordatorio de Esterilización (5-6 meses) -->
                   @if (!group.pet.isSterilized) {
                     <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                      <div class="flex items-start gap-2.5 text-amber-900 dark:text-amber-200">
-                        <span class="text-lg flex-shrink-0">🩺</span>
-                        <div>
-                          <strong class="font-black block">Compromiso de Esterilización Pendiente (5 - 6 meses de edad)</strong>
-                          <span>{{ group.pet.name }} fue entregada con compromiso obligatorio de esterilización. Confirma aquí cuando el adoptante entregue su comprobante médico.</span>
-                        </div>
+                      <div class="text-amber-900 dark:text-amber-200">
+                        <strong class="font-black block">Compromiso de Esterilización Pendiente (5 - 6 meses de edad)</strong>
+                        <span>{{ group.pet.name }} fue entregada con compromiso obligatorio de esterilización. Confirma aquí cuando el adoptante entregue su comprobante médico.</span>
                       </div>
                       <button
                         type="button"
                         (click)="confirmSterilization(group.pet)"
                         class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex-shrink-0 cursor-pointer shadow-sm"
                       >
-                        ✅ Confirmar Esterilización
+                        Confirmar Esterilización
                       </button>
                     </div>
                   } @else {
                     <div class="px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1.5">
-                      <span>✓</span> Mascota esterilizada — compromiso cumplido
+                      Mascota esterilizada — compromiso cumplido
                     </div>
                   }
 
@@ -575,7 +805,7 @@ interface PetRequestGroup {
                         <div class="flex items-center justify-between gap-2">
                           <div>
                             <span class="text-xs font-black text-slate-900 dark:text-white block">
-                              📅 Seguimiento {{ mLabel.label }} ({{ mLabel.badge }})
+                              Seguimiento {{ mLabel.label }} ({{ mLabel.badge }})
                             </span>
                             <span class="text-[11px] text-slate-500">
                               Fecha programada: {{ fol.scheduledDate | date:'dd/MM/yyyy' }}
@@ -601,7 +831,7 @@ interface PetRequestGroup {
                             </a>
                             @if (fol.proofNotes) {
                               <p class="text-[11px] text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/70 p-2 rounded-lg">
-                                💬 {{ fol.proofNotes }}
+                                {{ fol.proofNotes }}
                               </p>
                             }
                           </div>
@@ -611,9 +841,9 @@ interface PetRequestGroup {
                         <div class="flex flex-wrap items-center gap-2 pt-1">
                           <label class="flex-1 py-2 px-3 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300/80 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold cursor-pointer text-center transition-colors">
                             @if (uploadingFollowupId() === fol.id) {
-                              ⏳ Subiendo foto...
+                              Subiendo foto...
                             } @else {
-                              📷 {{ fol.proofPhotoUrl ? 'Cambiar Foto' : 'Subir / Tomar Foto' }}
+                              {{ fol.proofPhotoUrl ? 'Cambiar Foto' : 'Subir / Tomar Foto' }}
                             }
                             <input
                               type="file"
@@ -631,7 +861,7 @@ interface PetRequestGroup {
                               (click)="setFollowupStatus(fol, 'COMPLETADO')"
                               class="py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer"
                             >
-                              ✓ Validar
+                              Validar
                             </button>
                           }
 
@@ -642,7 +872,7 @@ interface PetRequestGroup {
                               class="py-2 px-3 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold text-xs cursor-pointer"
                               title="Reportar incidencia o alerta de seguimiento"
                             >
-                              ⚠️ Alerta
+                              Alerta
                             </button>
                           }
                         </div>
@@ -668,17 +898,21 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   private confirmService = inject(ConfirmService);
   private dmService = inject(DirectMessageService);
   private imageUpload = inject(ImageUploadService);
+  private petService = inject(PetService);
 
-  activeTab = signal<'REQUESTS' | 'VERIFICATIONS' | 'FOLLOWUPS'>('REQUESTS');
+  activeTab = signal<'REQUESTS' | 'PUBLICATIONS' | 'VERIFICATIONS' | 'FOLLOWUPS'>('REQUESTS');
   requestFilter = signal<'ALL' | 'ACTIVE' | 'READY' | 'CLOSED'>('ALL');
+  requestScope = signal<'ALL' | 'MINE' | 'COMMUNITY'>('ALL');
   searchTerm = '';
 
   requests = signal<AdoptionRequest[]>([]);
+  publishedPets = signal<PublishedPetProgress[]>([]);
   verifications = signal<AdopterVerification[]>([]);
   followups = signal<AdoptionFollowup[]>([]);
   isLoading = signal<boolean>(true);
   isRefreshing = signal<boolean>(false);
   uploadingFollowupId = signal<string | null>(null);
+  togglingPublicationId = signal<string | null>(null);
   lastUpdated = signal<Date>(new Date());
 
   isRescuerOrAdmin = computed(() => {
@@ -720,8 +954,15 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   filteredPetRequestGroups(): PetRequestGroup[] {
     const q = this.searchTerm.trim().toLowerCase();
     const filter = this.requestFilter();
+    const scope = this.isRescuerOrAdmin() ? this.requestScope() : 'ALL';
+    const myId = this.authService.currentUser()?.id;
 
     return this.petRequestGroups()
+      .filter((grp) => {
+        if (scope === 'MINE' && myId) return grp.pet.ownerId === myId;
+        if (scope === 'COMMUNITY' && myId) return grp.pet.ownerId !== myId;
+        return true;
+      })
       .map((grp) => {
         const filteredReqs = grp.requests.filter((r) => {
           if (q) {
@@ -753,6 +994,8 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
       this.activeTab.set('VERIFICATIONS');
     } else if (tabParam === 'followups') {
       this.activeTab.set('FOLLOWUPS');
+    } else if (tabParam === 'publications') {
+      this.activeTab.set('PUBLICATIONS');
     }
 
     this.loadData();
@@ -791,6 +1034,10 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
         this.lastUpdated.set(new Date());
       },
     });
+    this.adoptionService.getMyPublishedProgress().subscribe({
+      next: (pub) => this.publishedPets.set(pub || []),
+      error: () => {},
+    });
     if (this.isRescuerOrAdmin()) {
       this.adoptionService.getVerificationsForReview().subscribe({
         next: (vers) => this.verifications.set(vers || []),
@@ -801,6 +1048,10 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   refreshData(): void {
     this.isRefreshing.set(true);
+    this.adoptionService.getMyPublishedProgress().subscribe({
+      next: (pub) => this.publishedPets.set(pub || []),
+      error: () => {},
+    });
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
@@ -826,6 +1077,10 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   loadData(): void {
     this.isLoading.set(true);
+    this.adoptionService.getMyPublishedProgress().subscribe({
+      next: (pub) => this.publishedPets.set(pub || []),
+      error: () => {},
+    });
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
@@ -849,6 +1104,95 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   candidateBadge(user?: AdoptionRequest['adopter'] | null) {
     return getCandidateVerificationBadge(user);
+  }
+
+  getQuestionnairePills(req: AdoptionRequest) {
+    return extractQuestionnairePills(req);
+  }
+
+  publicationStatusBadge(status?: string): string {
+    switch (status) {
+      case 'DISPONIBLE':
+        return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
+      case 'EN_PROCESO':
+        return 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30';
+      case 'NO_EN_ADOPCION':
+        return 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30';
+      default:
+        return 'bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30';
+    }
+  }
+
+  publicationStatusLabel(status?: string): string {
+    switch (status) {
+      case 'DISPONIBLE':
+        return 'Disponible en catálogo';
+      case 'EN_PROCESO':
+        return 'En evaluación activa';
+      case 'NO_EN_ADOPCION':
+        return 'Publicación pausada';
+      case 'ADOPTADA':
+      case 'EN_SEGUIMIENTO':
+        return 'Adoptada';
+      default:
+        return status || 'Activa';
+    }
+  }
+
+  async togglePublicationStatus(item: PublishedPetProgress, pause: boolean): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: pause ? 'Pausar publicación en adopción' : 'Reactivar publicación en adopción',
+      message: pause
+        ? `¿Deseas ocultar temporalmente a ${item.pet.name} del catálogo público de adopciones?`
+        : `¿Deseas volver a publicar a ${item.pet.name} como disponible en adopción?`,
+      submessage: pause && item.activeRequests > 0
+        ? `Esta mascota tiene ${item.activeRequests} solicitud(es) activa(s) que serán cerradas automáticamente al pausar.`
+        : undefined,
+      confirmText: pause ? 'Sí, pausar publicación' : 'Sí, reactivar en adopción',
+      cancelText: 'Cancelar',
+      type: pause ? 'warning' : 'success',
+    });
+
+    if (!confirmed) return;
+
+    this.togglingPublicationId.set(item.pet.id);
+    this.petService
+      .update(item.pet.id, { status: pause ? 'NO_EN_ADOPCION' : 'DISPONIBLE' })
+      .subscribe({
+        next: () => {
+          this.togglingPublicationId.set(null);
+          this.notify.success(
+            pause ? 'Publicación pausada' : 'Publicación reactivada',
+            pause
+              ? `${item.pet.name} ya no aparece en el catálogo público.`
+              : `${item.pet.name} vuelve a mostrarse en el catálogo de adopciones.`,
+          );
+          this.loadData();
+        },
+        error: (err) => {
+          this.togglingPublicationId.set(null);
+          this.notify.error(err.error?.message || 'No se pudo actualizar el estado de la publicación');
+        },
+      });
+  }
+
+  copyPetLink(pet: Pet): void {
+    const url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/adopciones/${pet.id}`
+        : `/adopciones/${pet.id}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(
+        () => this.notify.success('Enlace copiado', `Comparte la ficha de ${pet.name}.`),
+        () => this.notify.warning('No se pudo copiar automáticamente el enlace.'),
+      );
+    }
+  }
+
+  viewPetRequests(petName: string): void {
+    this.searchTerm = petName;
+    this.requestFilter.set('ALL');
+    this.activeTab.set('REQUESTS');
   }
 
   stageMeta(status: AdoptionRequestStatus) {
@@ -875,11 +1219,11 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   followupStatusLabel(status: FollowupStatus): string {
     switch (status) {
       case 'COMPLETADO':
-        return '✓ Validado';
+        return 'Validado';
       case 'FOTO_RECIBIDA':
-        return '📷 Evidencia Recibida';
+        return 'Evidencia Recibida';
       case 'ALERTA_REABANDONO':
-        return '⚠️ Alerta Activa';
+        return 'Alerta Activa';
       case 'SOLICITADO':
         return 'Solicitado';
       default:
@@ -897,7 +1241,6 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
         confirmText: 'Enviar Observaciones',
         cancelText: 'Cancelar',
         type: 'warning',
-        icon: '📝',
       });
       if (!input) return;
       notes = input;

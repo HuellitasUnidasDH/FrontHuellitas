@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, OnChanges, OnDestroy, SimpleCha
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 
 @Component({
   selector: 'app-privacy-modal',
@@ -10,9 +11,9 @@ import { AuthService } from '../../../core/services/auth.service';
   template: `
     @if (isOpen) {
       <!-- Super-layer overlay (z-[999]) with full backdrop blur and dimming to completely cover everything including floating navbar -->
-      <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-hidden transition-all duration-300 animate-fade-in">
+      <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-y-auto overscroll-contain transition-all duration-300 animate-fade-in">
         <div
-          class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col overflow-hidden transition-all my-auto"
+          class="w-full h-full max-h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col overflow-hidden transition-all my-auto"
         >
           <!-- Header -->
           <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/80">
@@ -137,6 +138,8 @@ import { AuthService } from '../../../core/services/auth.service';
 })
 export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
   authService = inject(AuthService);
+  private readonly scrollLock = inject(ScrollLockService);
+  private readonly lockKey = `privacy-modal-${Math.random().toString(36).slice(2, 8)}`;
 
   @Input() isOpen = false;
   @Input() isMandatory = false;
@@ -168,27 +171,15 @@ export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
     if (changes['isOpen']) {
       if (this.isOpen) {
         this.authService.refreshPrivacyPolicy();
-      }
-      if (typeof document !== 'undefined') {
-        if (this.isOpen) {
-          document.body.classList.add('privacy-modal-active');
-          document.body.style.overflow = 'hidden';
-          document.body.style.touchAction = 'none';
-        } else {
-          document.body.classList.remove('privacy-modal-active');
-          document.body.style.overflow = '';
-          document.body.style.touchAction = '';
-        }
+        this.scrollLock.lock(this.lockKey, 'privacy');
+      } else {
+        this.scrollLock.unlock(this.lockKey, 'privacy');
       }
     }
   }
 
   ngOnDestroy(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('privacy-modal-active');
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    }
+    this.scrollLock.unlock(this.lockKey, 'privacy');
   }
 
   onAccept(): void {

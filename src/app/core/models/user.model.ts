@@ -15,6 +15,7 @@ export interface User {
   email: string;
   fullName: string;
   phone?: string;
+  hasContactPhone?: boolean;
   isPhoneVerified?: boolean;
   verificationLevel?: number; // 0: No verificado, 1: Teléfono, 2: Cuestionario, 3: Compromiso
   coloniaId?: string;

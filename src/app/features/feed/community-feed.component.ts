@@ -12,13 +12,15 @@ import { DirectMessageService } from '../../core/services/direct-message.service
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { PushNotificationService } from '../../core/services/push-notification.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import { Pet, AdoptionStatus, PetSize } from '../../core/models/pet.model';
 import { UserRole } from '../../core/models/user.model';
-import { CreateAdoptionRequestPayload } from '../../core/models/adoption.model';
+import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../core/models/adoption.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 import { AdoptionRequestFormComponent } from '../adoptions/shared/adoption-request-form.component';
+import { getStageMeta } from '../adoptions/shared/adoption-helpers.util';
 import { ReportContentModalComponent } from '../../shared/components/report-content-modal/report-content-modal.component';
 import { ReportTargetType } from '../../core/services/moderation.service';
 
@@ -636,14 +638,20 @@ interface FeedPost {
                     @if (isOwnFeedPet(post.petData)) {
                       <a
                         routerLink="/panel-rescatista"
+                        [queryParams]="{ tab: 'publications' }"
                         class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 active:scale-95 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <span>🛡️</span>
                         <span>Gestionar Adopciones</span>
+                      </a>
+                    } @else if (getAppliedRequestForPet(post.petData.id); as existingApp) {
+                      <a
+                        routerLink="/mis-adopciones"
+                        class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 text-xs font-black transition-all flex items-center gap-1.5 truncate"
+                      >
+                        <span class="truncate">Ya te postulaste · {{ getShortStageLabel(existingApp.status) }}</span>
                       </a>
                     } @else if (!isFeedPetAdoptable(post.petData)) {
                       <span class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5">
-                        <span>🏡</span>
                         <span>{{ post.petData.status === 'ADOPTADA' || post.petData.status === 'EN_SEGUIMIENTO' ? 'Adoptada' : 'No disponible' }}</span>
                       </span>
                     } @else {
@@ -651,7 +659,6 @@ interface FeedPost {
                         (click)="openAdoptionModal(post.petData)"
                         class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <span>💚</span>
                         <span>Adoptar</span>
                       </button>
                     }
@@ -981,11 +988,11 @@ interface FeedPost {
       <!-- ======================================================== -->
       @if (selectedPetForAdoption()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn overscroll-contain"
+          class="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
           (click)="closeAdoptionModal()"
         >
           <div
-            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 space-y-5 max-h-[90vh] overflow-y-auto overscroll-contain"
+            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 space-y-5 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain"
             (click)="$event.stopPropagation()"
           >
             
@@ -1020,14 +1027,16 @@ interface FeedPost {
             <!-- SUCCESS STATE: Si ya se postuló -->
             @if (adoptionSubmittedSuccess()) {
               <div class="text-center py-6 space-y-4 animate-scaleUp">
-                <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 text-3xl flex items-center justify-center mx-auto border-2 border-emerald-500">
-                  🎉
+                <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto border-2 border-emerald-500">
+                  <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                  </svg>
                 </div>
                 <h4 class="text-lg font-black text-slate-900 dark:text-white">
                   ¡Solicitud Enviada con Éxito!
                 </h4>
                 <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  Tu interés por <strong class="text-emerald-500">{{ selectedPetForAdoption()!.name }}</strong> ha sido registrado. Escríbele por el chat directo de Huellitas o por WhatsApp al rescatista para agendar una visita.
+                  Tu interés por <strong class="text-emerald-500">{{ selectedPetForAdoption()!.name }}</strong> ha sido registrado. Escríbele por el chat directo de Huellitas para coordinar tu entrevista inicial.
                 </p>
 
                 <div class="space-y-2.5">
@@ -1037,20 +1046,20 @@ interface FeedPost {
                     (click)="contactSelectedAdoptionPetOwnerInApp()"
                     class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
-                    <span>💬</span>
                     <span>Enviar Mensaje Directo en Huellitas</span>
                   </button>
 
-                  <!-- WhatsApp Button prefilled (Extra Option) -->
-                  <a
-                    [href]="getAdoptionWhatsAppUrl()"
-                    target="_blank"
-                    (click)="closeAdoptionModal()"
-                    class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <span>📲</span>
-                    <span>O abrir WhatsApp con el Rescatista</span>
-                  </a>
+                  @if (getAdoptionWhatsAppUrl()) {
+                    <a
+                      [href]="getAdoptionWhatsAppUrl()"
+                      target="_blank"
+                      rel="noopener"
+                      (click)="closeAdoptionModal()"
+                      class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <span>O abrir WhatsApp con el Responsable</span>
+                    </a>
+                  }
 
                   <!-- Mis Adopciones (Barra de progreso) -->
                   <a
@@ -1058,7 +1067,6 @@ interface FeedPost {
                     (click)="closeAdoptionModal()"
                     class="w-full py-2.5 px-4 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
-                    <span>📊</span>
                     <span>Ver Progreso de mi Solicitud →</span>
                   </a>
                 </div>
@@ -1074,22 +1082,22 @@ interface FeedPost {
               <!-- ADOPTION FORM STEP -->
               <div class="space-y-4">
                 @if (!authService.isAuthenticated()) {
-                  <!-- Guest State: Quick options -->
+                  <!-- Guest State: Login / Register -->
                   <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3">
                     <div class="flex items-start gap-2.5">
-                      <span class="text-lg">💡</span>
                       <p class="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                        Puedes contactar directamente al rescatista por WhatsApp, o registrarte gratis para llevar el seguimiento oficial de vacunación y cartilla digital en {{ brand.name }}.
+                        Inicia sesión o regístrate gratis en {{ brand.name }} para enviar tu solicitud formal y proteger tus datos de contacto durante el proceso de adopción.
                       </p>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-2 pt-1">
                       <a
-                        [href]="getAdoptionWhatsAppUrl()"
-                        target="_blank"
+                        routerLink="/auth/login"
+                        [queryParams]="{ returnUrl: '/adopciones' }"
+                        (click)="closeAdoptionModal()"
                         class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold text-center flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                       >
-                        <span>💬</span> Contactar por WhatsApp
+                        Iniciar sesión
                       </a>
                       <a
                         routerLink="/auth/register"
@@ -1119,8 +1127,14 @@ interface FeedPost {
       <!-- MODAL: REPORTAR AVISTAMIENTO / BRINDAR AYUDA / RESGUARDO -->
       <!-- ======================================================== -->
       @if (selectedLostPetForSighting()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn">
-          <div class="liquid-glass rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-4 max-h-[92vh] overflow-y-auto">
+        <div
+          class="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
+          (click)="closeSightingModal()"
+        >
+          <div
+            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-rose-500/30 space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain"
+            (click)="$event.stopPropagation()"
+          >
             <button
               (click)="closeSightingModal()"
               class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-200/80 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold"
@@ -1381,8 +1395,14 @@ interface FeedPost {
       <!-- MODAL: REPORTAR MASCOTA EXTRAVIADA / ENCONTRADA EN DH    -->
       <!-- ======================================================== -->
       @if (isReportLostModalOpen()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 animate-fadeIn">
-          <div class="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl relative border border-rose-500/30 overflow-hidden space-y-4 max-h-[92vh] overflow-y-auto">
+        <div
+          class="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overflow-y-auto overscroll-contain"
+          (click)="closeReportLostModal()"
+        >
+          <div
+            class="bg-white/95 dark:bg-slate-900/95 rounded-3xl p-5 sm:p-7 max-w-xl w-full shadow-2xl relative border border-rose-500/30 space-y-4 my-auto max-h-[92dvh] overflow-y-auto overscroll-contain"
+            (click)="$event.stopPropagation()"
+          >
             
             <button
               (click)="closeReportLostModal()"
@@ -2161,7 +2181,7 @@ interface FeedPost {
       <!-- ======================================================== -->
       @if (lightboxPost()) {
         <div
-          class="fixed inset-0 z-[70] bg-slate-950/92 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6 animate-fadeIn select-none"
+          class="fixed inset-0 z-[90] bg-slate-950/92 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6 animate-fadeIn select-none overscroll-contain"
           (click)="closeLightbox()"
         >
           <!-- Top Bar -->
@@ -2242,10 +2262,10 @@ interface FeedPost {
         !lightboxPost()
       ) {
         <div
-          class="fixed inset-0 z-[65] bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+          class="fixed inset-0 z-[75] bg-slate-950/75 backdrop-blur-md flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto overscroll-contain animate-fadeIn"
         >
           <div
-            class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-6 shadow-2xl relative overflow-hidden"
+            class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-6 shadow-2xl relative overflow-hidden my-auto max-h-[90dvh] overflow-y-auto overscroll-contain"
             (click)="$event.stopPropagation()"
           >
             <div
@@ -2457,6 +2477,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   private imageUploadService = inject(ImageUploadService);
   private confirmService = inject(ConfirmService);
   public pushService = inject(PushNotificationService);
+  private scrollLock = inject(ScrollLockService);
 
   // Push modal state on the main wall
   pushDeclineConfirmStep = signal<boolean>(false);
@@ -2489,6 +2510,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   // Data signals
   allPosts = signal<FeedPost[]>(CommunityFeedComponent.cachedPosts);
   colonias = signal<Colonia[]>(CommunityFeedComponent.cachedColonias);
+  myAdoptionApps = signal<Map<string, AdoptionRequest>>(new Map());
   isLoading = signal<boolean>(CommunityFeedComponent.cachedPosts.length === 0);
   isRefreshingFeed = signal<boolean>(false);
   pendingNewPostsCount = signal<number>(0);
@@ -2513,6 +2535,27 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       if (currentColonias.length > 0) {
         CommunityFeedComponent.cachedColonias = currentColonias;
       }
+    });
+
+    effect(() => {
+      const adoptionOpen = Boolean(this.selectedPetForAdoption());
+      const sightingOpen = Boolean(this.selectedLostPetForSighting());
+      const reportLostOpen = Boolean(this.isReportLostModalOpen());
+      const lightboxOpen = Boolean(this.lightboxPost());
+      const moderationOpen = Boolean(this.reportModalTarget());
+      const pushWallOpen = Boolean(
+        this.pushService.shouldShowWallModal() &&
+          !reportLostOpen &&
+          !adoptionOpen &&
+          !sightingOpen &&
+          !lightboxOpen,
+      );
+      this.scrollLock.setLocked('feed-adoption', adoptionOpen);
+      this.scrollLock.setLocked('feed-sighting', sightingOpen);
+      this.scrollLock.setLocked('feed-report', reportLostOpen);
+      this.scrollLock.setLocked('feed-lightbox', lightboxOpen);
+      this.scrollLock.setLocked('feed-moderation', moderationOpen);
+      this.scrollLock.setLocked('feed-push-wall', pushWallOpen);
     });
   }
 
@@ -2889,9 +2932,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     const targetId = isPetPost ? post.petData!.id : post.lostData?.id;
     if (!targetId) return;
 
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
     this.reportModalTarget.set({
       targetType: isPetPost ? 'PET_POST' : 'LOST_REPORT',
       targetId,
@@ -2901,9 +2941,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   closeReportModal(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
     this.reportModalTarget.set(null);
   }
 
@@ -2971,6 +3008,9 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.syncFilterFromRoute();
     this.loadColonias();
+    if (this.authService.isAuthenticated()) {
+      this.loadMyAdoptionApplications();
+    }
 
     // Si ya contamos con el muro en memoria o en caché ligera de sesión, mostrarlo en 0ms sin volver a cargar desde cero
     if (CommunityFeedComponent.cachedPosts.length > 0) {
@@ -3001,6 +3041,17 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     });
 
     this.route.queryParamMap.subscribe((params) => {
+      const compose = params.get('compose');
+      if (compose === 'EN_ADOPCION') {
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { compose: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+        setTimeout(() => this.openPublicationModal('EN_ADOPCION'), 40);
+      }
+
       const postId = params.get('postId');
       if (postId) {
         this.singlePostModeId.set(postId.trim());
@@ -3015,6 +3066,31 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  private loadMyAdoptionApplications(): void {
+    this.adoptionService.getMyApplications().subscribe({
+      next: (apps) => {
+        const map = new Map<string, AdoptionRequest>();
+        for (const app of apps || []) {
+          const existing = map.get(app.petId);
+          const isExistingInactive = existing && (existing.status === 'RECHAZADA' || existing.status === 'CANCELADA');
+          if (!existing || isExistingInactive) {
+            map.set(app.petId, app);
+          }
+        }
+        this.myAdoptionApps.set(map);
+      },
+      error: () => {},
+    });
+  }
+
+  getAppliedRequestForPet(petId: string): AdoptionRequest | undefined {
+    return this.myAdoptionApps().get(petId);
+  }
+
+  getShortStageLabel(status: AdoptionRequest['status']): string {
+    return getStageMeta(status).label;
   }
 
   exitSinglePostView(): void {
@@ -3589,17 +3665,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   openLightbox(post: FeedPost, index = 0): void {
     const photos = post.photos && post.photos.length > 0 ? post.photos : post.photoUrl ? [post.photoUrl] : [];
     if (photos.length === 0) return;
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
     this.lightboxPost.set({ ...post, photos });
     this.lightboxIndex.set(Math.max(0, Math.min(index, photos.length - 1)));
   }
 
   closeLightbox(): void {
-    if (typeof document !== 'undefined' && !this.isReportLostModalOpen() && !this.selectedPetForAdoption() && !this.selectedLostPetForSighting()) {
-      document.body.classList.remove('modal-open');
-    }
     this.lightboxPost.set(null);
     this.lightboxIndex.set(0);
   }
@@ -3807,9 +3877,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
       return;
     }
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
     this.editingReportId.set(null);
     this.modalStep.set(1);
     this.reportLostStep1Attempted.set(false);
@@ -3849,9 +3916,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
     if (post.kind === 'LOST_PET' && post.lostData) {
       const rep = post.lostData;
-      if (typeof document !== 'undefined') {
-        document.body.classList.add('modal-open');
-      }
       this.editingReportId.set(rep.id);
       this.modalStep.set(1);
       this.reportLostStep1Attempted.set(false);
@@ -3922,9 +3986,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     if (this.streetSearchTimer) {
       clearTimeout(this.streetSearchTimer);
       this.streetSearchTimer = null;
-    }
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
     }
     this.revokeObjectUrls(this.reportLostPhotosList());
     this.isReportLostModalOpen.set(false);
@@ -4385,7 +4446,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoUrl: primaryPhoto,
           photos: finalPhotos,
           rescueStory: `${this.reportLostForm.distinctiveFeatures.trim()} (Ubicación: ${this.reportLostForm.lastSeenLocation.trim()})`,
-          notes: `Tel. de contacto: ${this.reportLostForm.contactPhone.trim()}`,
           temperamentTags: this.reportLostForm.temperamentTags,
           isSterilized: this.reportLostForm.temperamentTags.includes('Esterilizado(a)'),
           isDewormed: !!this.reportLostForm.isDewormed,
@@ -4571,20 +4631,20 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
     if (!this.authService.isAuthenticated()) {
       this.notify.warning('Inicia sesión para postularte a la adopción de una mascota');
-      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/adopciones' } });
       return;
     }
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
+    const existingApp = this.getAppliedRequestForPet(pet.id);
+    if (existingApp && existingApp.status !== 'RECHAZADA' && existingApp.status !== 'CANCELADA') {
+      this.notify.info('Ya tienes una postulación activa', 'Puedes consultar su avance en Mis Adopciones.');
+      this.router.navigate(['/mis-adopciones']);
+      return;
     }
     this.selectedPetForAdoption.set(pet);
     this.adoptionSubmittedSuccess.set(false);
   }
 
   closeAdoptionModal(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
     this.selectedPetForAdoption.set(null);
     this.adoptionSubmittedSuccess.set(false);
   }
@@ -4596,10 +4656,18 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.isSubmittingAdoption.set(true);
 
     this.adoptionService.createRequest(pet.id, payload).subscribe({
-      next: () => {
+      next: (created) => {
         this.isSubmittingAdoption.set(false);
         this.adoptionSubmittedSuccess.set(true);
-        this.notify.success('¡Solicitud de adopción enviada al rescatista!');
+        if (created) {
+          this.myAdoptionApps.update((prev) => {
+            const next = new Map(prev);
+            next.set(pet.id, created);
+            return next;
+          });
+        }
+        this.loadMyAdoptionApplications();
+        this.notify.success('¡Solicitud de adopción enviada correctamente!');
       },
       error: (err) => {
         this.isSubmittingAdoption.set(false);
@@ -4611,14 +4679,15 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   getAdoptionWhatsAppUrl(): string {
     const pet = this.selectedPetForAdoption();
-    if (!pet) return '';
+    if (!pet?.owner?.phone) return '';
 
-    const phone = pet.owner?.phone || '4181234567';
+    const cleanDigits = pet.owner.phone.replace(/\D/g, '');
+    if (cleanDigits.length < 10) return '';
     const text = encodeURIComponent(
       `¡Hola! Vi en ${this.brand.name} a ${pet.name} (${pet.species}) en adopción en Dolores Hidalgo. Me encantaría postularme para adoptarlo(a). ¿Podemos platicar sobre los requisitos?`,
     );
 
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    return `https://wa.me/52${cleanDigits}?text=${text}`;
   }
 
   getDirectWhatsAppUrl(phone: string, message: string): string {
@@ -4658,7 +4727,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           ? `/adopciones/${post.petData.id}`
           : `/publicacion/${post.id}`,
       contextWhatsappPhone:
-        post.contactPhone || post.petData?.owner?.phone || undefined,
+        post.kind === 'PET_ADOPTION' ? undefined : post.contactPhone || undefined,
       prefilledDraft: customMessage,
     });
   }
@@ -4679,8 +4748,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       contextSubtitle: `${pet.species} • ${pet.colonia?.name || 'Dolores Hidalgo'}`,
       contextImageUrl: pet.photoUrl || pet.photos?.[0],
       contextTargetUrl: `/adopciones/${pet.id}`,
-      contextWhatsappPhone: pet.owner?.phone || undefined,
-      prefilledDraft: `¡Hola! Acabo de registrar mi solicitud para adoptar a ${pet.name}. Me encantaría platicar sobre los siguientes pasos y agendar una visita 💚`,
+      prefilledDraft: `¡Hola! Acabo de registrar mi solicitud para adoptar a ${pet.name}. Me encantaría platicar sobre los siguientes pasos y agendar una visita.`,
     });
   }
 
@@ -4692,9 +4760,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.notify.warning('Inicia sesión para reportar el avistamiento de esta mascota');
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/' } });
       return;
-    }
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
     }
     this.selectedLostPetForSighting.set(report);
     this.sightingAttempted.set(false);
@@ -4710,9 +4775,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   closeSightingModal(): void {
     this.stopCameraStream();
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
     this.selectedLostPetForSighting.set(null);
     this.sightingPhotoPreview.set(null);
     this.sightingSelectedFile.set(null);
@@ -4762,9 +4824,6 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   openSightingPhotoInLightbox(post: FeedPost, photoUrl: string): void {
     if (!photoUrl) return;
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
     this.lightboxPost.set({
       ...post,
       photos: [photoUrl],
@@ -5038,8 +5097,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       clearInterval(this.feedPollingTimer);
       this.feedPollingTimer = null;
     }
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
+    this.scrollLock.unlock('feed-adoption');
+    this.scrollLock.unlock('feed-sighting');
+    this.scrollLock.unlock('feed-report');
+    this.scrollLock.unlock('feed-lightbox');
+    this.scrollLock.unlock('feed-moderation');
+    this.scrollLock.unlock('feed-push-wall');
   }
 }

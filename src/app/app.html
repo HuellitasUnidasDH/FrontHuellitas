@@ -21,8 +21,8 @@
   <!-- Main Content Routed with breathing space below floating navbar and above mobile dock -->
   <main
     class="flex-1 relative z-10 pt-20 sm:pt-24"
-    [class.pb-24]="!isMessagesRoute()"
-    [class.md:pb-12]="!isMessagesRoute()"
+    [class.pb-28]="!isMessagesRoute()"
+    [class.md:pb-10]="!isMessagesRoute()"
     [class.pb-20]="isMessagesRoute()"
     [class.md:pb-3]="isMessagesRoute()"
     [class.min-h-0]="isMessagesRoute()"
@@ -33,16 +33,32 @@
 
   <!-- Footer (oculto en vista de chat a pantalla fija para evitar doble scroll de fondo) -->
   @if (!isMessagesRoute()) {
-    <footer class="relative z-10 py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#070c18]/60 backdrop-blur-xl text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
-      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <p>© 2026 {{ brand.fullName }} • {{ brand.city }}. Todos los derechos reservados.</p>
-        <button
-          type="button"
-          (click)="isManualPrivacyOpen = true"
-          class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-        >
-          📜 Aviso de Privacidad y Términos Legales
-        </button>
+    <footer class="relative z-10 pt-6 pb-28 md:py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-[#070c18]/75 backdrop-blur-xl text-xs text-slate-500 dark:text-slate-400 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-center md:text-left space-y-1">
+          <p class="font-semibold text-slate-700 dark:text-slate-300">
+            © 2026 {{ brand.fullName }} · {{ brand.city }}
+          </p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            Red ciudadana de adopciones responsables, alertas y seguimiento veterinario.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-semibold">
+          <a routerLink="/" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Muro</a>
+          <a routerLink="/adopciones" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Adopciones</a>
+          <a routerLink="/perdidas" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Perdidos</a>
+          <a routerLink="/aliados" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Aliados</a>
+          <a routerLink="/nosotros" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Nosotros</a>
+          <span class="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+          <button
+            type="button"
+            (click)="isManualPrivacyOpen = true"
+            class="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+          >
+            Aviso de Privacidad y Términos
+          </button>
+        </div>
       </div>
     </footer>
   }

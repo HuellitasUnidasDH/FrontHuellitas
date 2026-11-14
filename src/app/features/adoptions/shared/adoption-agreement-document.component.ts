@@ -226,9 +226,9 @@ import { NotificationService } from '../../../core/services/notification.service
                 </div>
                 <label class="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                   @if (isUploadingProof()) {
-                    ⏳ Subiendo...
+                    Subiendo archivo...
                   } @else {
-                    📎 Adjuntar Comprobante (Opcional)
+                    Adjuntar Comprobante (Opcional)
                   }
                   <input
                     type="file"
@@ -349,9 +349,9 @@ import { NotificationService } from '../../../core/services/notification.service
                 class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-105 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-50 transition-all"
               >
                 @if (isSubmitting()) {
-                  ⏳ Guardando Convenio...
+                  Guardando Convenio...
                 } @else {
-                  ✍️ Firmar Convenio y Notificar al Rescatista
+                  Firmar Convenio y Notificar al Evaluador
                 }
               </button>
             </div>
@@ -383,7 +383,7 @@ import { NotificationService } from '../../../core/services/notification.service
               <div>
                 <span class="text-[10px] font-bold uppercase text-slate-400 block">Cotejo Físico de INE</span>
                 <span class="font-black" [ngClass]="request().ineVerifiedInPerson ? 'text-emerald-600' : 'text-amber-600'">
-                  {{ request().ineVerifiedInPerson ? '✓ Verificada físicamente en entrega' : '⏳ Pendiente de cotejo presencial' }}
+                  {{ request().ineVerifiedInPerson ? 'Verificada físicamente en entrega' : 'Pendiente de cotejo presencial' }}
                 </span>
               </div>
               <div>

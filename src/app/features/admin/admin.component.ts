@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { AuditService } from '../../core/services/audit.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService, DEFAULT_PRIVACY_POLICY_CONFIG } from '../../core/services/auth.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import {
   ContentReport,
   ContentReportStatus,
@@ -1337,8 +1338,8 @@ import {
       <!-- MODAL DE RESOLUCIÓN DE DENUNCIA                           -->
       <!-- ========================================================= -->
       @if (resolvingReport()) {
-        <div class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl">
-          <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xl overflow-y-auto overscroll-contain">
+          <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-black text-slate-900 dark:text-white">Dictaminar Denuncia</h3>
               <button
@@ -1399,8 +1400,8 @@ import {
       <!-- MODAL DE ALIADO COMERCIAL (CREAR / EDITAR)                -->
       <!-- ========================================================= -->
       @if (isAllyModalOpen()) {
-        <div class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl overflow-y-auto">
-          <div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4 my-auto">
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xl overflow-y-auto overscroll-contain">
+          <div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div class="flex items-center justify-between">
               <h3 class="text-base font-black text-slate-900 dark:text-white">
                 {{ editingAllyId() ? 'Editar Aliado Comercial' : 'Nuevo Aliado Comercial' }}
@@ -1538,8 +1539,8 @@ import {
       <!-- MODAL EXCLUSIVO DE ADMIN: EDITAR AVISO DE PRIVACIDAD      -->
       <!-- ========================================================= -->
       @if (isPrivacyEditorOpen() && isAdmin()) {
-        <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-hidden animate-fade-in">
-          <div class="w-full h-full max-h-[96dvh] sm:h-auto sm:max-h-[90vh] sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden">
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-y-auto overscroll-contain animate-fade-in">
+          <div class="w-full max-h-[94dvh] sm:h-auto sm:max-h-[90dvh] sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden my-auto">
             
             <!-- Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
@@ -1695,8 +1696,18 @@ export class AdminComponent implements OnInit, OnDestroy {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
+  private scrollLock = inject(ScrollLockService);
 
   private logSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const anyModalOpen = Boolean(
+        this.resolvingReport() || this.isAllyModalOpen() || this.isPrivacyEditorOpen(),
+      );
+      this.scrollLock.setLocked('admin-modal', anyModalOpen);
+    });
+  }
 
   activeTab = signal<
     'monitoring' | 'audit' | 'users' | 'pets' | 'moderation' | 'posts' | 'allies'
@@ -1972,6 +1983,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.scrollLock.unlock('admin-modal');
     if (this.logSearchTimer) {
       clearTimeout(this.logSearchTimer);
       this.logSearchTimer = null;

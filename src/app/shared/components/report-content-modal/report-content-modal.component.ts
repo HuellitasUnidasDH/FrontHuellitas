@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, input, output, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -7,6 +7,7 @@ import {
   ReportTargetType,
 } from '../../../core/services/moderation.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 
 interface ReasonOption {
   value: ContentReportReason;
@@ -20,11 +21,11 @@ interface ReasonOption {
   imports: [CommonModule, FormsModule],
   template: `
     <div
-      class="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn overscroll-contain"
+      class="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-5 bg-slate-950/75 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
       (click)="closed.emit()"
     >
       <div
-        class="liquid-glass rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-rose-500/25 space-y-4 max-h-[90vh] overflow-y-auto overscroll-contain"
+        class="liquid-glass rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl border border-rose-500/25 space-y-4 my-auto max-h-[88dvh] overflow-y-auto overscroll-contain"
         (click)="$event.stopPropagation()"
       >
         <!-- Header -->
@@ -179,9 +180,11 @@ interface ReasonOption {
     </div>
   `,
 })
-export class ReportContentModalComponent implements OnInit {
+export class ReportContentModalComponent implements OnInit, OnDestroy {
   private moderationService = inject(ModerationService);
   private notify = inject(NotificationService);
+  private scrollLock = inject(ScrollLockService);
+  private readonly lockKey = `report-modal-${Math.random().toString(36).slice(2, 8)}`;
 
   targetType = input.required<ReportTargetType>();
   targetId = input.required<string>();
@@ -228,6 +231,11 @@ export class ReportContentModalComponent implements OnInit {
 
   ngOnInit(): void {
     this.apiError.set('');
+    this.scrollLock.lock(this.lockKey);
+  }
+
+  ngOnDestroy(): void {
+    this.scrollLock.unlock(this.lockKey);
   }
 
   trimmedDescription(): string {

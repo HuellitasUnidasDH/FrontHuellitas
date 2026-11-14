@@ -6,6 +6,8 @@ import { PetService } from '../../../core/services/pet.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import { compressAndResizeImage } from '../../../core/utils/image-compressor.util';
 import { Pet } from '../../../core/models/pet.model';
 import { MedicalRecord } from '../../../core/models/medical-record.model';
@@ -17,7 +19,17 @@ import { UserRole } from '../../../core/models/user.model';
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule, ReactiveFormsModule],
   template: `
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <div>
+        <button
+          type="button"
+          (click)="goBack()"
+          class="inline-flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors cursor-pointer"
+        >
+          {{ navHistory.getBackLabel('Volver a Mis Mascotas') }}
+        </button>
+      </div>
+
       @if (isLoading()) {
         <div class="py-24 flex justify-center">
           <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -343,11 +355,11 @@ import { UserRole } from '../../../core/models/user.model';
       @if (showAddMomentModal()) {
         <div
           (click)="closeAddMomentModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -547,7 +559,7 @@ import { UserRole } from '../../../core/models/user.model';
       @if (selectedMomentForLightbox()) {
         <div
           (click)="closeLightbox()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md overflow-hidden animate-in fade-in duration-150"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/95 backdrop-blur-md overflow-y-auto overscroll-contain animate-in fade-in duration-150"
         >
           <div
             (click)="$event.stopPropagation()"
@@ -592,11 +604,11 @@ import { UserRole } from '../../../core/models/user.model';
       @if (showAddRecordModal()) {
         <div
           (click)="closeAddRecordModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
               <h3 class="text-lg font-bold text-slate-900 dark:text-white">Nueva Consulta Médica</h3>
@@ -729,7 +741,13 @@ export class PetDetailComponent implements OnInit {
   private petService = inject(PetService);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
+  private scrollLock = inject(ScrollLockService);
+  navHistory = inject(NavigationHistoryService);
   authService = inject(AuthService);
+
+  goBack(): void {
+    this.navHistory.goBack(['/pets']);
+  }
 
   pet = signal<Pet | null>(null);
   medicalRecords = signal<MedicalRecord[]>([]);
@@ -827,15 +845,10 @@ export class PetDetailComponent implements OnInit {
   }
 
   private lockBodyScroll(locked: boolean): void {
-    if (typeof document === 'undefined') return;
     if (locked) {
-      document.body.classList.add('modal-open');
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
+      this.scrollLock.lock('pet-detail-modal');
     } else {
-      document.body.classList.remove('modal-open');
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
+      this.scrollLock.unlock('pet-detail-modal');
     }
   }
 

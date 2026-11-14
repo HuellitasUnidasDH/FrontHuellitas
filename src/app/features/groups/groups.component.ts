@@ -7,6 +7,7 @@ import { PetService } from '../../core/services/pet.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import { PetGroup, GroupFeedMoment } from '../../core/models/group.model';
 import { Pet } from '../../core/models/pet.model';
 
@@ -217,11 +218,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showCreateModal()) {
         <div
           (click)="closeCreateModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -301,11 +302,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showJoinModal()) {
         <div
           (click)="closeJoinModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-center"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-center my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900 text-left">
@@ -376,11 +377,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showAssignModal() && selectedGroupForAssign()) {
         <div
           (click)="closeAssignPetModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -447,11 +448,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showFeedModal() && selectedGroupForFeed()) {
         <div
           (click)="closeGroupFeed()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[94dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -542,6 +543,7 @@ export class GroupsComponent implements OnInit, OnDestroy {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
+  private scrollLock = inject(ScrollLockService);
   private fb = inject(FormBuilder);
 
   currentUser = this.authService.currentUser;
@@ -581,16 +583,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   private lockBodyScroll(locked: boolean): void {
-    if (typeof document !== 'undefined') {
-      if (locked) {
-        document.body.classList.add('modal-open');
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
-      } else {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
-      }
+    if (locked) {
+      this.scrollLock.lock('groups-modal');
+    } else {
+      this.scrollLock.unlock('groups-modal');
     }
   }
 

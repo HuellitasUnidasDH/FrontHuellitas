@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import { AdopterVerification } from '../../../core/models/adoption.model';
 import { UserRole } from '../../../core/models/user.model';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
@@ -20,15 +21,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       <section class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden border border-emerald-500/20">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-3.5 sm:gap-4">
-            <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-emerald-500/25 flex-shrink-0">
-              🛡️
+            <div class="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/25 flex-shrink-0">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
             </div>
             <div>
               <h1 class="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 Verificación de Adoptante
               </h1>
               <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
-                Los niveles 2 y 3 son revisados y autorizados por un Rescatista Verificado o Administrador de Dolores Hidalgo.
+                Los niveles 2 y 3 son revisados por un Rescatista Verificado o Administrador y precargan automáticamente tus futuras solicitudes.
               </p>
             </div>
           </div>
@@ -38,17 +41,21 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <a
                 routerLink="/panel-rescatista"
                 [queryParams]="{ tab: 'verifications' }"
-                class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-md flex items-center gap-1.5"
+                class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-md inline-flex items-center gap-1.5"
               >
-                <span>📋</span> Evaluar Solicitudes
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Evaluar Solicitudes
               </a>
             }
-            <a
-              routerLink="/"
-              class="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
+            <button
+              type="button"
+              (click)="goBack()"
+              class="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               ← Volver
-            </a>
+            </button>
           </div>
         </div>
 
@@ -59,11 +66,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               class="p-3 rounded-2xl border transition-all flex sm:flex-col items-center justify-between sm:justify-center gap-2"
               [ngClass]="hasLevel1() ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold' : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold'"
             >
-              <span class="text-lg">📱</span>
+              <span class="px-2 py-0.5 rounded-lg bg-current/10 text-[10px] font-black tracking-wider">N1</span>
               <div>
                 <span class="block">Nivel 1: Teléfono</span>
                 <span class="text-[10px] uppercase font-extrabold">
-                  {{ hasLevel1() ? '✓ Confirmado' : '⚠️ Falta teléfono (10 dígitos)' }}
+                  {{ hasLevel1() ? 'Confirmado' : 'Falta teléfono (10 dígitos)' }}
                 </span>
               </div>
             </div>
@@ -78,16 +85,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-400'
               "
             >
-              <span class="text-lg">📋</span>
+              <span class="px-2 py-0.5 rounded-lg bg-current/10 text-[10px] font-black tracking-wider">N2</span>
               <div>
                 <span class="block">Nivel 2: Cuestionario</span>
                 <span class="text-[10px] uppercase font-extrabold">
                   @if (verification()?.isLevel2Completed) {
-                    ✓ Aprobado por Rescatista
+                    Aprobado por Rescatista
                   } @else if (verification()?.level2Status === 'PENDIENTE') {
-                    ⏳ En Revisión
+                    En Revisión
                   } @else if (verification()?.level2Status === 'RECHAZADO') {
-                    ⚠️ Con Observaciones
+                    Con Observaciones
                   } @else {
                     Pendiente de envío
                   }
@@ -107,18 +114,18 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-400'
               "
             >
-              <span class="text-lg">🏡</span>
+              <span class="px-2 py-0.5 rounded-lg bg-current/10 text-[10px] font-black tracking-wider">N3</span>
               <div>
                 <span class="block">Nivel 3: Compromiso</span>
                 <span class="text-[10px] uppercase font-extrabold">
                   @if (verification()?.isLevel3Completed) {
-                    ✓ Adoptante Verificado
+                    Adoptante Verificado
                   } @else if (verification()?.level3Status === 'PENDIENTE') {
-                    ⏳ En Revisión
+                    En Revisión
                   } @else if (verification()?.level3Status === 'RECHAZADO') {
-                    ⚠️ Con Observaciones
+                    Con Observaciones
                   } @else if (!verification()?.isLevel2Completed) {
-                    🔒 Requiere Nivel 2 Aprobado
+                    Requiere Nivel 2 Aprobado
                   } @else {
                     Disponible para solicitar
                   }
@@ -132,7 +139,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       @if (isRescuerOrAdmin()) {
         <div class="p-4 sm:p-5 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 text-xs text-slate-800 dark:text-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
           <div class="flex items-start gap-3">
-            <span class="text-2xl flex-shrink-0">🛡️</span>
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
             <div>
               <strong class="block font-black text-emerald-700 dark:text-emerald-300 uppercase text-[11px]">
                 Rol de Rescatista / Administrador Activo
@@ -201,28 +212,30 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <section class="liquid-glass rounded-3xl p-5 sm:p-8 shadow-xl space-y-5 border border-slate-200/80 dark:border-slate-800">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-3">
-              <span class="text-2xl">📋</span>
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 font-black text-xs">
+                N2
+              </div>
               <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white">
                   Nivel 2: Cuestionario Socioambiental
                 </h3>
                 <p class="text-xs text-slate-500">
-                  Tus respuestas serán revisadas y aprobadas por un Rescatista Verificado o Administrador.
+                  Tus respuestas serán revisadas por un Rescatista Verificado o Administrador y precargan tus futuras solicitudes de adopción.
                 </p>
               </div>
             </div>
 
             @if (verification()?.isLevel2Completed) {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                ✓ Aprobado por Rescatista/Admin
+                Aprobado por Rescatista/Admin
               </span>
             } @else if (verification()?.level2Status === 'PENDIENTE') {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                ⏳ En Revisión por Rescatista/Admin
+                En Revisión por Rescatista/Admin
               </span>
             } @else if (verification()?.level2Status === 'RECHAZADO') {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                ⚠️ Requiere Corrección
+                Requiere Corrección
               </span>
             }
           </div>
@@ -376,9 +389,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 @if (isSavingLevel2()) {
                   Enviando a revisión...
                 } @else if (verification()?.level2Status === 'PENDIENTE') {
-                  🔄 Actualizar Respuestas en Revisión
+                  Actualizar Respuestas en Revisión
                 } @else {
-                  📤 Enviar Cuestionario Nivel 2 a Revisión
+                  Enviar Cuestionario Nivel 2 a Revisión
                 }
               </button>
             }
@@ -392,7 +405,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         >
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-3">
-              <span class="text-2xl">🏡</span>
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 font-black text-xs">
+                N3
+              </div>
               <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white">
                   Nivel 3: Carta Compromiso y Espacio Digno
@@ -405,26 +420,28 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
             @if (verification()?.isLevel3Completed) {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                ✓ Nivel 3 Aprobado (Adoptante Verificado)
+                Nivel 3 Aprobado (Adoptante Verificado)
               </span>
             } @else if (verification()?.level3Status === 'PENDIENTE') {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                ⏳ En Revisión por Rescatista/Admin
+                En Revisión por Rescatista/Admin
               </span>
             } @else if (verification()?.level3Status === 'RECHAZADO') {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                ⚠️ Requiere Corrección
+                Requiere Corrección
               </span>
             } @else if (!verification()?.isLevel2Completed) {
               <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                🔒 Bloqueado hasta aprobar Nivel 2
+                Bloqueado hasta aprobar Nivel 2
               </span>
             }
           </div>
 
           @if (!verification()?.isLevel2Completed) {
             <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-3">
-              <span class="text-xl">🔒</span>
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
               <span>
                 Para solicitar el <strong>Nivel 3</strong>, primero debes enviar el Cuestionario de <strong>Nivel 2</strong> y esperar a que un <strong>Rescatista Verificado o Administrador</strong> lo apruebe.
               </span>
@@ -434,7 +451,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <div class="space-y-4 text-xs">
             <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2 text-slate-700 dark:text-slate-200 leading-relaxed">
               <span class="font-black text-emerald-700 dark:text-emerald-400 block">
-                📜 Decálogo de Adopción Responsable Huellitas Dolores Hidalgo:
+                Decálogo de Adopción Responsable Huellitas Dolores Hidalgo:
               </span>
               <ul class="list-disc pl-5 space-y-1 text-[11px]">
                 <li>No mantener al animal en azoteas desprotegidas, balcones peligrosos ni atado a cadenas.</li>
@@ -479,9 +496,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 @if (isSavingLevel3()) {
                   Enviando solicitud...
                 } @else if (verification()?.level3Status === 'PENDIENTE') {
-                  ⏳ Solicitud de Nivel 3 en Revisión por Rescatista/Admin
+                  Solicitud de Nivel 3 en Revisión por Rescatista/Admin
                 } @else {
-                  📤 Firmar y Solicitar Aprobación de Nivel 3
+                  Firmar y Solicitar Aprobación de Nivel 3
                 }
               </button>
             }
@@ -497,6 +514,11 @@ export class AdopterVerificationComponent implements OnInit {
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
+  private navHistory = inject(NavigationHistoryService);
+
+  goBack(): void {
+    this.navHistory.goBack(['/adopciones']);
+  }
 
   verification = signal<AdopterVerification | null>(null);
   isLoading = signal<boolean>(true);

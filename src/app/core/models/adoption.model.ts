@@ -64,6 +64,16 @@ export interface AdopterVerification {
   updatedAt: string;
 }
 
+export interface AdoptionStageHistoryEntry {
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+  action: string;
+  status: string;
+  note?: string;
+  timestamp: string;
+}
+
 export interface AdoptionRequest {
   id: string;
   petId: string;
@@ -103,6 +113,7 @@ export interface AdoptionRequest {
   addressProofUrl?: string | null;
   addressProofVerifiedInPerson: boolean;
   handoverPhotoUrl?: string | null;
+  evaluationHistory?: AdoptionStageHistoryEntry[] | null;
   approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;

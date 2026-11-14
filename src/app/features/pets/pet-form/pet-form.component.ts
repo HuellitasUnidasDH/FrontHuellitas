@@ -1,13 +1,16 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PetService } from '../../../core/services/pet.service';
 import { GroupService } from '../../../core/services/group.service';
+import { ColoniaService } from '../../../core/services/colonia.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import { AdoptionStatus, PetGender, PetSize } from '../../../core/models/pet.model';
+import { Colonia } from '../../../core/models/colonia.model';
 import { UserRole } from '../../../core/models/user.model';
 import { PetGroup } from '../../../core/models/group.model';
 
@@ -19,9 +22,13 @@ import { PetGroup } from '../../../core/models/group.model';
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <a routerLink="/pets" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
-            ← Volver al listado
-          </a>
+          <button
+            type="button"
+            (click)="goBack()"
+            class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer"
+          >
+            {{ navHistory.getBackLabel('← Volver al listado') }}
+          </button>
           <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
             {{ isEditMode() ? 'Editar Datos de Mascota' : 'Registrar Nueva Mascota' }}
           </h1>
@@ -220,13 +227,57 @@ import { PetGroup } from '../../../core/models/group.model';
                     class="w-16 h-16 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
                   />
                   <div class="text-xs text-slate-600 dark:text-slate-300">
-                    <span class="font-bold block text-slate-900 dark:text-white">Foto lista</span>
+                    <span class="font-bold block text-slate-900 dark:text-white">Foto principal lista</span>
                     <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                       {{ photoSource() === 'URL' ? 'Enlace web válido' : 'Imagen capturada desde tu dispositivo' }}
                     </span>
                   </div>
                 </div>
               }
+
+              <!-- Galería Adicional (Multi-foto para ficha de adopción) -->
+              <div class="mt-3 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-100 block">
+                      Galería de Fotos Adicionales (opcional)
+                    </span>
+                    <span class="text-[11px] text-slate-500">
+                      Agrega más ángulos para enriquecer su ficha ({{ galleryPhotos().length }}/{{ maxPhotosAllowed() }}).
+                    </span>
+                  </div>
+                  @if (galleryPhotos().length < maxPhotosAllowed()) {
+                    <label class="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                      {{ isUploadingExtraPhoto() ? 'Subiendo...' : '+ Agregar foto' }}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        (change)="onAddGalleryPhoto($event)"
+                        [disabled]="isUploadingExtraPhoto()"
+                        class="hidden"
+                      />
+                    </label>
+                  }
+                </div>
+
+                @if (galleryPhotos().length > 0) {
+                  <div class="flex flex-wrap gap-2.5">
+                    @for (gUrl of galleryPhotos(); track gUrl + $index) {
+                      <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700">
+                        <img [src]="gUrl" [alt]="'Foto galería ' + ($index + 1)" class="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          (click)="removeGalleryPhoto($index)"
+                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 text-white text-[10px] font-bold flex items-center justify-center hover:bg-rose-600 cursor-pointer"
+                          title="Quitar foto"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
             </div>
           </div>
 
@@ -389,6 +440,64 @@ import { PetGroup } from '../../../core/models/group.model';
               </div>
 
               @if (petForm.get('isForAdoption')?.value || isEditMode()) {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Colonia / Zona (Dolores Hidalgo)
+                    </label>
+                    <select
+                      formControlName="coloniaId"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option value="">Selecciona una colonia (opcional)...</option>
+                      @for (colonia of colonias(); track colonia.id) {
+                        <option [value]="colonia.id">{{ colonia.postalCode ? '[' + colonia.postalCode + '] ' : '' }}{{ colonia.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-4 pt-2 sm:pt-6">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        formControlName="goodWithKids"
+                        class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span>Convive con niños</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        formControlName="goodWithOtherPets"
+                        class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span>Convive con otras mascotas</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Rasgos de Temperamento
+                  </label>
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (tag of commonTemperamentTags; track tag) {
+                      <button
+                        type="button"
+                        (click)="toggleTemperamentTag(tag)"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+                        [ngClass]="
+                          selectedTemperamentTags().includes(tag)
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-sm'
+                            : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        "
+                      >
+                        {{ tag }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Historia de Rescate / Descripción de Adopción
@@ -403,17 +512,37 @@ import { PetGroup } from '../../../core/models/group.model';
               }
             </div>
 
-            <!-- Nota de Privacidad: Mis Mascotas es exclusivamente personal -->
-            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-start gap-3">
-              <span class="text-xl leading-none mt-0.5">🛡️</span>
-              <div class="space-y-0.5">
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  Registro Personal en "Mis Mascotas"
-                </span>
-                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Esta ficha es <strong>exclusivamente para tu mascota personal</strong> (expediente clínico y álbum de recuerdos). No se publicará en adopción. Si rescatas un animalito y necesitas encontrarle hogar responsable, repórtalo en el Muro Comunitario como <strong>"En Resguardo"</strong> para recibir acompañamiento de rescatistas verificados.
-                </p>
-              </div>
+            <!-- Visibilidad: Registro personal o Publicación en Adopción Responsable -->
+            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-2.5">
+              <label
+                class="flex items-start gap-3"
+                [ngClass]="canToggleAdoption() ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+              >
+                <input
+                  type="checkbox"
+                  formControlName="isForAdoption"
+                  class="mt-0.5 w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                />
+                <div class="space-y-0.5">
+                  <span class="text-xs font-black text-slate-900 dark:text-white block">
+                    Publicar en Catálogo de Adopción Responsable
+                  </span>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Si dejas esta casilla sin marcar, la ficha queda en tu lista privada <strong>"Mis Mascotas"</strong> (expediente clínico). Si la activas, aparecerá en <strong>Adopciones</strong> y podrás evaluar postulantes desde <a routerLink="/panel-rescatista" [queryParams]="{ tab: 'publications' }" class="text-emerald-600 dark:text-emerald-400 font-bold underline">Mis Publicaciones</a>.
+                  </p>
+                </div>
+              </label>
+
+              @if (!hasMinimumLevel1()) {
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Para activar publicaciones de adopción necesitas completar al menos el <strong>Nivel 1</strong> (teléfono de contacto de 10 dígitos en tu perfil).
+                  </span>
+                  <a routerLink="/verificacion" class="font-black underline whitespace-nowrap">
+                    Completar Nivel 1 →
+                  </a>
+                </div>
+              }
             </div>
           </div>
 
@@ -432,12 +561,13 @@ import { PetGroup } from '../../../core/models/group.model';
 
           <!-- Submit Buttons -->
           <div class="pt-6 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
-            <a
-              routerLink="/pets"
+            <button
+              type="button"
+              (click)="goBack()"
               class="px-5 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold transition-colors cursor-pointer"
             >
               Cancelar
-            </a>
+            </button>
             <button
               type="submit"
               [disabled]="isSubmitting()"
@@ -460,18 +590,39 @@ export class PetFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private petService = inject(PetService);
   private groupService = inject(GroupService);
+  private coloniaService = inject(ColoniaService);
   private notification = inject(NotificationService);
   private imageUploadService = inject(ImageUploadService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  public navHistory = inject(NavigationHistoryService);
+
+  goBack(): void {
+    this.navHistory.goBack(['/pets']);
+  }
 
   PetGender = PetGender;
+
+  readonly commonTemperamentTags = [
+    'Cariñoso(a)',
+    'Juguetón(a)',
+    'Tranquilo(a)',
+    'Protector(a)',
+    'Bueno con niños',
+    'Sociable con perros',
+    'Convive con gatos',
+    'Aprende rápido',
+  ];
 
   isEditMode = signal(false);
   isSubmitting = signal(false);
   petId = signal<string | null>(null);
   availableGroups = signal<PetGroup[]>([]);
+  colonias = signal<Colonia[]>([]);
+  galleryPhotos = signal<string[]>([]);
+  isUploadingExtraPhoto = signal(false);
+  selectedTemperamentTags = signal<string[]>([]);
 
   photoSource = signal<'FILE' | 'CAMERA' | 'URL'>('FILE');
   photoPreview = signal<string | null>(null);
@@ -482,12 +633,40 @@ export class PetFormComponent implements OnInit, OnDestroy {
   private activeCameraStream: MediaStream | null = null;
   private loadedPetStatus?: AdoptionStatus;
 
+  hasMinimumLevel1 = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.RESCATISTA_VERIFICADO ||
+      user.role === UserRole.ALBERGUE ||
+      (user.verificationLevel ?? 0) >= 1 ||
+      user.isPhoneVerified
+    ) {
+      return true;
+    }
+    return (user.phone || '').replace(/\D/g, '').length >= 10;
+  });
+
+  maxPhotosAllowed = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === UserRole.ADMIN || role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE ? 6 : 3;
+  });
+
+  canToggleAdoption = computed(() => {
+    if (this.loadedPetStatus === 'ADOPTADA' || this.loadedPetStatus === 'EN_SEGUIMIENTO') {
+      return false;
+    }
+    return this.hasMinimumLevel1() || this.loadedPetStatus === 'DISPONIBLE' || this.loadedPetStatus === 'EN_PROCESO';
+  });
+
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
     species: ['Perro', [Validators.required]],
     breed: [''],
     gender: [PetGender.MALE],
     groupId: [null as string | null],
+    coloniaId: [''],
     photoUrl: [''],
     birthDate: [''],
     approximateAge: [''],
@@ -498,6 +677,8 @@ export class PetFormComponent implements OnInit, OnDestroy {
     microchipNumber: [''],
     isSterilized: [false],
     isDewormed: [false],
+    goodWithKids: [true],
+    goodWithOtherPets: [true],
     vaccinesText: [''],
     isForAdoption: [false],
     rescueStory: [''],
@@ -506,12 +687,20 @@ export class PetFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadGroups();
+    this.coloniaService.getAll().subscribe({
+      next: (cols) => this.colonias.set(cols || []),
+      error: () => {},
+    });
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
       this.petId.set(id);
       this.loadPetData(id);
+    }
+
+    if (!this.hasMinimumLevel1()) {
+      this.petForm.get('isForAdoption')?.disable({ emitEvent: false });
     }
   }
 
@@ -543,6 +732,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           breed: pet.breed || '',
           gender: pet.gender,
           groupId: pet.groupId || null,
+          coloniaId: pet.coloniaId || '',
           photoUrl: pet.photoUrl || '',
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
           approximateAge: pet.approximateAge || '',
@@ -553,11 +743,23 @@ export class PetFormComponent implements OnInit, OnDestroy {
           microchipNumber: pet.microchipNumber || '',
           isSterilized: pet.isSterilized,
           isDewormed: !!pet.isDewormed,
+          goodWithKids: pet.goodWithKids !== undefined ? !!pet.goodWithKids : true,
+          goodWithOtherPets: pet.goodWithOtherPets !== undefined ? !!pet.goodWithOtherPets : true,
           vaccinesText: (pet.vaccinesList || []).join(', '),
           isForAdoption: pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO',
           rescueStory: pet.rescueStory || '',
           notes: pet.notes || '',
         });
+
+        this.selectedTemperamentTags.set(pet.temperamentTags || []);
+        const existingGallery = (pet.photos && pet.photos.length > 0 ? pet.photos : pet.photoUrl ? [pet.photoUrl] : []).filter(Boolean);
+        this.galleryPhotos.set(existingGallery);
+
+        if (this.canToggleAdoption()) {
+          this.petForm.get('isForAdoption')?.enable({ emitEvent: false });
+        } else {
+          this.petForm.get('isForAdoption')?.disable({ emitEvent: false });
+        }
 
         if (pet.photoUrl) {
           this.photoPreview.set(pet.photoUrl);
@@ -568,6 +770,41 @@ export class PetFormComponent implements OnInit, OnDestroy {
         this.router.navigate(['/pets']);
       },
     });
+  }
+
+  toggleTemperamentTag(tag: string): void {
+    this.selectedTemperamentTags.update((curr) =>
+      curr.includes(tag) ? curr.filter((t) => t !== tag) : [...curr, tag],
+    );
+  }
+
+  onAddGalleryPhoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.notification.warning('Archivo no válido', 'Selecciona una imagen JPG, PNG o WEBP.');
+      return;
+    }
+
+    this.isUploadingExtraPhoto.set(true);
+    this.imageUploadService.uploadImage(file, 'pets').subscribe({
+      next: (url) => {
+        this.isUploadingExtraPhoto.set(false);
+        this.galleryPhotos.update((prev) =>
+          prev.length < this.maxPhotosAllowed() ? [...prev, url] : prev,
+        );
+      },
+      error: () => {
+        this.isUploadingExtraPhoto.set(false);
+        this.notification.error('No se pudo subir la foto adicional');
+      },
+    });
+  }
+
+  removeGalleryPhoto(index: number): void {
+    this.galleryPhotos.update((prev) => prev.filter((_, i) => i !== index));
   }
 
   onPhotoFileSelected(event: Event): void {
@@ -697,15 +934,9 @@ export class PetFormComponent implements OnInit, OnDestroy {
     }
 
     this.isSubmitting.set(true);
-    const formVal = this.petForm.value;
+    const formVal = this.petForm.getRawValue();
 
     const finalizeSubmission = (finalPhotoUrl?: string) => {
-      const userRole = this.authService.currentUser()?.role;
-      const isRescuerOrAdmin =
-        userRole === UserRole.RESCATISTA_VERIFICADO ||
-        userRole === UserRole.ALBERGUE ||
-        userRole === UserRole.ADMIN;
-
       const parsedVaccines = (formVal.vaccinesText || '')
         .split(',')
         .map((v) => v.trim())
@@ -717,9 +948,18 @@ export class PetFormComponent implements OnInit, OnDestroy {
         this.loadedPetStatus !== 'DISPONIBLE' &&
         this.loadedPetStatus !== 'NO_EN_ADOPCION'
           ? this.loadedPetStatus
-          : formVal.isForAdoption && isRescuerOrAdmin
+          : formVal.isForAdoption && this.hasMinimumLevel1()
             ? 'DISPONIBLE'
             : 'NO_EN_ADOPCION';
+
+      const combinedPhotos = Array.from(
+        new Set(
+          [
+            ...(finalPhotoUrl ? [finalPhotoUrl] : []),
+            ...this.galleryPhotos(),
+          ].filter(Boolean),
+        ),
+      ).slice(0, this.maxPhotosAllowed());
 
       const payload: any = {
         name: formVal.name!,
@@ -728,7 +968,9 @@ export class PetFormComponent implements OnInit, OnDestroy {
         gender: formVal.gender || PetGender.MALE,
         size: formVal.size || 'MEDIANO',
         groupId: formVal.groupId || null,
-        photoUrl: finalPhotoUrl || undefined,
+        coloniaId: formVal.coloniaId || undefined,
+        photoUrl: finalPhotoUrl || combinedPhotos[0] || undefined,
+        photos: combinedPhotos.length > 0 ? combinedPhotos : undefined,
         birthDate: formVal.birthDate || undefined,
         approximateAge: formVal.approximateAge?.trim() || undefined,
         weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
@@ -737,10 +979,21 @@ export class PetFormComponent implements OnInit, OnDestroy {
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
         isDewormed: !!formVal.isDewormed,
+        goodWithKids: !!formVal.goodWithKids,
+        goodWithOtherPets: !!formVal.goodWithOtherPets,
+        temperamentTags: this.selectedTemperamentTags(),
         vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
         status: resolvedStatus,
         rescueStory: formVal.rescueStory?.trim() || undefined,
         notes: formVal.notes || undefined,
+      };
+
+      const navigateAfterSave = (savedId: string) => {
+        if (resolvedStatus === 'DISPONIBLE' || resolvedStatus === 'EN_PROCESO') {
+          this.router.navigate(['/panel-rescatista'], { queryParams: { tab: 'publications' } });
+        } else {
+          this.router.navigate(['/pets', savedId]);
+        }
       };
 
       if (this.isEditMode() && this.petId()) {
@@ -748,7 +1001,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           next: () => {
             this.isSubmitting.set(false);
             this.notification.success('Actualizado', 'Datos de la mascota actualizados exitosamente');
-            this.router.navigate(['/pets', this.petId()!]);
+            navigateAfterSave(this.petId()!);
           },
           error: () => this.isSubmitting.set(false),
         });
@@ -757,7 +1010,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           next: (created) => {
             this.isSubmitting.set(false);
             this.notification.success('Registrado', 'Mascota registrada correctamente');
-            this.router.navigate(['/pets', created.id]);
+            navigateAfterSave(created.id);
           },
           error: () => this.isSubmitting.set(false),
         });

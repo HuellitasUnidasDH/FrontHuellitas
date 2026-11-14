@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { SocialNotificationService } from '../../core/services/social-notification.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { NavigationHistoryService } from '../../core/services/navigation-history.service';
 import {
   SocialNotification,
   SocialNotificationType,
@@ -80,7 +81,14 @@ interface NotificationTimeGroup {
           </div>
 
           <!-- Top Action Toolbar -->
-          <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+          <div class="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              type="button"
+              (click)="goBack()"
+              class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-200/75 dark:bg-slate-800/80 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+            >
+              {{ navHistory.getBackLabel('← Volver') }}
+            </button>
             <button
               type="button"
               (click)="refreshFeed()"
@@ -396,7 +404,12 @@ export class NotificationsComponent implements OnInit {
   socialNotifications = inject(SocialNotificationService);
   private toast = inject(NotificationService);
   private router = inject(Router);
+  public navHistory = inject(NavigationHistoryService);
   brand = BRAND_CONFIG;
+
+  goBack(): void {
+    this.navHistory.goBack(['/']);
+  }
 
   activeFilter = signal<NotificationFilterTab>('ALL');
 

@@ -16,6 +16,7 @@ import { DirectMessageService } from '../../core/services/direct-message.service
 import { AuthService } from '../../core/services/auth.service';
 import { ImageUploadService } from '../../core/services/image-upload.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import {
   DirectConversation,
   DirectMessage,
@@ -748,7 +749,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
     <!-- ========================================================== -->
     @if (showDirectoryModal()) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn"
+        class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
         (click)="showDirectoryModal.set(false)"
       >
         <div
@@ -840,7 +841,7 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
     <!-- ========================================================== -->
     @if (previewImageModalUrl()) {
       <div
-        class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+        class="fixed inset-0 z-[80] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn overscroll-contain"
         (click)="previewImageModalUrl.set(null)"
       >
         <img
@@ -856,12 +857,12 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
     <!-- ========================================================== -->
     @if (isChatCameraModalOpen()) {
       <div
-        class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn"
+        class="fixed inset-0 z-[80] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn overflow-y-auto overscroll-contain"
         (click)="closeChatCameraModal()"
       >
         <div
           (click)="$event.stopPropagation()"
-          class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-5 shadow-2xl space-y-4"
+          class="w-full max-w-md rounded-3xl liquid-glass border border-emerald-500/40 bg-white/95 dark:bg-slate-900/95 p-5 shadow-2xl space-y-4 my-auto max-h-[88dvh] overflow-y-auto overscroll-contain"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -973,6 +974,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   private readonly toast = inject(NotificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly scrollLock = inject(ScrollLockService);
   readonly brand = BRAND_CONFIG;
 
   @ViewChild('messagesScrollContainer')
@@ -1007,6 +1009,18 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   private lastTrackedMessageId: string | null = null;
 
   constructor() {
+    effect(() => {
+      const anyModalOpen =
+        this.showDirectoryModal() ||
+        !!this.previewImageModalUrl() ||
+        this.isChatCameraModalOpen();
+      if (anyModalOpen) {
+        this.scrollLock.lock('dm-modal');
+      } else {
+        this.scrollLock.unlock('dm-modal');
+      }
+    });
+
     // Auto-scroll reactivo cada vez que llega o se envía un mensaje nuevo o se cambia de conversación
     effect(() => {
       const convId = this.activeConversation()?.id || null;
@@ -1161,6 +1175,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopChatCameraStream();
+    this.scrollLock.unlock('dm-modal');
     if (typeof document !== 'undefined') {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';

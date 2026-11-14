@@ -1,11 +1,24 @@
-import { Component, OnInit, inject, signal, computed, HostListener } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { PwaService } from '../../../core/services/pwa.service';
 import { SocialNotificationService } from '../../../core/services/social-notification.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 import { DirectConversation } from '../../../core/models/direct-message.model';
 import {
   SocialNotification,
@@ -735,6 +748,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             type="button"
             class="md:hidden w-9 h-9 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-300/70 dark:border-slate-700/70 flex items-center justify-center text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-sm text-base font-bold"
             [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400': isMobileMenuOpen() }"
+            [attr.aria-expanded]="isMobileMenuOpen()"
             aria-label="Abrir menú de navegación"
           >
             @if (isMobileMenuOpen()) {
@@ -752,11 +766,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     <!-- ======================================================== -->
     @if (isMobileMenuOpen()) {
       <div
-        class="md:hidden fixed inset-0 z-[60] bg-slate-950/75 backdrop-blur-md flex flex-col pt-[4.5rem] pb-24 px-3 animate-fadeIn"
+        class="md:hidden fixed inset-0 z-[60] bg-slate-950/75 backdrop-blur-md flex flex-col pt-[4.5rem] pb-24 px-3 animate-fadeIn overscroll-contain"
         (click)="closeMobileMenu()"
       >
         <div
-          class="w-full max-w-lg mx-auto bg-white/95 dark:bg-[#0b1324]/95 rounded-3xl p-4 sm:p-5 shadow-2xl border border-emerald-500/35 flex flex-col max-h-[calc(100dvh-6.5rem)] overflow-hidden"
+          class="w-full max-w-lg mx-auto bg-white/95 dark:bg-[#0b1324]/95 rounded-3xl p-4 sm:p-5 shadow-2xl border border-emerald-500/35 flex flex-col max-h-[calc(100dvh-6.5rem)] overflow-hidden overscroll-contain"
           (click)="$event.stopPropagation()"
         >
           <!-- Top Fixed Header inside Drawer: User Status -->
@@ -1054,7 +1068,8 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     <!-- Mobile Bottom Navigation Dock (Native App Style)         -->
     <!-- ======================================================== -->
     <nav
-      class="md:hidden fixed bottom-2.5 inset-x-3 z-50 liquid-glass rounded-2xl p-1.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
+      aria-label="Navegación móvil"
+      class="md:hidden fixed bottom-[max(0.5rem,env(safe-area-inset-bottom))] inset-x-2.5 sm:inset-x-3 z-50 liquid-glass rounded-2xl p-1 gap-0.5 flex items-center justify-around shadow-2xl border border-white/40 dark:border-white/10 backdrop-blur-xl"
     >
       <!-- Muro (Public) -->
       <a
@@ -1113,7 +1128,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           type="button"
           (click)="toggleMobileMenu($event)"
           [ngClass]="{ 'mobile-dock-active': isMobileMenuOpen() }"
-          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 cursor-pointer"
+          [attr.aria-expanded]="isMobileMenuOpen()"
+          aria-label="Opciones del menú"
+          class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0 cursor-pointer"
         >
           <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">☰</span>
           <span class="text-[10px] font-bold mt-0.5">Opciones</span>
@@ -1209,14 +1226,31 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     }
   `]
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
   themeService = inject(ThemeService);
   pwaService = inject(PwaService);
   socialNotifications = inject(SocialNotificationService);
   dmService = inject(DirectMessageService);
+  private scrollLock = inject(ScrollLockService);
+  private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   brand = BRAND_CONFIG;
+
+  constructor() {
+    effect(() => {
+      this.scrollLock.setLocked('navbar-drawer', this.isMobileMenuOpen(), 'drawer');
+    });
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        this.closeAllDropdowns();
+      });
+  }
 
   isScrolled = signal(false);
   isMobileMenuOpen = signal(false);
@@ -1338,6 +1372,11 @@ export class NavbarComponent implements OnInit {
     this.closeAllDropdowns();
   }
 
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.closeAllDropdowns();
+  }
+
   toggleMobileMenu(event?: Event): void {
     if (event) {
       event.stopPropagation();
@@ -1365,6 +1404,10 @@ export class NavbarComponent implements OnInit {
       this.isScrolled.set(window.scrollY > 20);
     }
     this.dmService.startPolling(15000);
+  }
+
+  ngOnDestroy(): void {
+    this.scrollLock.unlock('navbar-drawer', 'drawer');
   }
 
   getFirstName(fullName?: string): string {

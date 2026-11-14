@@ -1,8 +1,10 @@
 import { Component, ElementRef, OnInit, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AdoptionService } from '../../../core/services/adoption.service';
-import { CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { CreateAdoptionRequestPayload, HousingType } from '../../../core/models/adoption.model';
 import { Pet } from '../../../core/models/pet.model';
 
 type FormFieldKey =
@@ -38,6 +40,18 @@ interface MissingFieldIssue {
           Completa este cuestionario para iniciar la entrevista. Por protección de datos (LFPDPPP), <strong>no se solicita subir fotografía de identificación oficial</strong> en línea.
         </div>
       </div>
+
+      @if (prefilledSource()) {
+        <div class="px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/25 flex items-center justify-between gap-2 text-[11px] text-sky-800 dark:text-sky-300">
+          <span class="flex items-center gap-1.5 font-medium">
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            Respuestas base precargadas desde {{ prefilledSource() }}. Revísalas antes de enviar.
+          </span>
+        </div>
+      }
 
       <!-- 1. Tipo de Vivienda -->
       <div>
@@ -229,6 +243,77 @@ interface MissingFieldIssue {
         </div>
       </div>
 
+      <!-- Perfil Socioambiental Unificado (Nivel 2) -->
+      @if (!level2AlreadyDone()) {
+        <div class="p-3.5 rounded-2xl bg-sky-500/5 border border-sky-500/20 space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[11px] font-black uppercase tracking-wider text-sky-700 dark:text-sky-400 block">
+                Perfil de Adoptante Unificado (Nivel 2 opcional)
+              </span>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                Si completas estos 3 campos extra, también enviaremos tu Verificación Nivel 2 para agilizar futuras adopciones.
+              </p>
+            </div>
+            <button
+              type="button"
+              (click)="showExtraProfileFields.set(!showExtraProfileFields())"
+              class="px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 font-bold text-[11px] shrink-0 cursor-pointer transition-colors"
+            >
+              {{ showExtraProfileFields() ? 'Ocultar' : 'Completar Nivel 2' }}
+            </button>
+          </div>
+
+          @if (showExtraProfileFields()) {
+            <div class="space-y-2.5 pt-1 animate-fadeIn">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label class="block text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">
+                    Personas en el hogar
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="form.peopleInHome"
+                    placeholder="Ej: 2 adultos, 1 adolescente"
+                    class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">
+                    Responsable económico
+                  </label>
+                  <input
+                    type="text"
+                    [(ngModel)]="form.financialResponsible"
+                    placeholder="Ej: Yo mismo / empleo fijo"
+                    class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 mb-1">
+                  Experiencia previa con mascotas
+                </label>
+                <textarea
+                  [(ngModel)]="form.previousExperience"
+                  rows="2"
+                  placeholder="Cuéntanos brevemente si has cuidado perros o gatos antes..."
+                  class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-sky-500"
+                ></textarea>
+              </div>
+              <label class="flex items-center gap-2 text-[11px] text-slate-700 dark:text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="form.syncToLevel2"
+                  class="rounded text-sky-600 focus:ring-sky-500 h-4 w-4"
+                />
+                <span>Guardar y enviar automáticamente a revisión de Verificación Nivel 2</span>
+              </label>
+            </div>
+          }
+        </div>
+      }
+
       <!-- Compromisos Obligatorios -->
       <div
         id="arf-agreements"
@@ -346,6 +431,7 @@ interface MissingFieldIssue {
 })
 export class AdoptionRequestFormComponent implements OnInit {
   private adoptionService = inject(AdoptionService);
+  private authService = inject(AuthService);
   private hostRef = inject(ElementRef<HTMLElement>);
 
   pet = input.required<Pet>();
@@ -355,6 +441,9 @@ export class AdoptionRequestFormComponent implements OnInit {
 
   touched = signal<Record<string, boolean>>({});
   submittedAttempt = signal<boolean>(false);
+  prefilledSource = signal<string>('');
+  level2AlreadyDone = signal<boolean>(false);
+  showExtraProfileFields = signal<boolean>(false);
 
   form = {
     housingType: 'CASA_PROPIA_PATIO',
@@ -364,25 +453,82 @@ export class AdoptionRequestFormComponent implements OnInit {
     reason: '',
     socialMedia: '',
     address: '',
+    peopleInHome: '',
+    previousExperience: '',
+    financialResponsible: '',
+    syncToLevel2: true,
     agreeNoAbandon: false,
     agreeSterilization: false,
     agreeFollowup: false,
   };
 
   ngOnInit(): void {
-    this.adoptionService.getMyVerification().subscribe({
-      next: (ver) => {
-        if (!ver) return;
-        if (ver.housingType === 'CASA_RENTADA') {
-          this.form.housingType = 'RENTA_CON_PERMISO';
-        } else if (ver.housingType === 'DEPARTAMENTO') {
-          this.form.housingType = 'CASA_PROPIA_SIN_PATIO';
+    const userColonia = this.authService.currentUser()?.colonia?.name;
+    if (userColonia && !this.form.address) {
+      this.form.address = `Col. ${userColonia}, Dolores Hidalgo`;
+    }
+
+    forkJoin({
+      ver: this.adoptionService.getMyVerification().pipe(catchError(() => of(null))),
+      apps: this.adoptionService.getMyApplications().pipe(catchError(() => of([]))),
+    }).subscribe({
+      next: ({ ver, apps }) => {
+        const sources: string[] = [];
+
+        if (ver) {
+          this.level2AlreadyDone.set(
+            Boolean(ver.isLevel2Completed || ver.level2Status === 'PENDIENTE' || ver.level2Status === 'APROBADO'),
+          );
+          if (ver.housingType === 'CASA_RENTADA') {
+            this.form.housingType = 'RENTA_CON_PERMISO';
+          } else if (ver.housingType === 'DEPARTAMENTO') {
+            this.form.housingType = 'CASA_PROPIA_SIN_PATIO';
+          } else if (ver.housingType === 'CASA_PROPIA') {
+            this.form.housingType = 'CASA_PROPIA_PATIO';
+          }
+          if (ver.relocationPlan && !this.form.relocationPlan) {
+            this.form.relocationPlan = ver.relocationPlan;
+            sources.push('tu Verificación Nivel 2');
+          }
+          if (ver.peopleInHome && !this.form.peopleInHome) this.form.peopleInHome = ver.peopleInHome;
+          if (ver.previousExperience && !this.form.previousExperience) {
+            this.form.previousExperience = ver.previousExperience;
+          }
+          if (ver.financialResponsible && !this.form.financialResponsible) {
+            this.form.financialResponsible = ver.financialResponsible;
+          }
         }
-        if (ver.relocationPlan && !this.form.relocationPlan) {
-          this.form.relocationPlan = ver.relocationPlan;
+
+        const latest = apps?.[0];
+        if (latest) {
+          const q = latest.questionnaireData;
+          if (latest.adopterSocialMedia && !this.form.socialMedia) {
+            this.form.socialMedia = latest.adopterSocialMedia;
+            if (!sources.includes('tu postulación anterior')) sources.push('tu postulación anterior');
+          }
+          if (latest.adopterAddress) {
+            this.form.address = latest.adopterAddress;
+          }
+          if (q?.currentPets && !this.form.currentPets) {
+            this.form.currentPets = q.currentPets;
+          }
+          if (q?.relocationPlan && !this.form.relocationPlan) {
+            this.form.relocationPlan = q.relocationPlan;
+            if (!sources.includes('tu postulación anterior')) sources.push('tu postulación anterior');
+          }
+          if (q?.peopleInHome && !this.form.peopleInHome) this.form.peopleInHome = q.peopleInHome;
+          if (q?.previousExperience && !this.form.previousExperience) {
+            this.form.previousExperience = q.previousExperience;
+          }
+          if (q?.financialResponsible && !this.form.financialResponsible) {
+            this.form.financialResponsible = q.financialResponsible;
+          }
+        }
+
+        if (sources.length > 0) {
+          this.prefilledSource.set(sources.join(' y '));
         }
       },
-      error: () => {},
     });
   }
 
@@ -535,6 +681,31 @@ Motivo y tiempo: ${this.form.reason.trim()}
 Redes sociales: ${this.form.socialMedia.trim()}
 Dirección/Zona: ${this.form.address.trim()}`;
 
+    if (
+      !this.level2AlreadyDone() &&
+      this.form.syncToLevel2 &&
+      this.form.peopleInHome.trim().length >= 3 &&
+      this.form.previousExperience.trim().length >= 5 &&
+      this.form.financialResponsible.trim().length >= 3
+    ) {
+      const mappedHousing: HousingType =
+        this.form.housingType === 'RENTA_CON_PERMISO'
+          ? 'CASA_RENTADA'
+          : this.form.housingType === 'CASA_PROPIA_SIN_PATIO'
+            ? 'DEPARTAMENTO'
+            : 'CASA_PROPIA';
+      this.adoptionService
+        .submitLevel2({
+          housingType: mappedHousing,
+          landlordAllowsPets: true,
+          peopleInHome: this.form.peopleInHome.trim(),
+          previousExperience: this.form.previousExperience.trim(),
+          relocationPlan: this.form.relocationPlan.trim(),
+          financialResponsible: this.form.financialResponsible.trim(),
+        })
+        .subscribe({ error: () => {} });
+    }
+
     this.submitted.emit({
       message,
       socialMedia: this.form.socialMedia.trim(),
@@ -548,6 +719,9 @@ Dirección/Zona: ${this.form.address.trim()}`;
         motivation: this.form.reason.trim(),
         socialMedia: this.form.socialMedia.trim(),
         address: this.form.address.trim(),
+        ...(this.form.peopleInHome.trim() ? { peopleInHome: this.form.peopleInHome.trim() } : {}),
+        ...(this.form.previousExperience.trim() ? { previousExperience: this.form.previousExperience.trim() } : {}),
+        ...(this.form.financialResponsible.trim() ? { financialResponsible: this.form.financialResponsible.trim() } : {}),
       },
     });
   }

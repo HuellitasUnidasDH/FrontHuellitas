@@ -11,7 +11,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative">
+    <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
       <div class="w-full max-w-md liquid-glass rounded-3xl p-7 sm:p-9 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
 
         <!-- Header -->

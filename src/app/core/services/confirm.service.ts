@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { ScrollLockService } from './scroll-lock.service';
 
 export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
 
@@ -28,6 +29,8 @@ export interface ConfirmModalState {
   providedIn: 'root',
 })
 export class ConfirmService {
+  private readonly scrollLock = inject(ScrollLockService);
+
   private stateSignal = signal<ConfirmModalState>({
     isOpen: false,
     options: { message: '' },
@@ -127,14 +130,10 @@ export class ConfirmService {
   }
 
   private applyModalEffects(open: boolean): void {
-    if (typeof document !== 'undefined') {
-      if (open) {
-        document.body.classList.add('modal-open');
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-      }
+    if (open) {
+      this.scrollLock.lock('confirm-modal');
+    } else {
+      this.scrollLock.unlock('confirm-modal');
     }
   }
 }

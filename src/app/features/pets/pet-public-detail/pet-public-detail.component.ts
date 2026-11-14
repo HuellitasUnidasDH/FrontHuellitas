@@ -7,9 +7,12 @@ import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { DirectMessageService } from '../../../core/services/direct-message.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import { Pet } from '../../../core/models/pet.model';
 import { UserRole } from '../../../core/models/user.model';
-import { CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
+import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
+import { getStageMeta } from '../../adoptions/shared/adoption-helpers.util';
 import { AdoptionRequestFormComponent } from '../../adoptions/shared/adoption-request-form.component';
 import { ReportContentModalComponent } from '../../../shared/components/report-content-modal/report-content-modal.component';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
@@ -23,26 +26,37 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
       <!-- Navigation & Back Link -->
       <div class="flex items-center justify-between">
-        <a
-          routerLink="/"
-          class="inline-flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 transition-colors"
+        <button
+          type="button"
+          (click)="goBack()"
+          class="inline-flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 transition-colors cursor-pointer"
         >
-          <span>←</span> Volver al Muro de {{ brand.name }}
-        </a>
+          {{ navHistory.getBackLabel('Volver a Adopciones') }}
+        </button>
 
         <!-- Share Actions & Report -->
         <div class="flex items-center gap-2">
           <button
             (click)="shareToWhatsApp()"
-            class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+            class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <span>💬</span> WhatsApp
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            Compartir
           </button>
           <button
             (click)="shareToFacebook()"
-            class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+            class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <span>🌐</span> Facebook
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+            </svg>
+            Facebook
           </button>
           @if (pet() && !isOwnPet()) {
             <button
@@ -83,20 +97,27 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
               <!-- Top Floating Pills -->
               <div class="absolute top-4 left-4 flex flex-wrap gap-2">
-                <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-500 text-slate-950 shadow-md">
-                  🏠 En Adopción
+                <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-emerald-500 text-slate-950 shadow-md inline-flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  </svg>
+                  En Adopción
                 </span>
                 <span
                   class="px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md border"
                   [ngClass]="pet()!.gender === 'FEMALE' ? 'bg-pink-500/90 text-white border-pink-400' : 'bg-sky-500/90 text-white border-sky-400'"
                 >
-                  {{ pet()!.gender === 'FEMALE' ? '♀ Hembra' : '♂ Macho' }}
+                  {{ pet()!.gender === 'FEMALE' ? 'Hembra' : 'Macho' }}
                 </span>
               </div>
 
               <!-- Location Tag -->
               <div class="absolute bottom-4 left-4 px-3.5 py-1.5 rounded-xl bg-slate-950/70 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5">
-                <span>📍</span> {{ pet()!.colonia?.name || 'Dolores Hidalgo' }}, Guanajuato
+                <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                {{ pet()!.colonia?.name || 'Dolores Hidalgo' }}, Guanajuato
               </div>
             </div>
 
@@ -135,24 +156,41 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             <!-- Floating CTA: Quiero Adoptar / Estado -->
             @if (isOwnPet()) {
               <a
-                [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
-                [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
+                [routerLink]="['/panel-rescatista']"
+                [queryParams]="{ tab: 'publications' }"
                 class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-700 dark:text-sky-300 font-black text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                <span class="text-lg">📊</span>
-                <span>Ver Progreso de {{ pet()!.name }}</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20V10" />
+                  <path d="M18 20V4" />
+                  <path d="M6 20v-4" />
+                </svg>
+                <span>Gestionar Publicación de {{ pet()!.name }}</span>
+              </a>
+            } @else if (existingApplication(); as existing) {
+              <a
+                routerLink="/mis-adopciones"
+                class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/35 text-sky-800 dark:text-sky-300 font-black text-xs sm:text-sm transition-all flex items-center justify-center gap-2 shadow-sm"
+              >
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span>Ya te postulaste · {{ getStageMeta(existing.status).label }}</span>
               </a>
             } @else if (!isPetAdoptable()) {
               <span class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-black text-xs sm:text-sm text-center">
-                {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? '🏡 ¡Esta mascota ya encontró hogar!' : '🏠 No disponible en adopción' }}
+                {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? 'Esta mascota ya encontró hogar' : 'No disponible en adopción' }}
               </span>
             } @else {
               <button
                 (click)="openAdoptionModal()"
                 class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm shadow-xl shadow-emerald-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                <span class="text-lg">💚</span>
-                <span>¡Quiero Adoptar a {{ pet()!.name }}!</span>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+                <span>Quiero Adoptar a {{ pet()!.name }}</span>
               </button>
             }
           </div>
@@ -160,7 +198,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <!-- 3. Medical & Health Passport (Semáforo de Salud) -->
           <div class="space-y-3">
             <h2 class="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <span>🩺</span> Expediente Clínico y de Salud
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+              </svg>
+              Expediente Clínico y de Salud
             </h2>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -168,11 +210,15 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Esterilización</span>
                 <span
-                  class="text-xs font-black flex items-center gap-1"
+                  class="text-xs font-black flex items-center gap-1.5"
                   [ngClass]="pet()!.isSterilized ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-500'"
                 >
-                  <span>{{ pet()!.isSterilized ? '✅' : '⏳' }}</span>
-                  <span>{{ pet()!.isSterilized ? 'Esterilizado(a)' : 'En proceso' }}</span>
+                  @if (pet()!.isSterilized) {
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  } @else {
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                  }
+                  <span>{{ pet()!.isSterilized ? 'Esterilizado(a)' : 'Pendiente / Compromiso' }}</span>
                 </span>
               </div>
 
@@ -180,10 +226,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Desparasitación</span>
                 <span
-                  class="text-xs font-black flex items-center gap-1"
+                  class="text-xs font-black flex items-center gap-1.5"
                   [ngClass]="pet()!.isDewormed ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'"
                 >
-                  <span>{{ pet()!.isDewormed ? '✅' : '❓' }}</span>
+                  @if (pet()!.isDewormed) {
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                  }
                   <span>{{ pet()!.isDewormed ? 'Al corriente' : 'No registrada' }}</span>
                 </span>
               </div>
@@ -232,7 +280,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Con Niños</span>
-                  <span class="text-base">{{ pet()!.goodWithKids ? '👶 ✅' : '👶 ⚠️' }}</span>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    [ngClass]="pet()!.goodWithKids ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'"
+                  >
+                    {{ pet()!.goodWithKids ? 'Apto' : 'Con reserva' }}
+                  </span>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
                   {{ pet()!.goodWithKids ? 'Excelente y paciente con niños' : 'Se recomienda para familias con hijos mayores' }}
@@ -242,7 +295,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Con Otras Mascotas</span>
-                  <span class="text-base">{{ pet()!.goodWithOtherPets ? '🐕 ✅' : '🐕 ⚠️' }}</span>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    [ngClass]="pet()!.goodWithOtherPets ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'"
+                  >
+                    {{ pet()!.goodWithOtherPets ? 'Sociable' : 'Gradual' }}
+                  </span>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
                   {{ pet()!.goodWithOtherPets ? 'Sociable con perros y gatos' : 'Prefiere ser hijo único o presentación gradual' }}
@@ -252,7 +310,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Nivel de Energía</span>
-                  <span class="text-base">⚡ {{ pet()!.energyLevel || 'Medio' }}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300">
+                    {{ pet()!.energyLevel || 'Medio' }}
+                  </span>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
                   {{ pet()!.energyLevel === 'ALTO' ? 'Requiere paseos activos y juegos diarios' : 'Adaptable a hogar tranquilo o paseos moderados' }}
@@ -264,7 +324,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <!-- 5. Rescue Story & Physical Marks -->
           <div class="space-y-3">
             <h2 class="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <span>📖</span> Historia de Rescate y Señas Particulares
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+              </svg>
+              Historia de Rescate y Señas Particulares
             </h2>
             <div class="p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line space-y-2">
               <p>{{ pet()!.rescueStory || 'Este peludito fue rescatado con amor en Dolores Hidalgo y espera una familia responsable que le brinde el hogar que merece.' }}</p>
@@ -294,48 +357,58 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <h4 class="text-sm font-bold text-slate-900 dark:text-white">
                   {{ pet()!.owner?.fullName || 'Red de Rescatistas Huellitas DH' }}
                 </h4>
-                <p class="text-[11px] text-slate-500">
-                  📍 {{ pet()!.colonia?.name || 'Dolores Hidalgo' }} • Adopción con Carta Compromiso
+                <p class="text-[11px] text-slate-500 flex items-center gap-1">
+                  {{ pet()!.colonia?.name || 'Dolores Hidalgo' }} • Adopción con Carta Compromiso
                 </p>
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              @if (canMessageOwner()) {
+              @if (canMessageOwner() && authService.isAuthenticated()) {
                 <button
                   type="button"
                   (click)="contactOwnerInApp()"
                   class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 text-xs font-black transition-all text-center flex items-center justify-center gap-1.5 shadow-md hover:from-teal-400 hover:to-emerald-300 cursor-pointer"
                 >
-                  <span>💬</span> Mensaje Directo
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  Mensaje Directo
                 </button>
-                <a
-                  [href]="getWhatsAppUrl()"
-                  target="_blank"
-                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
-                  title="Contactar también por WhatsApp"
-                >
-                  <span>📲</span> WhatsApp Rescatista
-                </a>
+                @if (getAuthorizedWhatsAppUrl(); as waUrl) {
+                  <a
+                    [href]="waUrl"
+                    target="_blank"
+                    class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
+                    title="WhatsApp habilitado tras avanzar a entrevista"
+                  >
+                    WhatsApp
+                  </a>
+                }
               }
               @if (isOwnPet()) {
                 <a
-                  [routerLink]="isRescuerOrAdmin() ? ['/panel-rescatista'] : ['/mis-adopciones']"
-                  [queryParams]="isRescuerOrAdmin() ? {} : { tab: 'published' }"
-                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-black transition-all text-center flex items-center justify-center gap-1 shadow-sm"
+                  [routerLink]="['/panel-rescatista']"
+                  [queryParams]="{ tab: 'publications' }"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-black transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
                 >
-                  <span>📊</span> Ver Progreso
+                  Gestionar
+                </a>
+              } @else if (existingApplication(); as existing) {
+                <a
+                  routerLink="/mis-adopciones"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-black transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  Ya te postulaste
                 </a>
               } @else if (isPetAdoptable()) {
                 <button
                   (click)="openAdoptionModal()"
-                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all text-center flex items-center justify-center gap-1 shadow-md cursor-pointer"
+                  class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all text-center flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
-                  <span>💚</span> Adoptar
+                  Postularme
                 </button>
               } @else {
                 <span class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold text-center">
-                  {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? '✓ Adoptada' : 'No disponible' }}
+                  {{ pet()!.status === 'ADOPTADA' || pet()!.status === 'EN_SEGUIMIENTO' ? 'Adoptada' : 'No disponible' }}
                 </span>
               }
             </div>
@@ -346,11 +419,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
       <!-- ITEM #2 ADOPTION MODAL (REUSED FOR DETAIL VIEW) -->
       @if (showAdoptionModal()) {
         <div
-          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-md animate-fadeIn overscroll-contain"
+          class="fixed inset-0 z-[80] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/70 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
           (click)="closeAdoptionModal()"
         >
           <div
-            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 max-h-[90vh] overflow-y-auto overscroll-contain space-y-5"
+            class="liquid-glass rounded-3xl p-5 sm:p-8 max-w-lg w-full shadow-2xl relative border border-emerald-500/30 my-auto max-h-[88dvh] overflow-y-auto overscroll-contain space-y-5"
             (click)="$event.stopPropagation()"
           >
             <button
@@ -362,12 +435,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
             @if (adoptionSubmitted()) {
               <div class="text-center py-6 space-y-4 animate-scaleUp">
-                <span class="text-5xl">🎉</span>
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
                 <h4 class="text-lg font-black text-slate-900 dark:text-white">
-                  ¡Solicitud Enviada para {{ pet()!.name }}!
+                  Solicitud enviada para {{ pet()!.name }}
                 </h4>
                 <p class="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  Tu postulación está registrada. Escríbele un mensaje directo al rescatista en Huellitas o por WhatsApp para agendar una visita.
+                  Tu postulación está registrada en el protocolo oficial. Escribe un mensaje directo al responsable en Huellitas o revisa el avance en tu panel.
                 </p>
                 <div class="space-y-2">
                   <button
@@ -375,22 +453,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     (click)="contactOwnerInAppPostAdoption()"
                     class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>💬</span> Enviar Mensaje Directo en Huellitas
+                    Enviar Mensaje Directo en Huellitas
                   </button>
-                  <a
-                    [href]="getWhatsAppUrl()"
-                    target="_blank"
-                    (click)="closeAdoptionModal()"
-                    class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <span>📲</span> Abrir WhatsApp con el Rescatista
-                  </a>
                   <a
                     routerLink="/mis-adopciones"
                     (click)="closeAdoptionModal()"
                     class="w-full py-2.5 px-4 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>📊</span> Seguir Progreso en Mis Adopciones →
+                    Seguir Progreso en Mis Adopciones →
                   </a>
                 </div>
               </div>
@@ -412,21 +482,24 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 </div>
 
                 @if (!authService.isAuthenticated()) {
-                  <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-3 text-xs">
-                    <p class="text-amber-800 dark:text-amber-300">
-                      Puedes contactar al rescatista por WhatsApp de inmediato o registrar tu cuenta para completar el cuestionario socioambiental.
+                  <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-3 text-xs">
+                    <p class="text-amber-900 dark:text-amber-200 leading-relaxed">
+                      Para proteger el bienestar de {{ pet()!.name }} y la privacidad del responsable, inicia sesión o crea una cuenta para enviar tu postulación formal y dar seguimiento en tiempo real.
                     </p>
-                    <div class="flex gap-2">
+                    <div class="flex flex-col sm:flex-row gap-2">
                       <a
-                        [href]="getWhatsAppUrl()"
-                        target="_blank"
-                        class="flex-1 py-2 rounded-xl bg-emerald-500 text-slate-950 text-center font-bold"
+                        routerLink="/auth/login"
+                        [queryParams]="{ returnUrl: '/adopciones/' + pet()!.id }"
+                        (click)="closeAdoptionModal()"
+                        class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-center font-black shadow-sm"
                       >
-                        WhatsApp
+                        Iniciar sesión
                       </a>
                       <a
                         routerLink="/auth/register"
-                        class="flex-1 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white text-center font-bold"
+                        [queryParams]="{ returnUrl: '/adopciones/' + pet()!.id }"
+                        (click)="closeAdoptionModal()"
+                        class="flex-1 py-2.5 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-white text-center font-bold"
                       >
                         Registrarme
                       </a>
@@ -468,6 +541,8 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   public authService = inject(AuthService);
   private notify = inject(NotificationService);
   private dmService = inject(DirectMessageService);
+  private scrollLock = inject(ScrollLockService);
+  navHistory = inject(NavigationHistoryService);
 
   pet = signal<Pet | null>(null);
   activePhoto = signal<string>('');
@@ -477,6 +552,8 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   showAdoptionModal = signal<boolean>(false);
   adoptionSubmitted = signal<boolean>(false);
   isSending = signal<boolean>(false);
+  existingApplication = signal<AdoptionRequest | null>(null);
+  getStageMeta = getStageMeta;
 
   // Report modal
   showReportModal = signal<boolean>(false);
@@ -495,6 +572,7 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
         this.pet.set(data);
         this.activePhoto.set(data.photoUrl || (data.photos && data.photos[0]) || '');
         this.isLoading.set(false);
+        this.checkExistingApplication(id);
       },
       error: () => {
         this.isLoading.set(false);
@@ -503,14 +581,35 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  private checkExistingApplication(petId: string): void {
+    if (!this.authService.isAuthenticated()) {
+      this.existingApplication.set(null);
+      return;
+    }
+    this.adoptionService.getMyApplications().subscribe({
+      next: (apps) => {
+        const active = apps.find(
+          (r) =>
+            r.petId === petId &&
+            r.status !== 'RECHAZADA' &&
+            r.status !== 'CANCELADA',
+        );
+        this.existingApplication.set(active || null);
+      },
+      error: () => {},
+    });
+  }
+
   setActivePhoto(url: string): void {
     this.activePhoto.set(url);
   }
 
+  goBack(): void {
+    this.navHistory.goBack(['/adopciones']);
+  }
+
   ngOnDestroy(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
+    this.scrollLock.unlockPrefix('pet-public-');
   }
 
   isOwnPet(): boolean {
@@ -543,17 +642,13 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
       this.notify.warning('No puedes postularte a tu propia publicación.');
       return;
     }
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
+    this.scrollLock.lock('pet-public-adoption');
     this.showAdoptionModal.set(true);
     this.adoptionSubmitted.set(false);
   }
 
   closeAdoptionModal(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
+    this.scrollLock.unlock('pet-public-adoption');
     this.showAdoptionModal.set(false);
   }
 
@@ -565,16 +660,12 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
       this.router.navigate(['/auth/login'], { queryParams: { returnUrl: `/adopciones/${p.id}` } });
       return;
     }
-    if (typeof document !== 'undefined') {
-      document.body.classList.add('modal-open');
-    }
+    this.scrollLock.lock('pet-public-report');
     this.showReportModal.set(true);
   }
 
   closeReportModal(): void {
-    if (typeof document !== 'undefined') {
-      document.body.classList.remove('modal-open');
-    }
+    this.scrollLock.unlock('pet-public-report');
     this.showReportModal.set(false);
   }
 
@@ -584,10 +675,11 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
 
     this.isSending.set(true);
     this.adoptionService.createRequest(p.id, payload).subscribe({
-      next: () => {
+      next: (created) => {
         this.isSending.set(false);
         this.adoptionSubmitted.set(true);
-        this.notify.success('¡Solicitud enviada al rescatista!');
+        this.existingApplication.set(created);
+        this.notify.success('¡Solicitud enviada al responsable!');
       },
       error: (err) => {
         this.isSending.set(false);
@@ -596,14 +688,19 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  getWhatsAppUrl(): string {
+  getAuthorizedWhatsAppUrl(): string | null {
+    const existing = this.existingApplication();
     const p = this.pet();
-    if (!p) return '';
-    const phone = p.owner?.phone || '4181234567';
+    if (!existing || !p) return null;
+    if (existing.whatsappDirectUrl) return existing.whatsappDirectUrl;
+    const rawPhone = existing.pet?.owner?.phone;
+    if (!rawPhone) return null;
+    const clean = rawPhone.replace(/\D/g, '');
+    if (clean.length < 10) return null;
     const text = encodeURIComponent(
-      `¡Hola! Vi la ficha de ${p.name} en ${this.brand.name} (${this.brand.city}) y me interesa conocerlo(a) para adopción. ¿Está disponible?`,
+      `Hola, doy seguimiento a mi solicitud formal para adoptar a ${p.name} en ${this.brand.name}.`,
     );
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    return `https://wa.me/52${clean}?text=${text}`;
   }
 
   shareToWhatsApp(): void {
@@ -642,8 +739,7 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
       contextSubtitle: `${p.species} • ${p.colonia?.name || 'Dolores Hidalgo'}`,
       contextImageUrl: p.photoUrl || p.photos?.[0],
       contextTargetUrl: `/adopciones/${p.id}`,
-      contextWhatsappPhone: p.owner?.phone || undefined,
-      prefilledDraft: `¡Hola! Vi la ficha de ${p.name} en Huellitas Dolores Hidalgo y me gustaría platicar sobre los requisitos de adopción 💚`,
+      prefilledDraft: `¡Hola! Vi la ficha de ${p.name} en Huellitas Dolores Hidalgo y me gustaría platicar sobre los requisitos de adopción.`,
     });
   }
 
@@ -663,8 +759,7 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
       contextSubtitle: `${p.species} • ${p.colonia?.name || 'Dolores Hidalgo'}`,
       contextImageUrl: p.photoUrl || p.photos?.[0],
       contextTargetUrl: `/adopciones/${p.id}`,
-      contextWhatsappPhone: p.owner?.phone || undefined,
-      prefilledDraft: `¡Hola! Acabo de registrar mi postulación para adoptar a ${p.name}. Me gustaría coordinar contigo una visita para conocerlo(a) 🐾`,
+      prefilledDraft: `¡Hola! Acabo de registrar mi postulación para adoptar a ${p.name}. Me gustaría coordinar una entrevista para avanzar con el proceso.`,
     });
   }
 }
