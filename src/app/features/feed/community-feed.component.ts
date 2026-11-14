@@ -23,6 +23,11 @@ import { AdoptionRequestFormComponent } from '../adoptions/shared/adoption-reque
 import { getStageMeta } from '../adoptions/shared/adoption-helpers.util';
 import { ReportContentModalComponent } from '../../shared/components/report-content-modal/report-content-modal.component';
 import { ReportTargetType } from '../../core/services/moderation.service';
+import {
+  PosterQrCategory,
+  PosterQrModalComponent,
+  PosterQrPayload,
+} from '../../shared/components/poster-qr-modal/poster-qr-modal.component';
 
 type FeedFilterType = 'ALL' | 'ANIMAL_HERIDO' | 'EN_RESGUARDO' | 'EN_ADOPCION' | 'SE_BUSCA' | 'CAMPANA_COMUNITARIA' | 'ADOPTION' | 'LOST' | 'FOUND';
 
@@ -93,7 +98,7 @@ interface FeedPost {
 @Component({
   selector: 'app-community-feed',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterModule, FormsModule, AdoptionRequestFormComponent, ReportContentModalComponent],
+  imports: [CommonModule, RouterLink, RouterModule, FormsModule, AdoptionRequestFormComponent, ReportContentModalComponent, PosterQrModalComponent],
   template: `
     <div class="max-w-6xl mx-auto px-3.5 sm:px-6 py-5 space-y-6">
 
@@ -111,8 +116,13 @@ interface FeedPost {
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-slate-950"></span>
             </span>
-            <span class="truncate">🐾 {{ pendingNewPostsCount() }} nueva(s) publicación(es) — Toca para actualizar</span>
-            <span class="flex-shrink-0">🔄</span>
+            <span class="truncate">{{ pendingNewPostsCount() }} nueva(s) publicación(es) — Toca para actualizar</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+              <path d="M16 16h5v5" />
+            </svg>
           </button>
         </div>
       }
@@ -144,7 +154,10 @@ interface FeedPost {
             <span>Ir al Muro Principal (Ver todas las publicaciones)</span>
           </button>
           <span class="text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-center gap-1.5">
-            <span>📌</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
             <span>Vista directa de publicación compartida</span>
           </span>
         </div>
@@ -336,27 +349,37 @@ interface FeedPost {
               (ngModelChange)="selectedSpecies.set($event)"
               class="px-3 py-1.5 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500 cursor-pointer"
             >
-              <option value="">🐾 Todas las especies</option>
-              <option value="Perro">🐕 Perros</option>
-              <option value="Gato">🐈 Gatos</option>
+              <option value="">Todas las especies</option>
+              <option value="Perro">Perros</option>
+              <option value="Gato">Gatos</option>
             </select>
 
             <button
               type="button"
               (click)="toggleGoodWithKids()"
               [ngClass]="filterGoodWithKids() ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
-              class="px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+              class="px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              👶 Bueno con niños
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+              <span>Bueno con niños</span>
             </button>
 
             <button
               type="button"
               (click)="toggleGoodWithPets()"
               [ngClass]="filterGoodWithPets() ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'"
-              class="px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+              class="px-3 py-1.5 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
             >
-              🐕 Convive con mascotas
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="4" r="2" />
+                <circle cx="18" cy="8" r="2" />
+                <circle cx="20" cy="16" r="2" />
+                <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+              </svg>
+              <span>Convive con mascotas</span>
             </button>
           </div>
         }
@@ -375,7 +398,14 @@ interface FeedPost {
         </div>
       } @else if (filteredPosts().length === 0) {
         <div class="liquid-glass rounded-3xl p-12 text-center space-y-4">
-          <span class="text-5xl">🐾</span>
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/12 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2" />
+              <circle cx="18" cy="8" r="2" />
+              <circle cx="20" cy="16" r="2" />
+              <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+            </svg>
+          </div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white">
             {{ singlePostModeId() ? 'Esta publicación ya no está disponible' : 'No hay publicaciones con estos filtros' }}
           </h3>
@@ -423,8 +453,12 @@ interface FeedPost {
                       </span>
                     </div>
 
-                    <div class="flex items-center gap-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                      <span class="truncate">📍 {{ post.authorColonia || 'Dolores Hgo.' }}</span>
+                    <div class="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                      <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span class="truncate">{{ post.authorColonia || 'Dolores Hgo.' }}</span>
                       <span>•</span>
                       <span class="flex-shrink-0">{{ post.timeAgo }}</span>
                     </div>
@@ -434,12 +468,13 @@ interface FeedPost {
                 <!-- Post Kind Badge & Injured Badge -->
                 <div class="flex flex-col items-end gap-1 flex-shrink-0">
                   @if (post.isInjured) {
-                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-sm shadow-rose-600/30 flex items-center gap-1 animate-pulse">
-                      <span>🚨</span> Herido
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-sm shadow-rose-600/30 inline-flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                      <span>Herido</span>
                     </span>
                   }
                   <span
-                    class="px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider border shadow-sm"
+                    class="px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider border shadow-sm inline-flex items-center gap-1"
                     [ngClass]="post.badgeClass"
                   >
                     {{ post.typeBadge }}
@@ -477,8 +512,12 @@ interface FeedPost {
                   />
 
                   @if (post.photos && post.photos.length > 1) {
-                    <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-slate-950/70 backdrop-blur-md text-white text-[10px] font-bold pointer-events-none">
-                      📷 {{ (post.activePhotoIndex || 0) + 1 }}/{{ post.photos.length }}
+                    <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-950/75 backdrop-blur-md text-white text-[10px] font-bold pointer-events-none inline-flex items-center gap-1">
+                      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                        <circle cx="12" cy="13" r="3" />
+                      </svg>
+                      <span>{{ (post.activePhotoIndex || 0) + 1 }}/{{ post.photos.length }}</span>
                     </span>
 
                     <button
@@ -517,29 +556,57 @@ interface FeedPost {
                 }
               }
 
-              <!-- 4. Metadata & Tags Concisos -->
-              <div class="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] my-1.5">
-                @if (post.coloniaName || post.lastSeenLocation) {
-                  <span class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-semibold truncate max-w-full">
-                    📍 {{ post.coloniaName || 'Dolores Hgo.' }}{{ post.lastSeenLocation ? ' · ' + post.lastSeenLocation : '' }}
-                  </span>
-                }
+              <!-- 4. Prominent Location Block + Concise Metadata Tags -->
+              @if (post.coloniaName || post.lastSeenLocation) {
+                <div class="my-2 px-3 py-2 rounded-xl bg-emerald-500/[0.08] dark:bg-emerald-500/12 border border-emerald-500/20 flex items-start gap-2.5">
+                  <div class="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <span class="block text-[11px] font-extrabold text-slate-900 dark:text-white leading-tight truncate">
+                      {{ post.coloniaName || 'Dolores Hidalgo' }}
+                    </span>
+                    @if (post.lastSeenLocation) {
+                      <span class="block text-[11px] text-slate-600 dark:text-slate-300 leading-snug line-clamp-2 mt-0.5">
+                        {{ post.lastSeenLocation }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
 
+              <div class="flex flex-wrap items-center gap-1.5 text-[10px] sm:text-[11px] my-1.5">
                 @if (post.postType !== 'CAMPANA_COMUNITARIA') {
-                  <span class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold">
-                    🐾 {{ post.species }}{{ post.approxAge ? ' · ' + post.approxAge : '' }}
+                  <span class="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold inline-flex items-center gap-1">
+                    <svg class="w-3 h-3 text-slate-500 dark:text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="4" r="2" />
+                      <circle cx="18" cy="8" r="2" />
+                      <circle cx="20" cy="16" r="2" />
+                      <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+                    </svg>
+                    <span>{{ post.species }}{{ post.approxAge ? ' · ' + post.approxAge : '' }}</span>
                   </span>
                 }
 
                 @if (post.rewardOffered) {
-                  <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
-                    🎁 {{ post.rewardDetails || 'Recompensa' }}
+                  <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold inline-flex items-center gap-1">
+                    <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="8" r="6" />
+                      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+                    </svg>
+                    <span>{{ post.rewardDetails || 'Recompensa' }}</span>
                   </span>
                 }
 
                 @if (post.lostData?.status === 'REENCONTRADA') {
-                  <span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black">
-                    ✅ Resuelto
+                  <span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black inline-flex items-center gap-1">
+                    <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    <span>Resuelto</span>
                   </span>
                 }
 
@@ -566,7 +633,16 @@ interface FeedPost {
                     class="w-full px-3 py-2 flex items-center justify-between gap-2 text-[11px] font-bold text-amber-800 dark:text-amber-300 cursor-pointer hover:bg-amber-500/10 transition-colors"
                   >
                     <span class="flex items-center gap-1.5 truncate">
-                      <span>{{ post.postType === 'ANIMAL_HERIDO' ? '🚑' : post.postType === 'EN_RESGUARDO' ? '🏠' : '👀' }}</span>
+                      <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        @if (post.postType === 'ANIMAL_HERIDO') {
+                          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                        } @else if (post.postType === 'EN_RESGUARDO') {
+                          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        } @else {
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        }
+                      </svg>
                       <span class="truncate">
                         {{ post.postType === 'ANIMAL_HERIDO' ? 'Bitácora de ayuda' : post.postType === 'EN_RESGUARDO' ? 'Avisos al resguardo' : 'Avistamientos' }} ({{ post.sightings.length }})
                       </span>
@@ -581,8 +657,12 @@ interface FeedPost {
                       @for (sighting of post.sightings; track sighting.id) {
                         <div class="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-amber-500/20 dark:border-slate-800 text-[11px] space-y-1 shadow-sm">
                           <div class="flex items-center justify-between gap-2">
-                            <span class="font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
-                              <span>👤 {{ sighting.notifier?.fullName || 'Ciudadano solidario' }}</span>
+                            <span class="font-bold text-slate-900 dark:text-slate-100 truncate flex items-center gap-1.5">
+                              <svg class="w-3 h-3 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                <circle cx="12" cy="7" r="4" />
+                              </svg>
+                              <span class="truncate">{{ sighting.notifier?.fullName || 'Ciudadano solidario' }}</span>
                               @if (sighting.notifierId && sighting.notifierId === authService.currentUser()?.id) {
                                 <span class="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[9px] font-black">Tú</span>
                               }
@@ -593,26 +673,33 @@ interface FeedPost {
                                 <button
                                   type="button"
                                   (click)="contactSightingNotifier(post, sighting)"
-                                  class="px-2 py-0.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-700 dark:text-teal-300 border border-teal-500/30 font-bold text-[10px] cursor-pointer"
+                                  class="px-2 py-0.5 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-700 dark:text-teal-300 border border-teal-500/30 font-bold text-[10px] cursor-pointer inline-flex items-center gap-1"
                                 >
-                                  💬 Contactar
+                                  <svg class="w-2.5 h-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                                  </svg>
+                                  <span>Contactar</span>
                                 </button>
                               }
                               @if (canDeleteSighting(sighting)) {
                                 <button
                                   type="button"
                                   (click)="deleteSightingReport(post, sighting)"
-                                  class="w-6 h-6 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/30 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                                  class="w-6 h-6 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/30 flex items-center justify-center transition-colors cursor-pointer"
                                   title="Eliminar reporte"
                                 >
-                                  🗑️
+                                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18" />
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                  </svg>
                                 </button>
                               }
                             </div>
                           </div>
                           <p class="text-slate-800 dark:text-slate-100 font-semibold leading-snug">
-                            <span class="text-rose-500 font-extrabold">
-                              {{ post.postType === 'ANIMAL_HERIDO' ? '🚑 Ayuda / Punto:' : post.postType === 'EN_RESGUARDO' ? '🏠 Aviso:' : '📍 Visto en:' }}
+                            <span class="text-rose-600 dark:text-rose-400 font-extrabold">
+                              {{ post.postType === 'ANIMAL_HERIDO' ? 'Ayuda / Punto:' : post.postType === 'EN_RESGUARDO' ? 'Aviso:' : 'Visto en:' }}
                             </span>
                             {{ sighting.locationDescription }}
                           </p>
@@ -627,7 +714,11 @@ interface FeedPost {
                               (click)="openSightingPhotoInLightbox(post, sighting.photoUrl)"
                               class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline pt-0.5 cursor-pointer"
                             >
-                              <span>📷 Ver evidencia</span>
+                              <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                                <circle cx="12" cy="13" r="3" />
+                              </svg>
+                              <span>Ver evidencia</span>
                             </button>
                           }
                         </div>
@@ -672,21 +763,27 @@ interface FeedPost {
                     @if (canMessagePostAuthor(post)) {
                       <button
                         type="button"
-                        (click)="contactAuthorInApp(post, '¡Hola! Vi la ficha de ' + post.title + ' en adopción y me gustaría pedir más información 🐾')"
-                        class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                        (click)="contactAuthorInApp(post, 'Hola, vi la ficha de ' + post.title + ' en adopción y me gustaría pedir más información.')"
+                        class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                         title="Enviar mensaje directo"
                       >
-                        <span>✉️</span>
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect width="20" height="16" x="2" y="4" rx="2" />
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
                         <span class="hidden sm:inline">Mensaje</span>
                       </button>
                     }
 
                     <a
                       [routerLink]="['/adopciones', post.petData.id]"
-                      class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                      class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center justify-center"
                       title="Ver ficha completa"
                     >
-                      <span>👁️</span>
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
                     @if (post.postType === 'CAMPANA_COMUNITARIA') {
@@ -696,7 +793,10 @@ interface FeedPost {
                           (click)="contactAuthorInApp(post, 'Hola, me gustaría solicitar informes sobre la campaña: ' + post.title)"
                           class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>✉️</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
                           <span>Solicitar Informes</span>
                         </button>
                       } @else {
@@ -704,23 +804,29 @@ interface FeedPost {
                           (click)="toggleComments(post)"
                           class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white text-xs font-black shadow-md shadow-purple-600/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>📢</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                          </svg>
                           <span>Preguntar</span>
                         </button>
                       }
                     } @else if (post.postType === 'EN_ADOPCION') {
                       @if (post.lostData.status === 'REENCONTRADA' || post.lostData.status === 'CERRADO') {
                         <span class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-black flex items-center gap-1.5">
-                          <span>🏡</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                          </svg>
                           <span>Adoptada</span>
                         </span>
                       } @else if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
-                          (click)="contactAuthorInApp(post, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo 💚')"
+                          (click)="contactAuthorInApp(post, 'Hola, me interesa adoptar a ' + (post.lostData.petName || 'este peludito') + ' publicado en Huellitas Dolores Hidalgo.')"
                           class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>💚</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                          </svg>
                           <span>Quiero Adoptar</span>
                         </button>
                       } @else {
@@ -728,7 +834,9 @@ interface FeedPost {
                           routerLink="/panel-rescatista"
                           class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/25 active:scale-95 text-xs font-black transition-all cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>🛡️</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                          </svg>
                           <span>Gestionar Adopciones</span>
                         </a>
                       }
@@ -737,18 +845,24 @@ interface FeedPost {
                         (click)="openSightingModal(post.lostData)"
                         class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-600/25 transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <span>🚑</span>
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 5v14" />
+                          <path d="M5 12h14" />
+                        </svg>
                         <span>Brindar Ayuda</span>
                       </button>
 
                       @if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
-                          (click)="contactAuthorInApp(post, 'Hola, vi la alerta de urgencia de ' + post.title + ' y quiero apoyar 🚑')"
-                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          (click)="contactAuthorInApp(post, 'Hola, vi la alerta de urgencia de ' + post.title + ' y quiero apoyar.')"
+                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo"
                         >
-                          <span>✉️</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
                           <span class="hidden sm:inline">Mensaje</span>
                         </button>
                       }
@@ -757,18 +871,23 @@ interface FeedPost {
                         (click)="openSightingModal(post.lostData)"
                         class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-slate-950 text-xs font-black shadow-md shadow-amber-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <span>🏠</span>
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        </svg>
                         <span>Es mío / Apoyar</span>
                       </button>
 
                       @if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
-                          (click)="contactAuthorInApp(post, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo 🏠')"
-                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          (click)="contactAuthorInApp(post, 'Hola, vi tu publicación de resguardo de ' + post.title + ' en Huellitas Dolores Hidalgo.')"
+                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo"
                         >
-                          <span>✉️</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
                           <span class="hidden sm:inline">Mensaje</span>
                         </button>
                       }
@@ -777,18 +896,24 @@ interface FeedPost {
                         (click)="openSightingModal(post.lostData)"
                         class="flex-1 min-w-fit whitespace-nowrap justify-center px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 active:scale-95 text-white text-xs font-black shadow-md shadow-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
                       >
-                        <span>👀</span>
+                        <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
                         <span>¡Lo vi!</span>
                       </button>
 
                       @if (canMessagePostAuthor(post)) {
                         <button
                           type="button"
-                          (click)="contactAuthorInApp(post, 'Hola, vi tu alerta de búsqueda de ' + post.title + ' en Huellitas Dolores Hidalgo 📍')"
-                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                          (click)="contactAuthorInApp(post, 'Hola, vi tu alerta de búsqueda de ' + post.title + ' en Huellitas Dolores Hidalgo.')"
+                          class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30 hover:bg-teal-500/25 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                           title="Enviar mensaje directo"
                         >
-                          <span>✉️</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
                           <span class="hidden sm:inline">Mensaje</span>
                         </button>
                       }
@@ -801,10 +926,12 @@ interface FeedPost {
                   <button
                     type="button"
                     (click)="toggleComments(post)"
-                    class="px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+                    class="px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:bg-emerald-500/15 hover:text-emerald-600 dark:hover:text-emerald-400 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
                     title="Comentarios"
                   >
-                    <span>💬</span>
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                    </svg>
                     <span>{{ (post.comments?.length || 0) }}</span>
                   </button>
 
@@ -819,7 +946,7 @@ interface FeedPost {
                     </button>
 
                     @if (openCardMenuPostId() === post.id) {
-                      <div class="absolute right-0 bottom-10 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-30 space-y-1 text-xs animate-fadeIn">
+                      <div class="absolute right-0 bottom-10 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-30 space-y-1 text-xs animate-fadeIn">
                         @if (canDeletePost(post)) {
                           @if (post.kind === 'LOST_PET' && post.lostData && post.postType !== 'CAMPANA_COMUNITARIA' && post.lostData.status !== 'REENCONTRADA') {
                             <button
@@ -827,7 +954,9 @@ interface FeedPost {
                               (click)="openCardMenuPostId.set(null); markPostResolved(post)"
                               class="w-full px-3 py-2 rounded-xl text-left font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/15 flex items-center gap-2 cursor-pointer"
                             >
-                              <span>✅</span>
+                              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 6 9 17l-5-5" />
+                              </svg>
                               <span>Marcar resuelto</span>
                             </button>
                           }
@@ -836,7 +965,10 @@ interface FeedPost {
                             (click)="openCardMenuPostId.set(null); openEditPostModal(post)"
                             class="w-full px-3 py-2 rounded-xl text-left font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/15 flex items-center gap-2 cursor-pointer"
                           >
-                            <span>✏️</span>
+                            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                            </svg>
                             <span>Editar publicación</span>
                           </button>
                           <button
@@ -844,17 +976,40 @@ interface FeedPost {
                             (click)="openCardMenuPostId.set(null); confirmDeactivatePost(post)"
                             class="w-full px-3 py-2 rounded-xl text-left font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 flex items-center gap-2 cursor-pointer"
                           >
-                            <span>🗑️</span>
+                            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
                             <span>Dar de baja</span>
                           </button>
                           <div class="border-t border-slate-200 dark:border-slate-800 my-1"></div>
                         }
                         <button
                           type="button"
+                          (click)="openCardMenuPostId.set(null); openPosterModal(post)"
+                          class="w-full px-3 py-2 rounded-xl text-left font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/15 flex items-center gap-2 cursor-pointer"
+                        >
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="5" height="5" x="3" y="3" rx="1" />
+                            <rect width="5" height="5" x="16" y="3" rx="1" />
+                            <rect width="5" height="5" x="3" y="16" rx="1" />
+                            <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                            <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                            <path d="M12 21v-1" />
+                          </svg>
+                          <span>Crear cartel con QR</span>
+                        </button>
+                        <button
+                          type="button"
                           (click)="openCardMenuPostId.set(null); shareToFacebook(post)"
                           class="w-full px-3 py-2 rounded-xl text-left font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-500/15 hover:text-sky-600 dark:hover:text-sky-400 flex items-center gap-2 cursor-pointer"
                         >
-                          <span>🌐</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                            <path d="M2 12h20" />
+                          </svg>
                           <span>Compartir en Facebook</span>
                         </button>
                         <button
@@ -862,7 +1017,10 @@ interface FeedPost {
                           (click)="openCardMenuPostId.set(null); copyPostLink(post)"
                           class="w-full px-3 py-2 rounded-xl text-left font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer"
                         >
-                          <span>🔗</span>
+                          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                          </svg>
                           <span>Copiar enlace</span>
                         </button>
                         @if (!isOwnPost(post)) {
@@ -889,8 +1047,10 @@ interface FeedPost {
               @if (post.showComments) {
                 <div class="pt-2.5 mt-2.5 border-t border-slate-200/60 dark:border-slate-800/60 space-y-2.5 animate-fadeIn">
                   <div class="flex items-center justify-between text-[11px]">
-                    <h4 class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
-                      <span>💬</span>
+                    <h4 class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                      </svg>
                       <span>Comentarios ({{ post.comments?.length || 0 }})</span>
                     </h4>
                   </div>
@@ -905,7 +1065,7 @@ interface FeedPost {
                               <img [src]="comment.author?.profilePhotoUrl" [alt]="comment.author?.fullName" class="w-full h-full object-cover" />
                             } @else {
                               <div class="w-full h-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-bold text-[9px]">
-                                {{ comment.author?.fullName ? comment.author?.fullName?.charAt(0)?.toUpperCase() : '👤' }}
+                                {{ comment.author?.fullName ? comment.author?.fullName?.charAt(0)?.toUpperCase() : 'H' }}
                               </div>
                             }
                           </div>
@@ -922,10 +1082,14 @@ interface FeedPost {
                                   <button
                                     type="button"
                                     (click)="deleteComment(post, comment)"
-                                    class="text-[10px] px-1.5 py-0.5 rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                    class="p-1 rounded-md text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 transition-colors cursor-pointer flex items-center justify-center"
                                     title="Eliminar comentario"
                                   >
-                                    🗑️
+                                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                      <path d="M3 6h18" />
+                                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                    </svg>
                                   </button>
                                 }
                               </div>
@@ -1149,15 +1313,19 @@ interface FeedPost {
             </button>
 
             <div class="flex items-center gap-3">
-              <span class="text-3xl">
-                {{
-                  selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO'
-                    ? '🚑'
-                    : selectedLostPetForSighting()!.type === 'EN_RESGUARDO'
-                      ? '🏠'
-                      : '👀'
-                }}
-              </span>
+              <div class="w-10 h-10 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  } @else {
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  }
+                </svg>
+              </div>
               <div>
                 <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
                   @if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
@@ -1183,7 +1351,7 @@ interface FeedPost {
             <!-- Quick-Select Action Chips según el tipo de publicación -->
             <div class="space-y-1.5">
               <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block">
-                ⚡ Selección rápida (toca una opción o escribe abajo):
+                Selección rápida (toca una opción o escribe abajo):
               </span>
               <div class="flex flex-wrap gap-1.5">
                 @for (chip of getSightingQuickChips(selectedLostPetForSighting()!.type); track chip) {
@@ -1267,7 +1435,7 @@ interface FeedPost {
                     [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'FILE' }"
                     class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                   >
-                    📁 Dispositivo
+                    Dispositivo
                   </button>
                   <button
                     type="button"
@@ -1275,7 +1443,7 @@ interface FeedPost {
                     [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'CAMERA' }"
                     class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                   >
-                    📸 Usar Cámara
+                    Usar Cámara
                   </button>
                   <button
                     type="button"
@@ -1283,13 +1451,16 @@ interface FeedPost {
                     [ngClass]="{ 'bg-rose-500 text-white shadow': sightingPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': sightingPhotoSource() !== 'URL' }"
                     class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                   >
-                    🔗 Enlace URL
+                    Enlace URL
                   </button>
                 </div>
 
                 @if (sightingPhotoSource() === 'FILE') {
-                  <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-500 rounded-2xl p-3 cursor-pointer bg-white/40 dark:bg-slate-900/40 text-center">
-                    <span class="text-xl mb-0.5">📷</span>
+                  <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-rose-500 rounded-2xl p-3 cursor-pointer bg-white/40 dark:bg-slate-900/40 text-center gap-1">
+                    <svg class="w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                      <circle cx="12" cy="13" r="3" />
+                    </svg>
                     <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Seleccionar foto desde celular o PC</span>
                     <input
                       type="file"
@@ -1316,14 +1487,14 @@ interface FeedPost {
                           (click)="capturePhotoFromStream('SIGHTING')"
                           class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
                         >
-                          📸 Tomar Foto Ahora
+                          Tomar Foto Ahora
                         </button>
                         <button
                           type="button"
                           (click)="toggleCameraFacingMode('SIGHTING')"
                           class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
                         >
-                          🔄 Girar cámara
+                          Girar cámara
                         </button>
                       </div>
                     } @else {
@@ -1338,10 +1509,10 @@ interface FeedPost {
                           (click)="startCameraStream('SIGHTING')"
                           class="px-3.5 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-black cursor-pointer transition-all"
                         >
-                          🎥 Encender cámara en vivo
+                          Encender cámara en vivo
                         </button>
                         <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
-                          📱 Abrir cámara del teléfono
+                          Abrir cámara del teléfono
                           <input
                             type="file"
                             accept="image/*"
@@ -1384,11 +1555,11 @@ interface FeedPost {
                   @if (isSubmittingSighting()) {
                     <span>Guardando en bitácora...</span>
                   } @else if (selectedLostPetForSighting()!.type === 'ANIMAL_HERIDO') {
-                    <span>🚑 Publicar Ayuda en la Bitácora</span>
+                    <span>Publicar Ayuda en la Bitácora</span>
                   } @else if (selectedLostPetForSighting()!.type === 'EN_RESGUARDO') {
-                    <span>🏠 Publicar Aviso en la Bitácora</span>
+                    <span>Publicar Aviso en la Bitácora</span>
                   } @else {
-                    <span>👀 Publicar Avistamiento en la Bitácora</span>
+                    <span>Publicar Avistamiento en la Bitácora</span>
                   }
                 </button>
               </div>
@@ -1418,17 +1589,36 @@ interface FeedPost {
             </button>
 
             @if (reportLostSuccess()) {
-              <!-- SUCCESS STATE WITH DIRECT WHATSAPP BROADCAST BUTTON -->
+              <!-- SUCCESS STATE WITH DIRECT WHATSAPP BROADCAST + POSTER QR STUDIO -->
               <div class="text-center py-6 space-y-4 animate-scaleUp">
-                <div class="w-16 h-16 rounded-full bg-rose-500/20 text-rose-500 text-3xl flex items-center justify-center mx-auto border-2 border-rose-500">
-                  🚨
+                <div class="w-16 h-16 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+                  <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
                 </div>
                 <h4 class="text-lg font-black text-slate-900 dark:text-white">
-                  ¡Alerta Registrada con Éxito!
+                  ¡Publicación Registrada con Éxito!
                 </h4>
                 <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
-                  El reporte de <strong>{{ reportLostSuccess()!.petName || 'la mascota' }}</strong> ya está publicado en el Muro de Dolores Hidalgo. Difúndelo ahora mismo en tus grupos y redes:
+                  El reporte de <strong>{{ reportLostSuccess()!.petName || 'la mascota' }}</strong> ya está activo en el Muro de Dolores Hidalgo. Difúndelo ahora en redes o imprime su cartel con QR:
                 </p>
+
+                <!-- Poster QR Generator CTA -->
+                <button
+                  type="button"
+                  (click)="openPosterModalForReport(reportLostSuccess()!)"
+                  class="w-full py-3 px-4 rounded-xl bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-950 font-black text-xs sm:text-sm shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
+                >
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="5" height="5" x="3" y="3" rx="1" />
+                    <rect width="5" height="5" x="16" y="3" rx="1" />
+                    <rect width="5" height="5" x="3" y="16" rx="1" />
+                    <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                    <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                    <path d="M12 21v-1" />
+                  </svg>
+                  <span>Generar Cartel Imprimible con QR</span>
+                </button>
 
                 <!-- WhatsApp Broadcast Button -->
                 <a
@@ -1437,7 +1627,13 @@ interface FeedPost {
                   (click)="closeReportLostModal()"
                   class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
                 >
-                  <span>📢</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
                   <span>Difundir Alerta por WhatsApp</span>
                 </a>
 
@@ -1453,8 +1649,11 @@ interface FeedPost {
               <div class="space-y-4">
                 <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
                   <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-xl flex-shrink-0">
-                      ✍️
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                      </svg>
                     </div>
                     <div class="min-w-0">
                       <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">
@@ -1504,9 +1703,13 @@ interface FeedPost {
                           type="button"
                           (click)="setModalPublicationType('ANIMAL_HERIDO')"
                           [ngClass]="reportLostForm.type === 'ANIMAL_HERIDO' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
-                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-transparent"
+                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
                         >
-                          <span class="text-base">🚨</span>
+                          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 8v4" />
+                            <path d="M12 16h.01" />
+                          </svg>
                           <span class="text-xs leading-tight">1. Animal Herido</span>
                           <span class="text-[9px] opacity-80 leading-tight">Urgencia en la calle</span>
                         </button>
@@ -1516,9 +1719,12 @@ interface FeedPost {
                           type="button"
                           (click)="setModalPublicationType('EN_RESGUARDO')"
                           [ngClass]="reportLostForm.type === 'EN_RESGUARDO' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
-                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-transparent"
+                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
                         >
-                          <span class="text-base">🏠</span>
+                          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
                           <span class="text-xs leading-tight">2. En Resguardo</span>
                           <span class="text-[9px] opacity-80 leading-tight">Lo tengo bajo resguardo</span>
                         </button>
@@ -1529,9 +1735,11 @@ interface FeedPost {
                             type="button"
                             (click)="setModalPublicationType('EN_ADOPCION')"
                             [ngClass]="reportLostForm.type === 'EN_ADOPCION' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
-                            class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-transparent"
+                            class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
                           >
-                            <span class="text-base">💚</span>
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            </svg>
                             <span class="text-xs leading-tight">3. Dar en Adopción</span>
                             <span class="text-[9px] opacity-80 leading-tight">Protocolo 4 pasos</span>
                           </button>
@@ -1539,10 +1747,13 @@ interface FeedPost {
                           <button
                             type="button"
                             (click)="setModalPublicationType('EN_ADOPCION')"
-                            class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400"
+                            class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/70 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400"
                             title="Requiere Nivel 1 (Teléfono de 10 dígitos en Mi Perfil)"
                           >
-                            <span class="text-base">🔒</span>
+                            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
                             <span class="text-xs leading-tight font-bold">3. Dar en Adopción</span>
                             <span class="text-[9px] leading-tight">Requiere Nivel 1 (Teléfono)</span>
                           </button>
@@ -1553,9 +1764,12 @@ interface FeedPost {
                           type="button"
                           (click)="setModalPublicationType('SE_BUSCA')"
                           [ngClass]="reportLostForm.type === 'SE_BUSCA' || reportLostForm.type === 'EXTRAVIADA' ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
-                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-transparent"
+                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent"
                         >
-                          <span class="text-base">🔍</span>
+                          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                          </svg>
                           <span class="text-xs leading-tight">4. Se Busca</span>
                           <span class="text-[9px] opacity-80 leading-tight">Mascota extraviada</span>
                         </button>
@@ -1565,9 +1779,12 @@ interface FeedPost {
                           type="button"
                           (click)="setModalPublicationType('CAMPANA_COMUNITARIA')"
                           [ngClass]="reportLostForm.type === 'CAMPANA_COMUNITARIA' ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-bold' : 'bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'"
-                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-0.5 border border-transparent col-span-2 sm:col-span-2"
+                          class="p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col gap-1 border border-transparent col-span-2 sm:col-span-2"
                         >
-                          <span class="text-base">📢</span>
+                          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 11 18-5v12L3 14v-3z" />
+                            <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                          </svg>
                           <span class="text-xs leading-tight">5. Campaña o Aviso Comunitario</span>
                           <span class="text-[9px] opacity-80 leading-tight">Esterilización, vacunas, colecta o aviso</span>
                         </button>
@@ -1576,7 +1793,7 @@ interface FeedPost {
                       @if (!hasLevel1()) {
                         <div class="mt-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-[11px]">
                           <span class="text-amber-800 dark:text-amber-300 font-semibold">
-                            🔓 Agrega tu teléfono (Nivel 1) en Mi Perfil para publicar adopciones directas.
+                            Agrega tu teléfono (Nivel 1) en Mi Perfil para publicar adopciones directas.
                           </span>
                           <a
                             routerLink="/perfil"
@@ -1619,9 +1836,9 @@ interface FeedPost {
                               [(ngModel)]="reportLostForm.species"
                               class="w-full px-2 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                             >
-                              <option value="Perro">🐕 Perro</option>
-                              <option value="Gato">🐈 Gato</option>
-                              <option value="Otro">🐾 Otro</option>
+                              <option value="Perro">Perro</option>
+                              <option value="Gato">Gato</option>
+                              <option value="Otro">Otro</option>
                             </select>
                             <select
                               [(ngModel)]="reportLostForm.gender"
@@ -1711,7 +1928,7 @@ interface FeedPost {
                       @if (showStreetDropdown() && (streetSuggestions().length > 0 || isLoadingStreets())) {
                         <div class="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/35 shadow-2xl z-30 p-1.5 space-y-0.5">
                           <div class="px-2.5 py-1 text-[10px] font-bold text-slate-400 flex items-center justify-between">
-                            <span>🛣️ Calles sugeridas (Dolores Hidalgo)</span>
+                            <span>Calles sugeridas (Dolores Hidalgo)</span>
                             @if (isLoadingStreets()) {
                               <span class="text-emerald-500">Buscando…</span>
                             }
@@ -1722,7 +1939,10 @@ interface FeedPost {
                               (mousedown)="$event.preventDefault(); selectStreetSuggestion(street)"
                               class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-700 dark:hover:text-emerald-300 cursor-pointer flex items-center gap-2 transition-colors"
                             >
-                              <span class="text-slate-400 text-[10px]">📍</span>
+                              <svg class="w-3 h-3 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
                               <span class="truncate">{{ street }}</span>
                             </button>
                           }
@@ -1759,8 +1979,10 @@ interface FeedPost {
                   <!-- ======================================= -->
                   <div class="space-y-3 text-xs">
                     <div class="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 text-[11px]">
-                      <span class="truncate text-slate-700 dark:text-slate-200 font-semibold">
-                        {{ currentCategoryConfig.submitButtonIcon }} <strong>{{ reportLostForm.petName }}</strong> · 📍 {{ reportLostForm.lastSeenLocation }}
+                      <span class="truncate text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-1.5">
+                        <strong>{{ reportLostForm.petName }}</strong>
+                        <span class="text-slate-400">·</span>
+                        <span class="truncate">{{ reportLostForm.lastSeenLocation }}</span>
                       </span>
                       <button
                         type="button"
@@ -1793,7 +2015,7 @@ interface FeedPost {
                       <div class="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/25 space-y-3">
                         <div>
                           <span class="font-black text-emerald-700 dark:text-emerald-400 uppercase text-[11px] block">
-                            📋 Ficha Descriptiva para Adopción y Convenio
+                            Ficha Descriptiva para Adopción y Convenio
                           </span>
                           <span class="text-[10px] text-slate-500 dark:text-slate-400">
                             Estos datos aparecerán en la ficha pública de la mascota y en el Convenio Digital oficial.
@@ -1884,7 +2106,7 @@ interface FeedPost {
                               [(ngModel)]="reportLostForm.isDewormed"
                               class="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
                             />
-                            <span>💊 Desparasitación al corriente</span>
+                            <span>Desparasitación al corriente</span>
                           </label>
                         </div>
                       </div>
@@ -1894,8 +2116,8 @@ interface FeedPost {
                     @if (currentCategoryConfig.showTemperamentTags) {
                       <div class="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2">
                         <div class="flex items-center justify-between">
-                          <label class="block font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px] flex items-center gap-1.5">
-                            <span>🏷️</span> Temperamento y Convivencia
+                          <label class="block font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px]">
+                            Temperamento y Convivencia
                           </label>
                           <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                             {{ reportLostForm.temperamentTags.length }} seleccionada(s)
@@ -1926,12 +2148,16 @@ interface FeedPost {
                           {{ currentCategoryConfig.photoLabel }}
                         </label>
                         <span
-                          class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border"
+                          class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1"
                           [ngClass]="reportLostPhotosList().length >= authService.maxPhotosAllowed()
                             ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40'
                             : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'"
                         >
-                          📷 {{ reportLostPhotosList().length }} / {{ authService.maxPhotosAllowed() }} fotos
+                          <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                            <circle cx="12" cy="13" r="3" />
+                          </svg>
+                          <span>{{ reportLostPhotosList().length }} / {{ authService.maxPhotosAllowed() }} fotos</span>
                         </span>
                       </div>
 
@@ -1943,7 +2169,7 @@ interface FeedPost {
                             [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'FILE' }"
                             class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                           >
-                            📁 Dispositivo
+                            Dispositivo
                           </button>
                           <button
                             type="button"
@@ -1951,7 +2177,7 @@ interface FeedPost {
                             [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'CAMERA' }"
                             class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                           >
-                            📸 Usar Cámara
+                            Usar Cámara
                           </button>
                           <button
                             type="button"
@@ -1959,13 +2185,16 @@ interface FeedPost {
                             [ngClass]="{ 'bg-emerald-600 text-white shadow': reportLostPhotoSource() === 'URL', 'text-slate-600 dark:text-slate-400': reportLostPhotoSource() !== 'URL' }"
                             class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer text-center"
                           >
-                            🔗 Enlace URL
+                            Enlace URL
                           </button>
                         </div>
 
                         @if (reportLostPhotoSource() === 'FILE') {
-                          <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all text-center">
-                            <span class="text-2xl mb-1">📷</span>
+                          <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all text-center gap-1">
+                            <svg class="w-6 h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                              <circle cx="12" cy="13" r="3" />
+                            </svg>
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200">
                               Toca para agregar {{ reportLostPhotosList().length > 0 ? 'más fotos' : 'imágenes' }}
                             </span>
@@ -1998,14 +2227,14 @@ interface FeedPost {
                                   (click)="capturePhotoFromStream('REPORT')"
                                   class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
                                 >
-                                  📸 Capturar Foto ({{ reportLostPhotosList().length }}/{{ authService.maxPhotosAllowed() }})
+                                  Capturar Foto ({{ reportLostPhotosList().length }}/{{ authService.maxPhotosAllowed() }})
                                 </button>
                                 <button
                                   type="button"
                                   (click)="toggleCameraFacingMode('REPORT')"
                                   class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
                                 >
-                                  🔄 Girar cámara
+                                  Girar cámara
                                 </button>
                               </div>
                             } @else {
@@ -2020,10 +2249,10 @@ interface FeedPost {
                                   (click)="startCameraStream('REPORT')"
                                   class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all"
                                 >
-                                  🎥 Encender cámara en vivo
+                                  Encender cámara en vivo
                                 </button>
                                 <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
-                                  📱 Abrir cámara del teléfono
+                                  Abrir cámara del teléfono
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -2128,7 +2357,7 @@ interface FeedPost {
                         />
                         <label for="isInjuredCheckbox" class="text-xs cursor-pointer select-none">
                           <span class="font-black text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                            <span>🚨</span> ¿La mascota está herida o requiere atención médica urgente?
+                            <span>¿La mascota está herida o requiere atención médica urgente?</span>
                             @if (currentCategoryConfig.isInjuredLocked) {
                               <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-600 text-white shadow-sm">
                                 Prioridad Máxima
@@ -2170,7 +2399,7 @@ interface FeedPost {
                           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                           <span>Publicando...</span>
                         } @else {
-                          <span>{{ editingReportId() ? '💾 Guardar Cambios' : currentCategoryConfig.submitButtonIcon + ' ' + currentCategoryConfig.submitButtonText }}</span>
+                          <span>{{ editingReportId() ? 'Guardar Cambios' : currentCategoryConfig.submitButtonText }}</span>
                         }
                       </button>
                     </div>
@@ -2195,7 +2424,7 @@ interface FeedPost {
             <div class="min-w-0">
               <h3 class="text-sm sm:text-base font-black truncate">{{ lightboxPost()!.title }}</h3>
               <p class="text-[11px] text-slate-300 truncate">
-                📍 {{ lightboxPost()!.coloniaName || 'Dolores Hidalgo' }} • Foto {{ lightboxIndex() + 1 }} de {{ lightboxPost()!.photos.length }}
+                {{ lightboxPost()!.coloniaName || 'Dolores Hidalgo' }} • Foto {{ lightboxIndex() + 1 }} de {{ lightboxPost()!.photos.length }}
               </p>
             </div>
             <button
@@ -2281,9 +2510,12 @@ interface FeedPost {
             @if (!pushDeclineConfirmStep()) {
               <div class="relative z-10 text-center space-y-4">
                 <div
-                  class="w-16 h-16 rounded-2xl mx-auto bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/30"
+                  class="w-16 h-16 rounded-2xl mx-auto bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/30"
                 >
-                  🔔
+                  <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
                 </div>
 
                 <div class="space-y-1.5">
@@ -2307,7 +2539,7 @@ interface FeedPost {
                     [disabled]="pushService.busy()"
                     class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-xs sm:text-sm font-black shadow-lg shadow-emerald-500/25 cursor-pointer transition-all active:scale-95"
                   >
-                    {{ pushService.busy() ? 'Activando alertas…' : '🔔 Sí, activar alertas en mi dispositivo' }}
+                    {{ pushService.busy() ? 'Activando alertas…' : 'Sí, activar alertas en mi dispositivo' }}
                   </button>
                   <button
                     type="button"
@@ -2322,9 +2554,13 @@ interface FeedPost {
             } @else {
               <div class="relative z-10 text-center space-y-4">
                 <div
-                  class="w-14 h-14 rounded-2xl mx-auto bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center text-2xl shadow-sm"
+                  class="w-14 h-14 rounded-2xl mx-auto bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-sm"
                 >
-                  💾
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
                 </div>
 
                 <div class="space-y-1.5">
@@ -2342,14 +2578,14 @@ interface FeedPost {
                     (click)="confirmDeclinePushModal(true)"
                     class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 hover:to-amber-400 text-white text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
                   >
-                    💾 Sí, guardar preferencia (No volver a preguntar)
+                    Sí, guardar preferencia (No volver a preguntar)
                   </button>
                   <button
                     type="button"
                     (click)="confirmDeclinePushModal(false)"
                     class="w-full py-2.5 px-4 rounded-2xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer transition-colors"
                   >
-                    ⏳ No guardar preferencia (Preguntarme después)
+                    No guardar preferencia (Preguntarme después)
                   </button>
                   <button
                     type="button"
@@ -2363,6 +2599,13 @@ interface FeedPost {
             }
           </div>
         </div>
+      }
+
+      @if (posterModalTarget(); as posterPayload) {
+        <app-poster-qr-modal
+          [data]="posterPayload"
+          (closed)="closePosterModal()"
+        />
       }
 
     </div>
@@ -2390,7 +2633,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoPlaceholder: 'Foto del animalito para que los rescatistas lo reconozcan rápidamente',
           submitButtonText: 'Publicar Alerta de Urgencia',
           submitButtonGradient: 'from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 shadow-rose-600/30',
-          submitButtonIcon: '🚨',
+          submitButtonIcon: '',
         };
       case 'EN_RESGUARDO':
         return {
@@ -2409,7 +2652,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoPlaceholder: 'Foto clara para que su familia o adoptante lo reconozca',
           submitButtonText: 'Publicar Animal en Resguardo',
           submitButtonGradient: 'from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/30',
-          submitButtonIcon: '🏠',
+          submitButtonIcon: '',
         };
       case 'EN_ADOPCION':
         return {
@@ -2428,7 +2671,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoPlaceholder: 'Sube una foto bonita donde se aprecie su carita y cuerpo completo',
           submitButtonText: 'Publicar en Adopción',
           submitButtonGradient: 'from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30',
-          submitButtonIcon: '💚',
+          submitButtonIcon: '',
         };
       case 'CAMPANA_COMUNITARIA':
         return {
@@ -2447,7 +2690,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoPlaceholder: 'Cartel promocional o fotografía informativa del evento',
           submitButtonText: 'Publicar Campaña o Aviso',
           submitButtonGradient: 'from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 shadow-purple-600/30',
-          submitButtonIcon: '📢',
+          submitButtonIcon: '',
         };
       case 'SE_BUSCA':
       default:
@@ -2467,7 +2710,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           photoPlaceholder: 'Foto clara donde se aprecien sus señas para que los vecinos lo identifiquen',
           submitButtonText: 'Publicar Alerta de Búsqueda',
           submitButtonGradient: 'from-rose-500 via-pink-600 to-rose-600 hover:from-rose-400 hover:to-pink-500 shadow-rose-500/30',
-          submitButtonIcon: '🔍',
+          submitButtonIcon: '',
         };
     }
   }
@@ -2677,6 +2920,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     title: string;
     subtitle: string;
   } | null>(null);
+  posterModalTarget = signal<PosterQrPayload | null>(null);
   expandedSightingsPostIds = signal<string[]>([]);
   modalStep = signal<1 | 2>(1);
   reportLostStep1Attempted = signal<boolean>(false);
@@ -2950,6 +3194,96 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.reportModalTarget.set(null);
   }
 
+  openPosterModal(post: FeedPost): void {
+    const category: PosterQrCategory =
+      post.kind === 'PET_ADOPTION'
+        ? 'EN_ADOPCION'
+        : post.postType || post.lostData?.type || 'SE_BUSCA';
+
+    const petName =
+      post.lostData?.petName ||
+      post.petData?.name ||
+      post.title;
+
+    const coloniaName =
+      post.coloniaName ||
+      post.authorColonia ||
+      post.petData?.colonia?.name ||
+      post.lostData?.colonia?.name ||
+      this.brand.city;
+
+    const locationDetail =
+      post.lastSeenLocation ||
+      post.lostData?.lastSeenLocation ||
+      post.petData?.colonia?.name ||
+      coloniaName;
+
+    const activeIdx = post.activePhotoIndex || 0;
+    const photoUrl =
+      post.photos?.[activeIdx] ||
+      post.photoUrl ||
+      post.petData?.photoUrl ||
+      post.lostData?.photos?.[0] ||
+      '';
+
+    const contactPhone =
+      post.kind === 'PET_ADOPTION'
+        ? post.petData?.owner?.phone
+        : post.contactPhone || post.lostData?.contactPhone;
+
+    this.posterModalTarget.set({
+      id: post.id,
+      category,
+      petName,
+      species: post.species,
+      gender: post.gender,
+      approxAge: post.approxAge || post.petData?.approximateAge,
+      coloniaName,
+      locationDetail,
+      description: post.description || '',
+      photoUrl,
+      contactPhone,
+      rewardOffered: post.rewardOffered,
+      rewardDetails: post.rewardDetails,
+      directUrl: this.getPostDirectUrl(post),
+      city: this.brand.city,
+      brandName: this.brand.name,
+    });
+  }
+
+  openPosterModalForReport(report: LostPetReport): void {
+    if (!report) return;
+    const coloniaName =
+      report.colonia?.name ||
+      this.colonias().find((c) => c.id === report.coloniaId)?.name ||
+      this.brand.city;
+
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : '';
+
+    this.posterModalTarget.set({
+      id: report.id,
+      category: report.type || 'SE_BUSCA',
+      petName: report.petName || 'Mascota comunitaria',
+      species: report.species,
+      gender: report.gender,
+      coloniaName,
+      locationDetail: report.lastSeenLocation || coloniaName,
+      description: report.distinctiveFeatures || '',
+      photoUrl: report.photos?.[0] || '',
+      contactPhone: report.contactPhone,
+      rewardOffered: report.rewardOffered,
+      rewardDetails: report.rewardDetails,
+      directUrl: `${origin}/publicacion/${report.id}`,
+      city: this.brand.city,
+      brandName: this.brand.name,
+    });
+  }
+
+  closePosterModal(): void {
+    this.posterModalTarget.set(null);
+  }
+
   canDeletePost(post: FeedPost): boolean {
     const user = this.authService.currentUser();
     if (!user) return false;
@@ -2974,7 +3308,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, dar de baja',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: '!',
     });
     if (!confirmed) return;
 
@@ -3321,46 +3655,46 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     switch (rep.type) {
       case 'ANIMAL_HERIDO':
         return {
-          title: `🚨 Animal Herido / Emergencia: ${rep.petName || 'En peligro'}`,
+          title: `Animal Herido / Emergencia: ${rep.petName || 'En peligro'}`,
           authorRole: 'Alerta Ciudadana',
-          typeBadge: '🚨 Animal Herido',
+          typeBadge: 'Animal Herido',
           badgeClass: 'bg-rose-600/20 text-rose-600 dark:text-rose-400 border-rose-600/40',
         };
       case 'EN_RESGUARDO':
         return {
-          title: `🏠 Encontrado y En Resguardo: ${rep.petName || 'Peludito'}`,
+          title: `Encontrado y En Resguardo: ${rep.petName || 'Peludito'}`,
           authorRole: 'Hogar de Paso Temporal',
-          typeBadge: '🏠 En Resguardo',
+          typeBadge: 'En Resguardo',
           badgeClass: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30',
         };
       case 'EN_ADOPCION':
         return {
-          title: `💚 En Adopción Responsable: ${rep.petName || 'Peludito'}`,
+          title: `En Adopción Responsable: ${rep.petName || 'Peludito'}`,
           authorRole: 'Rescatista / Ciudadano',
-          typeBadge: '💚 En Adopción',
+          typeBadge: 'En Adopción',
           badgeClass: 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
         };
       case 'SE_BUSCA':
       case 'EXTRAVIADA':
         return {
-          title: `🔍 Se Busca a ${rep.petName || 'Mascota'} (Extraviado)`,
+          title: `Se Busca a ${rep.petName || 'Mascota'} (Extraviado)`,
           authorRole: 'Familia en Búsqueda',
-          typeBadge: '🔍 Se Busca',
+          typeBadge: 'Se Busca',
           badgeClass: 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/30',
         };
       case 'CAMPANA_COMUNITARIA':
         return {
-          title: `📢 Campaña / Aviso Comunitario: ${rep.petName || 'Dolores Hidalgo'}`,
+          title: `Campaña / Aviso Comunitario: ${rep.petName || 'Dolores Hidalgo'}`,
           authorRole: 'Rescatista / Difusión',
-          typeBadge: '📢 Campaña',
+          typeBadge: 'Campaña',
           badgeClass: 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30',
         };
       case 'ENCONTRADA_EN_CALLE':
       default:
         return {
-          title: `📍 Encontrado en calle: ${rep.petName || 'Peludito'}`,
+          title: `Encontrado en calle: ${rep.petName || 'Peludito'}`,
           authorRole: 'Resguardo Temporal',
-          typeBadge: '📍 Encontrado',
+          typeBadge: 'Encontrado',
           badgeClass: 'bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/30',
         };
     }
@@ -3399,7 +3733,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         createdAt: pet.createdAt,
         timeAgo: this.formatExactDateTime(pet.createdAt),
         temperamentTags: pet.temperamentTags || [],
-        typeBadge: '💚 En Adopción',
+        typeBadge: 'En Adopción',
         badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
         description:
           pet.rescueStory ||
@@ -3962,7 +4296,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, marcar resuelto',
       cancelText: 'Cancelar',
       type: 'success',
-      icon: '✅',
+      icon: '✓',
     });
     if (!confirmed) return;
 
@@ -4140,7 +4474,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           this.reportLostPhotosList.update((list) =>
             [...list, { previewUrl, file }].slice(0, maxAllowed),
           );
-          this.notify.success('📸 Foto capturada y agregada a la publicación');
+          this.notify.success('Foto capturada y agregada a la publicación');
           if (this.reportLostPhotosList().length >= maxAllowed) {
             this.stopCameraStream();
           }
@@ -4149,7 +4483,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           void this.imageUploadService.fileToDataUrl(file).then((preview) => {
             this.sightingPhotoPreview.set(preview);
           });
-          this.notify.success('📸 Foto de evidencia capturada');
+          this.notify.success('Foto de evidencia capturada');
           this.stopCameraStream();
         }
       },
@@ -4479,7 +4813,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
               createdAt: createdPet.createdAt || new Date().toISOString(),
               timeAgo: this.formatExactDateTime(createdPet.createdAt || new Date().toISOString()),
               temperamentTags: createdPet.temperamentTags || this.reportLostForm.temperamentTags || [],
-              typeBadge: '💚 En Adopción',
+              typeBadge: 'En Adopción',
               badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
               description: createdPet.rescueStory || this.reportLostForm.distinctiveFeatures.trim(),
               photoUrl: photosList[0] || '',
@@ -4804,23 +5138,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   getSightingQuickChips(type?: LostPetType): string[] {
     if (type === 'ANIMAL_HERIDO') {
       return [
-        '🚑 Voy en camino a auxiliarlo',
-        '🚗 Puedo apoyar con traslado a veterinaria',
-        '🏠 Ofrezco resguardo temporal',
-        '📍 Sigue en la ubicación reportada',
+        'Voy en camino a auxiliarlo',
+        'Puedo apoyar con traslado a veterinaria',
+        'Ofrezco resguardo temporal',
+        'Sigue en la ubicación reportada',
       ];
     }
     if (type === 'EN_RESGUARDO') {
       return [
-        '🙋‍♂️ ¡Es mi mascota! Quiero coordinar para recogerla',
-        '🏡 Puedo brindarle hogar temporal',
-        '🤝 Apoyo con alimento o insumos',
+        'Es mi mascota; quiero coordinar para recogerla',
+        'Puedo brindarle hogar temporal',
+        'Apoyo con alimento o insumos',
       ];
     }
     return [
-      '📍 Lo acabo de ver hace unos minutos',
-      '🏡 Lo tengo resguardado temporalmente',
-      '🐕 Iba caminando por esta calle',
+      'Lo acabo de ver hace unos minutos',
+      'Lo tengo resguardado temporalmente',
+      'Iba caminando por esta calle',
     ];
   }
 
@@ -4933,7 +5267,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: '!',
     });
     if (!confirmed) return;
 
@@ -4985,7 +5319,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: '!',
     });
     if (!confirmed) return;
 
@@ -5029,7 +5363,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       contextSubtitle: `Bitácora: ${sighting.locationDescription}`,
       contextImageUrl: sighting.photoUrl || post.photoUrl,
       contextTargetUrl: `/publicacion/${post.id}`,
-      prefilledDraft: `¡Hola ${sighting.notifier?.fullName?.split(' ')[0] || ''}! Vi tu reporte "${sighting.locationDescription}" en la bitácora de la publicación (${post.title}). ¿Podemos coordinarnos por aquí? 🙏🐾`,
+      prefilledDraft: `¡Hola ${sighting.notifier?.fullName?.split(' ')[0] || ''}! Vi tu reporte "${sighting.locationDescription}" en la bitácora de la publicación (${post.title}). ¿Podemos coordinarnos por aquí?`,
     });
   }
 
@@ -5057,7 +5391,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
 
     this.notify.info(
-      '🌐 Tarjeta de Facebook lista (y texto copiado)',
+      'Tarjeta de Facebook lista (y texto copiado)',
       'La tarjeta del enlace cargará automáticamente la foto, título y datos de la mascota. Si gustas, también puedes presionar Ctrl+V arriba.',
     );
 
@@ -5069,7 +5403,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   copyPostLink(post: FeedPost): void {
     const postUrl = this.getPostDirectUrl(post);
     navigator.clipboard.writeText(postUrl);
-    this.notify.success('🔗 Enlace directo a la publicación copiado al portapapeles');
+    this.notify.success('Enlace directo a la publicación copiado al portapapeles');
   }
 
   formatExactDateTime(dateStr: string): string {

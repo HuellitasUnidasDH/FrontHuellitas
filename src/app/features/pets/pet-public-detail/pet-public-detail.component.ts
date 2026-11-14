@@ -15,12 +15,24 @@ import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../../core/mod
 import { getStageMeta } from '../../adoptions/shared/adoption-helpers.util';
 import { AdoptionRequestFormComponent } from '../../adoptions/shared/adoption-request-form.component';
 import { ReportContentModalComponent } from '../../../shared/components/report-content-modal/report-content-modal.component';
+import {
+  PosterQrModalComponent,
+  PosterQrPayload,
+} from '../../../shared/components/poster-qr-modal/poster-qr-modal.component';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
 @Component({
   selector: 'app-pet-public-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterModule, FormsModule, AdoptionRequestFormComponent, ReportContentModalComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RouterModule,
+    FormsModule,
+    AdoptionRequestFormComponent,
+    ReportContentModalComponent,
+    PosterQrModalComponent,
+  ],
   template: `
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
@@ -35,7 +47,25 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </button>
 
         <!-- Share Actions & Report -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            (click)="openPosterModal()"
+            class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Crear cartel imprimible con Código QR"
+          >
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="5" height="5" x="3" y="3" rx="1" />
+              <rect width="5" height="5" x="16" y="3" rx="1" />
+              <rect width="5" height="5" x="3" y="16" rx="1" />
+              <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+              <path d="M21 21v.01" />
+              <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+              <path d="M3 12h.01" />
+              <path d="M12 3h.01" />
+            </svg>
+            Cartel QR
+          </button>
           <button
             (click)="shareToWhatsApp()"
             class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
@@ -529,6 +559,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         />
       }
 
+      @if (showPosterModal() && getPetPosterPayload(); as posterPayload) {
+        <app-poster-qr-modal
+          [data]="posterPayload"
+          (closed)="closePosterModal()"
+        />
+      }
+
     </div>
   `,
 })
@@ -667,6 +704,42 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   closeReportModal(): void {
     this.scrollLock.unlock('pet-public-report');
     this.showReportModal.set(false);
+  }
+
+  showPosterModal = signal<boolean>(false);
+
+  openPosterModal(): void {
+    if (!this.pet()) return;
+    this.showPosterModal.set(true);
+  }
+
+  closePosterModal(): void {
+    this.showPosterModal.set(false);
+  }
+
+  getPetPosterPayload(): PosterQrPayload | null {
+    const p = this.pet();
+    if (!p) return null;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return {
+      id: p.id,
+      category: 'EN_ADOPCION',
+      petName: p.name,
+      species: p.species,
+      gender: p.gender === 'FEMALE' ? 'Hembra' : 'Macho',
+      approxAge: p.approximateAge,
+      coloniaName: p.colonia?.name || BRAND_CONFIG.city,
+      locationDetail: p.colonia?.name || BRAND_CONFIG.city,
+      description:
+        p.rescueStory ||
+        `Conoce a ${p.name}, un ${p.species.toLowerCase()} de talla ${p.size || 'mediana'} en adopción responsable en ${BRAND_CONFIG.city}.`,
+      photoUrl: p.photoUrl || p.photos?.[0] || '',
+      contactPhone: p.owner?.phone,
+      rewardOffered: false,
+      directUrl: `${origin}/adopciones/${p.id}`,
+      city: BRAND_CONFIG.city,
+      brandName: BRAND_CONFIG.name,
+    };
   }
 
   sendAdoption(payload: CreateAdoptionRequestPayload): void {

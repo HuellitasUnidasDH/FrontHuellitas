@@ -345,7 +345,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                     >
                       <span class="flex items-center gap-2.5">
-                        <span>{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+                        @if (themeService.isDarkMode()) {
+                          <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+                          </svg>
+                        } @else {
+                          <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                          </svg>
+                        }
                         <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
                       </span>
                     </button>
@@ -369,11 +378,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="toggleMessagesMenu($event)"
-                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
-                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800': isMessagesMenuOpen() }"
+                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400': isMessagesMenuOpen() }"
                 title="Mensajes Directos (Huellitas Direct)"
               >
-                <span class="text-base sm:text-lg group-hover:scale-110 transition-transform">💬</span>
+                <svg class="w-4.5 h-4.5 group-hover:scale-105 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                </svg>
 
                 @if (dmService.totalUnreadMessages() > 0) {
                   <span
@@ -392,7 +403,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 >
                   <div class="flex items-center justify-between px-1">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm">💬</span>
+                      <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                      </svg>
                       <h3 class="text-sm font-black text-slate-900 dark:text-white">
                         Huellitas Direct
                       </h3>
@@ -408,12 +421,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                   @if (dmService.recentConversations().length === 0) {
                     <div class="py-7 text-center space-y-1.5">
-                      <span class="text-2xl block">🐾</span>
+                      <div class="w-10 h-10 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-400">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                        </svg>
+                      </div>
                       <p class="text-xs font-bold text-slate-700 dark:text-slate-200">
                         Sin conversaciones activas aún
                       </p>
                       <p class="text-[11px] text-slate-500">
-                        Toca «💬 Mensaje» en cualquier publicación para chatear directo.
+                        Toca «Mensaje» en cualquier publicación para chatear directo.
                       </p>
                     </div>
                   } @else {
@@ -447,8 +464,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                               {{ conv.otherParticipant.fullName }}
                             </p>
                             @if (conv.contextTitle) {
-                              <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                                📌 {{ conv.contextTitle }}
+                              <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 truncate flex items-center gap-1">
+                                <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M12 17v5" />
+                                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+                                </svg>
+                                <span class="truncate">{{ conv.contextTitle }}</span>
                               </p>
                             }
                             <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
@@ -485,11 +506,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="toggleNotifMenu($event)"
-                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center transition-all cursor-pointer group"
-                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800': isNotifMenuOpen() }"
+                class="relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white/90 dark:hover:bg-slate-800/90 border border-slate-300/60 dark:border-slate-700/60 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
+                [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400': isNotifMenuOpen() }"
                 title="Notificaciones y Actividad"
               >
-                <span class="text-base sm:text-lg group-hover:scale-110 transition-transform">🔔</span>
+                <svg class="w-4.5 h-4.5 group-hover:scale-105 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
 
                 @if (socialNotifications.unreadCount() > 0) {
                   <span
@@ -509,7 +533,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <!-- Popover Header -->
                   <div class="flex items-center justify-between px-1">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm">🔔</span>
+                      <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                      </svg>
                       <h3 class="text-sm font-black text-slate-900 dark:text-white">
                         Notificaciones
                       </h3>
@@ -526,9 +553,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       <button
                         type="button"
                         (click)="socialNotifications.markAllAsRead().subscribe()"
-                        class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                        class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                       >
-                        ✓ Marcar leídas
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <span>Marcar leídas</span>
                       </button>
                     }
                   </div>
@@ -536,7 +566,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <!-- Recent Notifications Mini-List -->
                   @if (socialNotifications.recentNotifications().length === 0) {
                     <div class="py-8 text-center space-y-1.5">
-                      <span class="text-2xl block">✨</span>
+                      <div class="w-10 h-10 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-400">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                        </svg>
+                      </div>
                       <p class="text-xs font-bold text-slate-700 dark:text-slate-200">
                         Sin notificaciones pendientes
                       </p>
@@ -571,8 +606,34 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                                 </div>
                               }
                             </div>
-                            <span class="absolute -bottom-1 -right-1 text-[10px] bg-white dark:bg-slate-900 rounded-md px-0.5 shadow">
-                              {{ getNotifIcon(notif.type) }}
+                            <span class="absolute -bottom-1 -right-1 w-4 h-4 rounded-md bg-white dark:bg-slate-900 flex items-center justify-center shadow border border-slate-200 dark:border-slate-700 text-emerald-600 dark:text-emerald-400">
+                              <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                @switch (notif.type) {
+                                  @case ('COMMENT_ON_POST') {
+                                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                                  }
+                                  @case ('COMMENT_ON_PET') {
+                                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                                  }
+                                  @case ('SIGHTING_REPORTED') {
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                  }
+                                  @case ('ADOPTION_REQUEST_RECEIVED') {
+                                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                  }
+                                  @case ('ADOPTION_REQUEST_STATUS') {
+                                    <path d="M20 6 9 17l-5-5" />
+                                  }
+                                  @case ('FOLLOWUP_PROOF_SUBMITTED') {
+                                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                                    <circle cx="12" cy="13" r="3" />
+                                  }
+                                  @default {
+                                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                                  }
+                                }
+                              </svg>
                             </span>
                           </div>
 
@@ -690,9 +751,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <a
                     routerLink="/perfil"
                     (click)="closeAllDropdowns()"
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-base">👤</span>
+                    <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
                     <span>Mi Perfil y Datos</span>
                   </a>
 
@@ -703,7 +767,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <span class="flex items-center gap-3">
-                      <span class="text-base">💬</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                      </svg>
                       <span>Mensajes Directos</span>
                     </span>
                     @if (dmService.totalUnreadMessages() > 0) {
@@ -720,7 +786,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     class="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
                     <span class="flex items-center gap-3">
-                      <span class="text-base">🔔</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                      </svg>
                       <span>Mis Notificaciones</span>
                     </span>
                     @if (socialNotifications.unreadCount() > 0) {
@@ -737,7 +806,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     (click)="closeAllDropdowns()"
                     class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-base">📝</span>
+                    <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                      <path d="M18 14h-8" />
+                      <path d="M15 18h-5" />
+                      <path d="M10 6h8v4h-8V6Z" />
+                    </svg>
                     <span>Mis Publicaciones</span>
                   </a>
 
@@ -750,7 +824,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                   >
                     <span class="flex items-center gap-3">
-                      <span class="text-base">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+                      @if (themeService.isDarkMode()) {
+                        <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="4" />
+                          <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+                        </svg>
+                      } @else {
+                        <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                        </svg>
+                      }
                       <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
                     </span>
                     <span class="text-[10px] uppercase font-bold text-slate-400">
@@ -766,7 +849,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     (click)="logoutAndClose()"
                     class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                   >
-                    <span class="text-base">🚪</span>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" x2="9" y1="12" y2="12" />
+                    </svg>
                     <span>Cerrar Sesión</span>
                   </button>
                 </div>
@@ -794,15 +881,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <button
             (click)="toggleMobileMenu($event)"
             type="button"
-            class="md:hidden w-9 h-9 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-300/70 dark:border-slate-700/70 flex items-center justify-center text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-sm text-base font-bold"
+            class="md:hidden w-9 h-9 rounded-xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border border-slate-300/70 dark:border-slate-700/70 flex items-center justify-center text-slate-800 dark:text-slate-200 transition-all cursor-pointer shadow-sm"
             [ngClass]="{ 'ring-2 ring-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400': isMobileMenuOpen() }"
             [attr.aria-expanded]="isMobileMenuOpen()"
             aria-label="Abrir menú de navegación"
           >
             @if (isMobileMenuOpen()) {
-              <span>✕</span>
+              <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
             } @else {
-              <span>☰</span>
+              <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" x2="20" y1="12" y2="12" />
+                <line x1="4" x2="20" y1="6" y2="6" />
+                <line x1="4" x2="20" y1="18" y2="18" />
+              </svg>
             }
           </button>
         </div>
@@ -855,10 +949,15 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="authService.logout(); closeMobileMenu()"
-                class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-extrabold flex-shrink-0 cursor-pointer"
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 text-xs font-extrabold flex-shrink-0 cursor-pointer"
                 title="Cerrar sesión"
               >
-                🚪 Salir
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
+                <span>Salir</span>
               </button>
             </div>
           } @else {
@@ -954,23 +1053,25 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </a>
 
             @if (authService.isAuthenticated()) {
-              <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1.5">
+              <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1">
                 <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3">
                   Mi Cuenta y Servicios
                 </span>
 
                 <a
                   routerLink="/mensajes"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
+                  class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
                 >
-                  <span class="flex items-center gap-3.5">
-                    <span class="text-lg">💬</span>
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                    </svg>
                     <span>Mensajes Directos (Huellitas Direct)</span>
                   </span>
                   @if (dmService.totalUnreadMessages() > 0) {
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-slate-950">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-emerald-500 text-slate-950">
                       {{ dmService.totalUnreadMessages() }}
                     </span>
                   }
@@ -978,16 +1079,19 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                 <a
                   routerLink="/notificaciones"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
+                  class="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400"
                 >
-                  <span class="flex items-center gap-3.5">
-                    <span class="text-lg">🔔</span>
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                    </svg>
                     <span>Centro de Notificaciones</span>
                   </span>
                   @if (socialNotifications.unreadCount() > 0) {
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-black bg-rose-500 text-white">
                       {{ socialNotifications.unreadCount() }} nuevas
                     </span>
                   }
@@ -995,82 +1099,109 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
                 <a
                   routerLink="/perfil"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">👤</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
                   <span>Mi Perfil y Publicaciones</span>
                 </a>
 
                 <a
                   routerLink="/mis-adopciones"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">🐾</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
                   <span>Mis Adopciones y Progreso</span>
                 </a>
 
                 <a
                   routerLink="/verificacion"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">🛡️</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
                   <span>Verificación de Adoptante</span>
                 </a>
 
                 <a
                   routerLink="/panel-rescatista"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400 font-extrabold"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400 font-bold"
                 >
-                  <span class="text-lg">📋</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  </svg>
                   <span>{{ isRescuerOrAdmin() ? 'Panel de Rescatista (Seguimiento)' : 'Gestionar Mis Adopciones' }}</span>
                 </a>
 
                 <a
                   routerLink="/dashboard"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">📊</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18" />
+                    <path d="m19 9-5 5-4-4-3 3" />
+                  </svg>
                   <span>Dashboard Clínico</span>
                 </a>
 
                 <a
                   routerLink="/pets"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">🐾</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="4" r="2" />
+                    <circle cx="18" cy="8" r="2" />
+                    <circle cx="20" cy="16" r="2" />
+                    <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+                  </svg>
                   <span>Mis Mascotas</span>
                 </a>
 
                 <a
                   routerLink="/groups"
-                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                   (click)="closeMobileMenu()"
-                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+                  class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
                 >
-                  <span class="text-lg">👨‍👩‍👧‍👦</span>
+                  <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
                   <span>Familias / Grupos</span>
                 </a>
 
                 @if (authService.isAdmin()) {
                   <a
                     routerLink="/admin"
-                    routerLinkActive="bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                    routerLinkActive="bg-rose-500/12 text-rose-600 dark:text-rose-400 border-rose-500/30"
                     (click)="closeMobileMenu()"
-                    class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors font-extrabold"
+                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 transition-colors font-bold"
                   >
-                    <span class="text-lg">🛡️</span>
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
                     <span>Panel Administrador</span>
                   </a>
                 }
@@ -1082,10 +1213,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <button
                   type="button"
                   (click)="closeMobileMenu(); pwaService.installPwa()"
-                  class="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-extrabold transition-colors cursor-pointer"
+                  class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 font-bold transition-colors cursor-pointer"
                 >
-                  <span class="flex items-center gap-3.5">
-                    <span class="text-lg">📲</span>
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" x2="12" y1="15" y2="3" />
+                    </svg>
                     <span>Instalar App Huellitas</span>
                   </span>
                   <span class="text-[10px] uppercase font-black px-2 py-0.5 rounded-md bg-emerald-500 text-slate-950">
@@ -1100,13 +1235,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <button
                 type="button"
                 (click)="themeService.toggleTheme()"
-                class="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
+                class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
               >
-                <span class="flex items-center gap-3.5">
-                  <span class="text-lg">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+                <span class="flex items-center gap-3">
+                  @if (themeService.isDarkMode()) {
+                    <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+                    </svg>
+                  } @else {
+                    <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                    </svg>
+                  }
                   <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
                 </span>
-                <span class="text-xs uppercase font-extrabold text-emerald-600 dark:text-emerald-400">
+                <span class="text-xs uppercase font-bold text-emerald-600 dark:text-emerald-400">
                   Cambiar
                 </span>
               </button>
@@ -1424,19 +1568,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
     switch (type) {
       case SocialNotificationType.COMMENT_ON_POST:
       case SocialNotificationType.COMMENT_ON_PET:
-        return '💬';
+        return 'Comentario';
       case SocialNotificationType.SIGHTING_REPORTED:
-        return '🚨';
+        return 'Alerta';
       case SocialNotificationType.ADOPTION_REQUEST_RECEIVED:
-        return '🏠';
+        return 'Adopción';
       case SocialNotificationType.ADOPTION_REQUEST_STATUS:
-        return '🎉';
+        return 'Actualización';
       case SocialNotificationType.FOLLOWUP_PROOF_SUBMITTED:
-        return '📸';
+        return 'Seguimiento';
       case SocialNotificationType.GROUP_ACTIVITY:
-        return '👨‍👩‍👧‍👦';
+        return 'Comunidad';
       default:
-        return '🔔';
+        return 'Aviso';
     }
   }
 

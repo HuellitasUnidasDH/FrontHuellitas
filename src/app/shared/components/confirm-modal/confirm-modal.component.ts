@@ -53,7 +53,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
                 class="p-3.5 rounded-2xl text-xs flex items-start gap-2.5 border font-medium"
                 [ngClass]="submessageClasses"
               >
-                <span class="text-base leading-none mt-0.5">📌</span>
+                <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
                 <span class="whitespace-pre-line leading-relaxed">
                   {{ confirmService.state().options.submessage }}
                 </span>
