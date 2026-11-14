@@ -11,15 +11,20 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
   imports: [CommonModule, ReactiveFormsModule, RouterLink, PrivacyNoticeModalComponent],
   template: `
     <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
-      <div class="w-full max-w-lg liquid-glass rounded-3xl p-6 sm:p-9 shadow-2xl relative overflow-hidden transition-all">
+      <div class="w-full max-w-lg liquid-glass rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
         
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 font-bold text-xl shadow-lg shadow-emerald-500/25 mb-3">
-            🐾
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2" />
+              <circle cx="18" cy="8" r="2" />
+              <circle cx="20" cy="16" r="2" />
+              <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Crear Cuenta</h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">Completa los datos para registrar a tus mascotas de forma segura</p>
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Crear cuenta</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Regístrate para publicar reportes, adoptar responsablemente y gestionar expedientes</p>
         </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">

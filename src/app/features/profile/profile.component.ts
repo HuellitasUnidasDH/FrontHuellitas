@@ -163,7 +163,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
             <button
               type="button"
               (click)="openEditModal()"
-              class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 20h9" />
@@ -323,7 +323,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                 <a
                   routerLink="/"
                   [queryParams]="{ compose: 'EN_ADOPCION' }"
-                  class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md"
+                  class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm transition-colors"
                 >
                   + Publicar en Adopción
                 </a>
@@ -525,7 +525,7 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
             </p>
             <a
               routerLink="/mis-adopciones"
-              class="self-start sm:self-center px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-sm hover:brightness-105 whitespace-nowrap"
+              class="self-start sm:self-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
             >
               Abrir Mis Adopciones →
             </a>

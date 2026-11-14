@@ -12,17 +12,21 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
-      <div class="w-full max-w-md liquid-glass rounded-3xl p-7 sm:p-9 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
+      <div class="w-full max-w-md liquid-glass rounded-2xl sm:rounded-3xl p-7 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
 
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl shadow-lg shadow-emerald-500/25 mb-3">
-            🔑
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="7.5" cy="15.5" r="5.5" />
+              <path d="m21 2-9.6 9.6" />
+              <path d="m15.5 7.5 3 3L22 7l-3-3" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Restablecer Contraseña
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Restablecer contraseña
           </h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
             Crea una nueva contraseña segura para tu cuenta de {{ brand.name }}.
           </p>
         </div>

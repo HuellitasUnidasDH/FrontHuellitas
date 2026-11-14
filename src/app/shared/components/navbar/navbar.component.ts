@@ -50,31 +50,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
         <!-- Brand / Logo -->
         <div class="flex items-center gap-2.5 sm:gap-6 min-w-0">
-          <a routerLink="/" (click)="closeAllDropdowns()" class="flex items-center gap-2 group flex-shrink-0">
+          <a routerLink="/" (click)="closeAllDropdowns()" class="flex items-center gap-2.5 group flex-shrink-0">
             <div
-              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center text-slate-950 font-black shadow-md shadow-emerald-500/25 group-hover:scale-105 transition-transform cursor-pointer text-lg"
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-white dark:text-slate-950 shadow-sm group-hover:scale-105 transition-transform cursor-pointer"
             >
-              🐾
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="4" r="2" />
+                <circle cx="18" cy="8" r="2" />
+                <circle cx="20" cy="16" r="2" />
+                <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+              </svg>
             </div>
             <div class="flex flex-col min-w-0">
-              <span
-                class="text-sm sm:text-lg font-black tracking-tight bg-gradient-to-r from-slate-900 via-emerald-800 to-teal-700 dark:from-white dark:via-emerald-200 dark:to-teal-300 bg-clip-text text-transparent truncate"
-              >
+              <span class="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white truncate">
                 {{ brand.name }}
               </span>
-              <span class="text-[9px] uppercase font-bold tracking-widest text-emerald-600 dark:text-emerald-400 -mt-1 hidden lg:inline-block">
+              <span class="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 -mt-1 hidden lg:inline-block">
                 {{ brand.city }}
               </span>
             </div>
           </a>
 
-          <!-- ==================================================== -->
-          <!-- Desktop Navigation Tabs: ONLY 3 Primordial Sections  -->
-          <!-- + Elegant "Más secciones ▾" Dropdown Menu            -->
-          <!-- ==================================================== -->
-          <nav class="hidden md:flex items-center gap-1.5 p-1 rounded-2xl bg-slate-200/50 dark:bg-slate-950/40 border border-slate-300/40 dark:border-slate-800/60 backdrop-blur-md">
-            
-            <!-- 1. Muro Comunitario (Primordial) -->
+          <!-- Desktop Navigation Tabs -->
+          <nav class="hidden md:flex items-center gap-1 p-1 rounded-2xl bg-slate-100/90 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800">
             <a
               routerLink="/"
               routerLinkActive="active-nav-tab"
@@ -82,32 +80,41 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               (click)="closeAllDropdowns()"
               class="nav-tab-item relative px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
-              <span>📰</span>
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200 dark:border-slate-700 opacity-0 transition-opacity -z-10"></span>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                <path d="M18 14h-8" />
+                <path d="M15 18h-5" />
+                <path d="M10 6h8v4h-8V6Z" />
+              </svg>
               <span>Muro</span>
             </a>
 
-            <!-- 2. Adopciones (Primordial) -->
             <a
               routerLink="/adopciones"
               routerLinkActive="active-nav-tab"
               (click)="closeAllDropdowns()"
               class="nav-tab-item relative px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
-              <span>🏠</span>
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200 dark:border-slate-700 opacity-0 transition-opacity -z-10"></span>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
               <span>Adopciones</span>
             </a>
 
-            <!-- 3. Perdidos / Alertas (Primordial) -->
             <a
               routerLink="/perdidas"
               routerLinkActive="active-nav-tab"
               (click)="closeAllDropdowns()"
               class="nav-tab-item relative px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-emerald-500/30 opacity-0 transition-opacity -z-10"></span>
-              <span>🚨</span>
+              <span class="tab-indicator absolute inset-0 rounded-xl bg-white dark:bg-slate-800 shadow-xs border border-slate-200 dark:border-slate-700 opacity-0 transition-opacity -z-10"></span>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
               <span>Perdidos</span>
             </a>
 
@@ -144,7 +151,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     (click)="closeAllDropdowns()"
                     class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-sm">🩺</span>
+                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 2v20" />
+                      <path d="M18 13H4" />
+                      <path d="M5 2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />
+                    </svg>
                     <span>Aliados y Veterinarias</span>
                   </a>
 
@@ -155,7 +166,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     (click)="closeAllDropdowns()"
                     class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                   >
-                    <span class="text-sm">💙</span>
+                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
                     <span>Nosotros</span>
                   </a>
 
@@ -163,9 +178,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <button
                       type="button"
                       (click)="closeAllDropdowns(); pwaService.installPwa()"
-                      class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                      class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer"
                     >
-                      <span class="text-sm">📲</span>
+                      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                      </svg>
                       <span>Instalar App en mi dispositivo</span>
                     </button>
                   }
@@ -181,7 +200,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="flex items-center gap-2.5">
-                        <span class="text-sm">💬</span>
+                        <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                        </svg>
                         <span>Mensajes Directos</span>
                       </span>
                       @if (dmService.totalUnreadMessages() > 0) {
@@ -199,7 +220,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       class="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <span class="flex items-center gap-2.5">
-                        <span class="text-sm">🔔</span>
+                        <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                        </svg>
                         <span>Centro de Notificaciones</span>
                       </span>
                       @if (socialNotifications.unreadCount() > 0) {
@@ -209,25 +233,31 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       }
                     </a>
 
-                    <!-- Gestión de Adopciones (Ciudadanos gestionan las suyas; Rescatistas las propias + ciudadanas) -->
+                    <!-- Gestión de Adopciones -->
                     <a
                       routerLink="/panel-rescatista"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">📋</span>
+                      <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                      </svg>
                       <span>{{ isRescuerOrAdmin() ? 'Panel de Rescatista' : 'Gestionar Mis Adopciones' }}</span>
                     </a>
 
-                    <!-- Mis Adopciones y Progreso (Portal Adoptante / Dueño) -->
+                    <!-- Mis Adopciones y Progreso -->
                     <a
                       routerLink="/mis-adopciones"
                       routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">🐾</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                      </svg>
                       <span>Mis Adopciones y Progreso</span>
                     </a>
 
@@ -238,7 +268,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">🛡️</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="m9 12 2 2 4-4" />
+                      </svg>
                       <span>Verificación de Adoptante</span>
                     </a>
 
@@ -249,7 +282,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">📊</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18" />
+                        <path d="m19 9-5 5-4-4-3 3" />
+                      </svg>
                       <span>Dashboard Clínico</span>
                     </a>
 
@@ -260,7 +296,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">🐾</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="4" r="2" />
+                        <circle cx="18" cy="8" r="2" />
+                        <circle cx="20" cy="16" r="2" />
+                        <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+                      </svg>
                       <span>Mis Mascotas</span>
                     </a>
 
@@ -271,7 +312,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       (click)="closeAllDropdowns()"
                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
                     >
-                      <span class="text-sm">👨‍👩‍👧‍👦</span>
+                      <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
                       <span>Familias / Grupos</span>
                     </a>
 
@@ -284,7 +330,9 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                         (click)="closeAllDropdowns()"
                         class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors"
                       >
-                        <span class="text-sm">🛡️</span>
+                        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
                         <span>Panel Administrador</span>
                       </a>
                     }
@@ -735,7 +783,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </a>
               <a
                 routerLink="/auth/register"
-                class="px-4 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-md shadow-emerald-500/25 transition-all cursor-pointer"
+                class="px-4 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 shadow-sm transition-colors cursor-pointer"
               >
                 Registrarme
               </a>
@@ -833,59 +881,75 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           }
 
           <!-- Scrollable Navigation Links List -->
-          <div class="flex-1 overflow-y-auto overscroll-contain space-y-1.5 pr-1 text-sm font-bold text-slate-800 dark:text-slate-100">
-            <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3 pt-1">
+          <div class="flex-1 overflow-y-auto overscroll-contain space-y-1 pr-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 pt-1">
               Secciones Principales
             </span>
 
             <a
               routerLink="/"
-              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
               [routerLinkActiveOptions]="{ exact: true }"
               (click)="closeMobileMenu()"
-              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <span class="text-lg">📰</span>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+                <path d="M10 6h8v4h-8V6Z" />
+              </svg>
               <span>Muro Comunitario</span>
             </a>
 
             <a
               routerLink="/adopciones"
-              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
               (click)="closeMobileMenu()"
-              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <span class="text-lg">🏠</span>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
               <span>Peluditos en Adopción</span>
             </a>
 
             <a
               routerLink="/perdidas"
-              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
               (click)="closeMobileMenu()"
-              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <span class="text-lg">🚨</span>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
               <span>Mascotas Extraviadas / Encontradas</span>
             </a>
 
             <a
               routerLink="/aliados"
-              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
               (click)="closeMobileMenu()"
-              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <span class="text-lg">🩺</span>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 2v20" />
+                <path d="M18 13H4" />
+              </svg>
               <span>Directorio de Aliados (Dolores Hidalgo)</span>
             </a>
 
             <a
               routerLink="/nosotros"
-              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              routerLinkActive="bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
               (click)="closeMobileMenu()"
-              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+              class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-transparent hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
             >
-              <span class="text-lg">💙</span>
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
               <span>Sobre Nosotros</span>
             </a>
 
@@ -1077,10 +1141,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         routerLinkActive="mobile-dock-active"
         [routerLinkActiveOptions]="{ exact: true }"
         (click)="closeAllDropdowns()"
-        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
       >
-        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">📰</span>
-        <span class="text-[10px] font-bold mt-0.5">Muro</span>
+        <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+          <path d="M10 6h8v4h-8V6Z" />
+          <path d="M18 14h-8" />
+        </svg>
+        <span class="text-[10px] font-semibold mt-0.5 truncate">Muro</span>
       </a>
 
       <!-- Adopciones (Public) -->
@@ -1088,10 +1156,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         routerLink="/adopciones"
         routerLinkActive="mobile-dock-active"
         (click)="closeAllDropdowns()"
-        class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+        class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
       >
-        <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🏠</span>
-        <span class="text-[10px] font-bold mt-0.5">Adoptar</span>
+        <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        </svg>
+        <span class="text-[10px] font-semibold mt-0.5 truncate">Adoptar</span>
       </a>
 
       @if (authService.isAuthenticated()) {
@@ -1100,10 +1170,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           routerLink="/mensajes"
           routerLinkActive="mobile-dock-active"
           (click)="closeAllDropdowns()"
-          class="relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          class="relative flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">💬</span>
-          <span class="text-[10px] font-bold mt-0.5">Mensajes</span>
+          <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+          </svg>
+          <span class="text-[10px] font-semibold mt-0.5 truncate">Mensajes</span>
           @if (dmService.totalUnreadMessages() > 0) {
             <span class="absolute top-1 right-3 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
           }
@@ -1114,10 +1186,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           routerLink="/notificaciones"
           routerLinkActive="mobile-dock-active"
           (click)="closeAllDropdowns()"
-          class="relative flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          class="relative flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🔔</span>
-          <span class="text-[10px] font-bold mt-0.5">Alertas</span>
+          <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+          </svg>
+          <span class="text-[10px] font-semibold mt-0.5 truncate">Alertas</span>
           @if (socialNotifications.unreadCount() > 0) {
             <span class="absolute top-1 right-3 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900"></span>
           }
@@ -1132,8 +1207,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           aria-label="Opciones del menú"
           class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0 cursor-pointer"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">☰</span>
-          <span class="text-[10px] font-bold mt-0.5">Opciones</span>
+          <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="20" y1="6" y2="6" />
+            <line x1="4" x2="20" y1="18" y2="18" />
+          </svg>
+          <span class="text-[10px] font-semibold mt-0.5 truncate">Menú</span>
         </button>
       } @else {
         <!-- Perdidos (Public) -->
@@ -1141,10 +1220,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           routerLink="/perdidas"
           routerLinkActive="mobile-dock-active"
           (click)="closeAllDropdowns()"
-          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">🚨</span>
-          <span class="text-[10px] font-bold mt-0.5">Perdidos</span>
+          <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          <span class="text-[10px] font-semibold mt-0.5 truncate">Perdidos</span>
         </a>
 
         <!-- Ingresar (Guest) -->
@@ -1152,10 +1235,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           routerLink="/auth/login"
           routerLinkActive="mobile-dock-active"
           (click)="closeAllDropdowns()"
-          class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1"
+          class="flex flex-col items-center justify-center py-1.5 px-1.5 rounded-xl text-slate-600 dark:text-slate-400 transition-colors group flex-1 min-w-0"
         >
-          <span class="text-base group-[.mobile-dock-active]:scale-110 transition-transform">👤</span>
-          <span class="text-[10px] font-bold mt-0.5">Entrar</span>
+          <svg class="w-4 h-4 group-[.mobile-dock-active]:text-emerald-600 dark:group-[.mobile-dock-active]:text-emerald-400 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span class="text-[10px] font-semibold mt-0.5 truncate">Entrar</span>
         </a>
       }
     </nav>

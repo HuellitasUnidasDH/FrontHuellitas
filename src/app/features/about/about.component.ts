@@ -10,15 +10,13 @@ import { NavigationHistoryService } from '../../core/services/navigation-history
   template: `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
       <!-- Hero del Proyecto -->
-      <section class="liquid-glass rounded-3xl p-6 sm:p-10 shadow-xl border border-emerald-500/20 relative overflow-hidden">
-        <div class="absolute -right-14 -top-14 w-52 h-52 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
-
+      <section class="liquid-glass rounded-3xl p-6 sm:p-10 shadow-lg border border-slate-200/80 dark:border-slate-800 relative overflow-hidden">
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div class="space-y-3 max-w-2xl">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-              <span>🐾</span> Sobre {{ brand.name }}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+              Sobre {{ brand.name }}
             </span>
-            <h1 class="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 class="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               Tecnología ciudadana por el bienestar animal en {{ brand.city }}
             </h1>
             <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -29,7 +27,7 @@ import { NavigationHistoryService } from '../../core/services/navigation-history
           <button
             type="button"
             (click)="goBack()"
-            class="self-start md:self-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-md hover:brightness-105 transition-all whitespace-nowrap cursor-pointer"
+            class="self-start md:self-center px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm transition-colors whitespace-nowrap cursor-pointer"
           >
             {{ navHistory.getBackLabel('← Volver al Muro Principal') }}
           </button>
@@ -37,25 +35,42 @@ import { NavigationHistoryService } from '../../core/services/navigation-history
 
         <!-- 3 Pilares del Proyecto -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-7 pt-6 border-t border-slate-200/70 dark:border-slate-800/70">
-          <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
-            <span class="text-2xl block">💚</span>
-            <h3 class="text-sm font-black text-slate-900 dark:text-white">Adopción con Protocolo</h3>
+          <div class="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 space-y-2">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Adopción con Protocolo</h3>
             <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Proceso estructurado en 4 pasos (entrevista, visita domiciliaria, convenio digital y seguimiento a 1 año) al alcance de rescatistas y ciudadanos.
             </p>
           </div>
 
-          <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
-            <span class="text-2xl block">🚨</span>
-            <h3 class="text-sm font-black text-slate-900 dark:text-white">Red Vecinal Inmediata</h3>
+          <div class="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 space-y-2">
+            <div class="w-9 h-9 rounded-xl bg-rose-500/12 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Red Vecinal Inmediata</h3>
             <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Reportes geolocalizados por colonias y vialidades de Dolores Hidalgo para atender animales heridos, en resguardo o extraviados.
             </p>
           </div>
 
-          <div class="p-4 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
-            <span class="text-2xl block">🩺</span>
-            <h3 class="text-sm font-black text-slate-900 dark:text-white">Expediente y Aliados</h3>
+          <div class="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 space-y-2">
+            <div class="w-9 h-9 rounded-xl bg-teal-500/12 text-teal-700 dark:text-teal-300 flex items-center justify-center">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Expediente y Aliados</h3>
             <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Historial clínico personal para tus mascotas, cartilla preventiva y directorio local de veterinarias y rescatistas verificados.
             </p>

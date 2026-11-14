@@ -82,7 +82,7 @@ interface PetRequestGroup {
             <a
               routerLink="/adopciones"
               [queryParams]="{ compose: 'EN_ADOPCION' }"
-              class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md flex items-center gap-1 hover:brightness-105 transition-all"
+              class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm flex items-center gap-1 transition-colors"
             >
               <span>+</span> Publicar en Adopción
             </a>

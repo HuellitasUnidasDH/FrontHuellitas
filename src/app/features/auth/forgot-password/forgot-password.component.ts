@@ -12,17 +12,20 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
     <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
-      <div class="w-full max-w-md liquid-glass rounded-3xl p-7 sm:p-9 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
+      <div class="w-full max-w-md liquid-glass rounded-2xl sm:rounded-3xl p-7 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
         
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl shadow-lg shadow-emerald-500/25 mb-3">
-            🔐
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Recuperar Contraseña
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Recuperar contraseña
           </h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1.5 max-w-xs mx-auto">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5 max-w-xs mx-auto">
             Ingresa tu correo registrado en {{ brand.name }} para recibir instrucciones seguras.
           </p>
         </div>
@@ -73,11 +76,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <!-- Formulario de Solicitud -->
           <form [formGroup]="forgotForm" (ngSubmit)="onSubmit()" class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                Correo Electrónico Registrado
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Correo electrónico registrado
               </label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">✉️</span>
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  </svg>
+                </span>
                 <input
                   type="email"
                   formControlName="email"
