@@ -36,7 +36,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               }"
             />
             @if (emailField?.invalid && emailField?.touched) {
-              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">Ingresa un correo electrónico válido</p>
+              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
+                @if (emailField?.hasError('required')) {
+                  El correo electrónico es obligatorio.
+                } @else {
+                  Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).
+                }
+              </p>
             }
           </div>
 
@@ -74,7 +80,7 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               </button>
             </div>
             @if (passwordField?.invalid && passwordField?.touched) {
-              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">La contraseña es requerida</p>
+              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">Ingresa tu contraseña para continuar.</p>
             }
 
             <!-- Fila Recuérdame + Olvidaste tu contraseña -->
@@ -105,7 +111,7 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
           <!-- Botón de Envío -->
           <button
             type="submit"
-            [disabled]="loginForm.invalid || isLoading()"
+            [disabled]="isLoading()"
             class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
           >
             @if (isLoading()) {
@@ -192,7 +198,7 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/']);
         },
         error: () => {
           this.isLoading.set(false);

@@ -28,4 +28,16 @@ export class AllyService {
   getById(id: string): Observable<Ally> {
     return this.http.get<ApiResponse<Ally>>(`${this.URL}/${id}`).pipe(map((r) => r.data));
   }
+
+  getAllAdmin(): Observable<Ally[]> {
+    return this.http.get<ApiResponse<Ally[]>>(`${this.URL}/admin/all`).pipe(map((r) => r.data));
+  }
+
+  create(payload: Partial<Ally>): Observable<Ally> {
+    return this.http.post<ApiResponse<Ally>>(this.URL, payload).pipe(map((r) => r.data));
+  }
+
+  update(id: string, payload: Partial<Ally>): Observable<Ally> {
+    return this.http.patch<ApiResponse<Ally>>(`${this.URL}/${id}`, payload).pipe(map((r) => r.data));
+  }
 }

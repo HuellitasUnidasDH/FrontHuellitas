@@ -46,9 +46,16 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="name"
                   placeholder="Ej. Rocky"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': petForm.get('name')?.touched && petForm.get('name')?.invalid }"
                 />
                 @if (petForm.get('name')?.touched && petForm.get('name')?.invalid) {
-                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">El nombre es requerido</p>
+                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1 font-medium">
+                    @if (petForm.get('name')?.hasError('required')) {
+                      Ingresa el nombre de la mascota para continuar.
+                    } @else {
+                      El nombre no puede superar 60 caracteres.
+                    }
+                  </p>
                 }
               </div>
 
@@ -433,7 +440,7 @@ import { PetGroup } from '../../../core/models/group.model';
             </a>
             <button
               type="submit"
-              [disabled]="petForm.invalid || isSubmitting()"
+              [disabled]="isSubmitting()"
               class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer transition-all hover:scale-102 active:scale-98 flex items-center gap-2"
             >
               @if (isSubmitting()) {
@@ -683,7 +690,11 @@ export class PetFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.petForm.invalid) return;
+    if (this.petForm.invalid) {
+      this.petForm.markAllAsTouched();
+      this.notification.warning('Falta completar datos obligatorios', 'Revisa los campos resaltados antes de guardar.');
+      return;
+    }
 
     this.isSubmitting.set(true);
     const formVal = this.petForm.value;

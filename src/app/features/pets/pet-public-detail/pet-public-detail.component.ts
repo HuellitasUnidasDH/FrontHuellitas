@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PetService } from '../../../core/services/pet.service';
 import { AdoptionService } from '../../../core/services/adoption.service';
@@ -11,12 +11,13 @@ import { Pet } from '../../../core/models/pet.model';
 import { UserRole } from '../../../core/models/user.model';
 import { CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
 import { AdoptionRequestFormComponent } from '../../adoptions/shared/adoption-request-form.component';
+import { ReportContentModalComponent } from '../../../shared/components/report-content-modal/report-content-modal.component';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
 @Component({
   selector: 'app-pet-public-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterModule, FormsModule, AdoptionRequestFormComponent],
+  imports: [CommonModule, RouterLink, RouterModule, FormsModule, AdoptionRequestFormComponent, ReportContentModalComponent],
   template: `
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
@@ -29,7 +30,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <span>←</span> Volver al Muro de {{ brand.name }}
         </a>
 
-        <!-- Share Actions -->
+        <!-- Share Actions & Report -->
         <div class="flex items-center gap-2">
           <button
             (click)="shareToWhatsApp()"
@@ -43,6 +44,20 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           >
             <span>🌐</span> Facebook
           </button>
+          @if (pet() && !isOwnPet()) {
+            <button
+              type="button"
+              (click)="openReportModal()"
+              class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/25 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+              title="Reportar esta publicación ante moderación"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" y1="22" x2="4" y2="15" />
+              </svg>
+              <span>Reportar</span>
+            </button>
+          }
         </div>
       </div>
 
@@ -382,12 +397,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             } @else {
               <div class="space-y-4">
                 <div class="flex items-center gap-3">
-                  <span class="text-3xl">🐾</span>
+                  <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 11l3 3L22 4" />
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                  </div>
                   <div>
-                    <h3 class="text-lg font-black text-slate-900 dark:text-white">
+                    <h3 class="text-lg font-black text-slate-900 dark:text-white leading-tight">
                       Postular para Adoptar a {{ pet()!.name }}
                     </h3>
-                    <p class="text-xs text-slate-500">Adopción responsable en Dolores Hidalgo</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Adopción responsable en {{ brand.city }}</p>
                   </div>
                 </div>
 
@@ -426,12 +446,23 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         </div>
       }
 
+      @if (showReportModal() && pet()) {
+        <app-report-content-modal
+          [targetType]="'PET_POST'"
+          [targetId]="pet()!.id"
+          [targetTitle]="pet()!.name + ' (' + pet()!.species + ')'"
+          [targetSubtitle]="(pet()!.colonia?.name || 'Dolores Hidalgo') + ' • Publicación de adopción'"
+          (closed)="closeReportModal()"
+        />
+      }
+
     </div>
   `,
 })
 export class PetPublicDetailComponent implements OnInit, OnDestroy {
   brand = BRAND_CONFIG;
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private petService = inject(PetService);
   private adoptionService = inject(AdoptionService);
   public authService = inject(AuthService);
@@ -446,6 +477,9 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   showAdoptionModal = signal<boolean>(false);
   adoptionSubmitted = signal<boolean>(false);
   isSending = signal<boolean>(false);
+
+  // Report modal
+  showReportModal = signal<boolean>(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -521,6 +555,27 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
       document.body.classList.remove('modal-open');
     }
     this.showAdoptionModal.set(false);
+  }
+
+  openReportModal(): void {
+    const p = this.pet();
+    if (!p) return;
+    if (!this.authService.isAuthenticated()) {
+      this.notify.warning('Inicia sesión para poder enviar un reporte a moderación.');
+      this.router.navigate(['/auth/login'], { queryParams: { returnUrl: `/adopciones/${p.id}` } });
+      return;
+    }
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('modal-open');
+    }
+    this.showReportModal.set(true);
+  }
+
+  closeReportModal(): void {
+    if (typeof document !== 'undefined') {
+      document.body.classList.remove('modal-open');
+    }
+    this.showReportModal.set(false);
   }
 
   sendAdoption(payload: CreateAdoptionRequestPayload): void {

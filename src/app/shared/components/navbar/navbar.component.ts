@@ -135,6 +135,17 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <span>Aliados y Veterinarias</span>
                   </a>
 
+                  <!-- Sobre Nosotros -->
+                  <a
+                    routerLink="/nosotros"
+                    routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    (click)="closeAllDropdowns()"
+                    class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                  >
+                    <span class="text-sm">💙</span>
+                    <span>Nosotros</span>
+                  </a>
+
                   @if (!pwaService.isStandalone()) {
                     <button
                       type="button"
@@ -185,18 +196,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       }
                     </a>
 
-                    <!-- Panel de Rescatista -->
-                    @if (isRescuerOrAdmin()) {
-                      <a
-                        routerLink="/panel-rescatista"
-                        routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                        (click)="closeAllDropdowns()"
-                        class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                      >
-                        <span class="text-sm">📋</span>
-                        <span>Panel de Rescatista</span>
-                      </a>
-                    }
+                    <!-- Gestión de Adopciones (Ciudadanos gestionan las suyas; Rescatistas las propias + ciudadanas) -->
+                    <a
+                      routerLink="/panel-rescatista"
+                      routerLinkActive="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      (click)="closeAllDropdowns()"
+                      class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
+                    >
+                      <span class="text-sm">📋</span>
+                      <span>{{ isRescuerOrAdmin() ? 'Panel de Rescatista' : 'Gestionar Mis Adopciones' }}</span>
+                    </a>
 
                     <!-- Mis Adopciones y Progreso (Portal Adoptante / Dueño) -->
                     <a
@@ -856,6 +865,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               <span>Directorio de Aliados (Dolores Hidalgo)</span>
             </a>
 
+            <a
+              routerLink="/nosotros"
+              routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+              (click)="closeMobileMenu()"
+              class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl border border-transparent hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+            >
+              <span class="text-lg">💙</span>
+              <span>Sobre Nosotros</span>
+            </a>
+
             @if (authService.isAuthenticated()) {
               <div class="pt-2.5 mt-2 border-t border-slate-200/80 dark:border-slate-800/80 space-y-1.5">
                 <span class="block text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3">
@@ -926,17 +945,15 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <span>Verificación de Adoptante</span>
                 </a>
 
-                @if (isRescuerOrAdmin()) {
-                  <a
-                    routerLink="/panel-rescatista"
-                    routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                    (click)="closeMobileMenu()"
-                    class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400 font-extrabold"
-                  >
-                    <span class="text-lg">📋</span>
-                    <span>Panel de Rescatista (Seguimiento)</span>
-                  </a>
-                }
+                <a
+                  routerLink="/panel-rescatista"
+                  routerLinkActive="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                  (click)="closeMobileMenu()"
+                  class="flex items-center gap-3.5 px-3.5 py-3 rounded-2xl hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors text-emerald-700 dark:text-emerald-400 font-extrabold"
+                >
+                  <span class="text-lg">📋</span>
+                  <span>{{ isRescuerOrAdmin() ? 'Panel de Rescatista (Seguimiento)' : 'Gestionar Mis Adopciones' }}</span>
+                </a>
 
                 <a
                   routerLink="/dashboard"

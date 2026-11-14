@@ -249,7 +249,17 @@ import { Pet } from '../../core/models/pet.model';
                     formControlName="name"
                     placeholder="Ej. Familia Ramírez, Hogar Peludo..."
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                    [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': createForm.get('name')?.invalid && createForm.get('name')?.touched }"
                   />
+                  @if (createForm.get('name')?.invalid && createForm.get('name')?.touched) {
+                    <p class="mt-1 text-xs text-rose-400 font-medium">
+                      @if (createForm.get('name')?.hasError('required')) {
+                        Ingresa un nombre para identificar tu grupo familiar.
+                      } @else {
+                        El nombre no debe exceder 80 caracteres.
+                      }
+                    </p>
+                  }
                 </div>
 
                 <div>
@@ -277,8 +287,7 @@ import { Pet } from '../../core/models/pet.model';
 
                 <button
                   type="submit"
-                  [disabled]="createForm.invalid"
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
                 >
                   Crear Familia
                 </button>
@@ -325,7 +334,19 @@ import { Pet } from '../../core/models/pet.model';
                     formControlName="inviteCode"
                     placeholder="FAM-1234"
                     class="w-full px-4 py-3 rounded-2xl liquid-glass-input text-center text-xl font-black tracking-widest uppercase text-emerald-400 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': joinForm.get('inviteCode')?.invalid && joinForm.get('inviteCode')?.touched }"
                   />
+                  @if (joinForm.get('inviteCode')?.invalid && joinForm.get('inviteCode')?.touched) {
+                    <p class="mt-2 text-xs text-rose-400 font-medium text-center">
+                      @if (joinForm.get('inviteCode')?.hasError('required')) {
+                        Ingresa el código de invitación compartido por el titular de la familia.
+                      } @else if (joinForm.get('inviteCode')?.hasError('minlength')) {
+                        El código debe tener al menos 4 caracteres ({{ (joinForm.get('inviteCode')?.value || '').trim().length }}/4).
+                      } @else {
+                        El código no puede tener más de 12 caracteres.
+                      }
+                    </p>
+                  }
                 </div>
               </div>
 
@@ -341,8 +362,7 @@ import { Pet } from '../../core/models/pet.model';
 
                 <button
                   type="submit"
-                  [disabled]="joinForm.invalid"
-                  class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
                 >
                   Unirme a la Familia
                 </button>
@@ -617,7 +637,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   onSubmitCreate(): void {
-    if (this.createForm.invalid) return;
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
 
     const val = this.createForm.value;
     this.groupService.create({ name: val.name!, description: val.description || undefined }).subscribe({
@@ -644,7 +667,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   onSubmitJoin(): void {
-    if (this.joinForm.invalid) return;
+    if (this.joinForm.invalid) {
+      this.joinForm.markAllAsTouched();
+      return;
+    }
 
     const code = this.joinForm.value.inviteCode!;
     this.groupService.join({ inviteCode: code }).subscribe({

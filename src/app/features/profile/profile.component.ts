@@ -439,12 +439,19 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
 
             <div class="space-y-3 text-xs">
               <div>
-                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Nombre Completo</label>
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Nombre Completo *</label>
                 <input
                   type="text"
                   [(ngModel)]="editForm.fullName"
-                  class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                  (ngModelChange)="profileAttempted.set(false)"
+                  class="w-full px-3 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                  [ngClass]="profileAttempted() && !editForm.fullName.trim() ? 'border-rose-500 bg-rose-500/5' : 'border-slate-300 dark:border-slate-700'"
                 />
+                @if (profileAttempted() && !editForm.fullName.trim()) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                    El nombre completo es obligatorio.
+                  </p>
+                }
               </div>
 
               <div>
@@ -640,10 +647,16 @@ type ProfileTab = 'PETS' | 'LOST' | 'ADOPTIONS';
                 </div>
               }
 
+              @if (photoAttempted() && ((quickPhotoSource() === 'FILE' && !selectedQuickFile()) || (quickPhotoSource() === 'URL' && !quickPhotoUrl.trim()))) {
+                <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {{ quickPhotoSource() === 'FILE' ? 'Selecciona una fotografía de tu dispositivo antes de guardar.' : 'Pega el enlace URL válido de la fotografía.' }}
+                </p>
+              }
+
               <div class="pt-2 flex gap-2">
                 <button
                   (click)="savePhotoOnly()"
-                  [disabled]="isSaving() || (quickPhotoSource() === 'FILE' && !selectedQuickFile()) || (quickPhotoSource() === 'URL' && !quickPhotoUrl.trim())"
+                  [disabled]="isSaving()"
                   class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   @if (isSaving()) {
@@ -684,6 +697,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
   // Modal states
   isEditModalOpen = signal<boolean>(false);
   isPhotoModalOpen = signal<boolean>(false);
+  profileAttempted = signal<boolean>(false);
+  photoAttempted = signal<boolean>(false);
 
   // Dual photo controls (Quick Photo Modal)
   quickPhotoSource = signal<'FILE' | 'URL'>('FILE');
@@ -758,6 +773,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
+    this.profileAttempted.set(false);
     const u = this.user();
     if (u) {
       this.editForm = {
@@ -783,6 +799,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (typeof document !== 'undefined') {
       document.body.classList.add('modal-open');
     }
+    this.photoAttempted.set(false);
     const u = this.user();
     this.quickPhotoUrl = u?.profilePhotoUrl || '';
     this.quickPhotoPreview.set(u?.profilePhotoUrl || null);
@@ -816,8 +833,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   saveProfile(): void {
+    this.profileAttempted.set(true);
     if (!this.editForm.fullName.trim()) {
-      this.notify.warning('El nombre completo es requerido');
       return;
     }
 
@@ -857,10 +874,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   savePhotoOnly(): void {
+    this.photoAttempted.set(true);
     if (this.quickPhotoSource() === 'FILE') {
       const file = this.selectedQuickFile();
       if (!file) {
-        this.notify.warning('Por favor selecciona una foto de tu dispositivo');
         return;
       }
       this.isSaving.set(true);
@@ -875,7 +892,6 @@ export class ProfileComponent implements OnInit, OnDestroy {
       });
     } else {
       if (!this.quickPhotoUrl.trim()) {
-        this.notify.warning('Por favor ingresa una URL válida');
         return;
       }
       this.isSaving.set(true);

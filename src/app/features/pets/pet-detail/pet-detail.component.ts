@@ -442,6 +442,7 @@ import { UserRole } from '../../../core/models/user.model';
                         (ngModelChange)="momentUrlInput.set($event)"
                         [ngModelOptions]="{ standalone: true }"
                         placeholder="https://images.unsplash.com/... o enlace web de la foto"
+                        [class.border-rose-500]="momentAttempted() && !momentUrlInput().trim()"
                         class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
                       />
 
@@ -456,6 +457,11 @@ import { UserRole } from '../../../core/models/user.model';
                       }
                     </div>
                   }
+                  @if (momentAttempted() && ((momentPhotoSource() === 'FILE' && !selectedFile()) || (momentPhotoSource() === 'URL' && !momentUrlInput().trim()))) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1.5">
+                      {{ momentPhotoSource() === 'FILE' ? 'Selecciona una fotografía desde tu dispositivo para continuar.' : 'Pega un enlace URL válido para la fotografía.' }}
+                    </p>
+                  }
                 </div>
 
                 <!-- Título -->
@@ -467,8 +473,14 @@ import { UserRole } from '../../../core/models/user.model';
                     type="text"
                     formControlName="title"
                     placeholder="Ej. Su primer día en el parque, Cumpleaños #1..."
+                    [class.border-rose-500]="momentForm.get('title')?.invalid && (momentForm.get('title')?.touched || momentAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
                   />
+                  @if (momentForm.get('title')?.invalid && (momentForm.get('title')?.touched || momentAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">
+                      {{ momentForm.get('title')?.hasError('maxlength') ? 'El título no debe exceder 100 caracteres.' : 'Escribe un título para este recuerdo.' }}
+                    </p>
+                  }
                 </div>
 
                 <!-- Fecha del Recuerdo -->
@@ -479,8 +491,14 @@ import { UserRole } from '../../../core/models/user.model';
                   <input
                     type="date"
                     formControlName="momentDate"
+                    [class.border-rose-500]="momentForm.get('momentDate')?.invalid && (momentForm.get('momentDate')?.touched || momentAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
                   />
+                  @if (momentForm.get('momentDate')?.invalid && (momentForm.get('momentDate')?.touched || momentAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">
+                      Selecciona la fecha en que ocurrió este momento.
+                    </p>
+                  }
                 </div>
 
                 <!-- Descripción / Anécdota -->
@@ -509,7 +527,7 @@ import { UserRole } from '../../../core/models/user.model';
 
                 <button
                   type="submit"
-                  [disabled]="momentForm.invalid || (momentPhotoSource() === 'FILE' && !selectedFile()) || (momentPhotoSource() === 'URL' && !momentUrlInput().trim()) || isUploadingMoment() || isCompressingImage()"
+                  [disabled]="isUploadingMoment() || isCompressingImage()"
                   class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
                   @if (isUploadingMoment()) {
@@ -601,8 +619,12 @@ import { UserRole } from '../../../core/models/user.model';
                   <input
                     type="date"
                     formControlName="visitDate"
+                    [class.border-rose-500]="recordForm.get('visitDate')?.invalid && (recordForm.get('visitDate')?.touched || recordAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500"
                   />
+                  @if (recordForm.get('visitDate')?.invalid && (recordForm.get('visitDate')?.touched || recordAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">Indica la fecha de la consulta.</p>
+                  }
                 </div>
 
                 <div>
@@ -613,8 +635,12 @@ import { UserRole } from '../../../core/models/user.model';
                     type="text"
                     formControlName="reason"
                     placeholder="Ej. Chequeo general, Vacuna antirrábica..."
+                    [class.border-rose-500]="recordForm.get('reason')?.invalid && (recordForm.get('reason')?.touched || recordAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
                   />
+                  @if (recordForm.get('reason')?.invalid && (recordForm.get('reason')?.touched || recordAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">Indica el motivo de la visita médica.</p>
+                  }
                 </div>
 
                 <div>
@@ -625,8 +651,12 @@ import { UserRole } from '../../../core/models/user.model';
                     formControlName="diagnosis"
                     rows="2"
                     placeholder="Observaciones clínicas y diagnóstico del veterinario"
+                    [class.border-rose-500]="recordForm.get('diagnosis')?.invalid && (recordForm.get('diagnosis')?.touched || recordAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
                   ></textarea>
+                  @if (recordForm.get('diagnosis')?.invalid && (recordForm.get('diagnosis')?.touched || recordAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">Registra el diagnóstico clínico.</p>
+                  }
                 </div>
 
                 <div>
@@ -637,8 +667,12 @@ import { UserRole } from '../../../core/models/user.model';
                     formControlName="treatment"
                     rows="2"
                     placeholder="Medicamentos inyectados, vacuna aplicada, limpieza..."
+                    [class.border-rose-500]="recordForm.get('treatment')?.invalid && (recordForm.get('treatment')?.touched || recordAttempted())"
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 resize-none"
                   ></textarea>
+                  @if (recordForm.get('treatment')?.invalid && (recordForm.get('treatment')?.touched || recordAttempted())) {
+                    <p class="text-[11px] text-rose-400 font-semibold mt-1">Describe el tratamiento o procedimiento aplicado.</p>
+                  }
                 </div>
 
                 <div>
@@ -677,8 +711,7 @@ import { UserRole } from '../../../core/models/user.model';
 
                 <button
                   type="submit"
-                  [disabled]="recordForm.invalid"
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
                 >
                   Guardar Expediente
                 </button>
@@ -711,6 +744,8 @@ export class PetDetailComponent implements OnInit {
   showAddMomentModal = signal(false);
   isUploadingMoment = signal(false);
   isCompressingImage = signal(false);
+  momentAttempted = signal(false);
+  recordAttempted = signal(false);
   selectedMomentForLightbox = signal<PetMoment | null>(null);
 
   // Moment File Upload & Dual Source (File or URL)
@@ -809,6 +844,7 @@ export class PetDetailComponent implements OnInit {
   // ==========================================
 
   openAddMomentModal(): void {
+    this.momentAttempted.set(false);
     this.momentForm.reset({
       title: '',
       description: '',
@@ -875,9 +911,14 @@ export class PetDetailComponent implements OnInit {
   }
 
   onSubmitMoment(): void {
+    this.momentAttempted.set(true);
+    this.momentForm.markAllAsTouched();
     const isFileSource = this.momentPhotoSource() === 'FILE';
     const hasPhoto = isFileSource ? !!this.selectedFile() : !!this.momentUrlInput().trim();
-    if (this.momentForm.invalid || !hasPhoto || !this.pet()) return;
+    if (this.momentForm.invalid || !hasPhoto || !this.pet()) {
+      this.notification.warning('Faltan datos del recuerdo', 'Adjunta la fotografía e indica el título y la fecha para guardar.');
+      return;
+    }
 
     const val = this.momentForm.value;
     const formData = new FormData();
@@ -949,6 +990,7 @@ export class PetDetailComponent implements OnInit {
   // ==========================================
 
   openAddRecordModal(): void {
+    this.recordAttempted.set(false);
     this.showAddRecordModal.set(true);
     this.lockBodyScroll(true);
   }
@@ -959,7 +1001,12 @@ export class PetDetailComponent implements OnInit {
   }
 
   onSubmitRecord(): void {
-    if (this.recordForm.invalid || !this.pet()) return;
+    this.recordAttempted.set(true);
+    this.recordForm.markAllAsTouched();
+    if (this.recordForm.invalid || !this.pet()) {
+      this.notification.warning('Campos obligatorios', 'Completa la fecha, motivo, diagnóstico y tratamiento de la consulta.');
+      return;
+    }
 
     const val = this.recordForm.value;
     const payload = {

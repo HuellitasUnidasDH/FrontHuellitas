@@ -17,7 +17,7 @@ export const roleGuard = (allowedRoles: UserRole[]): CanActivateFn => {
     }
 
     notification.error('Acceso restringido', 'No tienes los permisos requeridos');
-    router.navigate(['/dashboard']);
+    router.navigate(['/']);
     return false;
   };
 };

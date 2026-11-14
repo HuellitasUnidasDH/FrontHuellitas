@@ -109,7 +109,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </div>
               @if (newPasswordField?.invalid && newPasswordField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
-                  La contraseña debe tener al menos 6 caracteres
+                  @if (newPasswordField?.hasError('required')) {
+                    Ingresa una nueva contraseña (mínimo 6 caracteres).
+                  } @else {
+                    Tu contraseña es muy corta ({{ (newPasswordField?.value || '').length }}/6): agrega {{ 6 - (newPasswordField?.value || '').length }} más.
+                  }
                 </p>
               }
             </div>
@@ -125,12 +129,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 placeholder="Repite tu nueva contraseña"
                 class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 [ngClass]="{
-                  '!border-rose-500 !ring-2 !ring-rose-500/20': passwordsMismatch()
+                  '!border-rose-500 !ring-2 !ring-rose-500/20': passwordsMismatch() || (confirmPasswordField?.hasError('required') && confirmPasswordField?.touched)
                 }"
               />
-              @if (passwordsMismatch()) {
+              @if (confirmPasswordField?.hasError('required') && confirmPasswordField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
-                  Las contraseñas no coinciden
+                  Confirma tu nueva contraseña repitiéndola aquí.
+                </p>
+              } @else if (passwordsMismatch()) {
+                <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
+                  Las contraseñas no coinciden.
                 </p>
               }
             </div>
@@ -138,7 +146,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             <!-- Botón de Envío -->
             <button
               type="submit"
-              [disabled]="resetForm.invalid || passwordsMismatch() || isLoading()"
+              [disabled]="isLoading()"
               class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
             >
               @if (isLoading()) {

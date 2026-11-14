@@ -45,6 +45,8 @@ export class PushNotificationService {
   readonly permission = signal<NotificationPermission>('default');
   readonly subscribed = signal<boolean>(false);
   readonly busy = signal<boolean>(false);
+  readonly testing = signal<boolean>(false);
+  readonly lastError = signal<string | null>(null);
   readonly serverEnabled = signal<boolean | null>(true);
   readonly preferences = signal<PushPreferences | null>(null);
   readonly stateReady = signal<boolean>(false);
@@ -326,12 +328,93 @@ export class PushNotificationService {
 
   private async getRegistration(): Promise<ServiceWorkerRegistration | null> {
     try {
-      const existing = await navigator.serviceWorker.getRegistration();
-      if (existing) return existing;
-      return await navigator.serviceWorker.register('/sw.js');
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register('/sw.js');
+      }
+      if (reg.active) return reg;
+
+      // Esperar a que el Service Worker termine de instalarse y quede activo antes de usar PushManager
+      const worker = reg.installing || reg.waiting;
+      if (worker) {
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(resolve, 6000);
+          const check = () => {
+            if (worker.state === 'activated' || worker.state === 'redundant' || reg?.active) {
+              clearTimeout(timeout);
+              worker.removeEventListener('statechange', check);
+              resolve();
+            }
+          };
+          worker.addEventListener('statechange', check);
+          check();
+        });
+      }
+
+      if (reg.active) return reg;
+
+      const readyReg = await Promise.race<ServiceWorkerRegistration | null>([
+        navigator.serviceWorker.ready,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+      return readyReg || reg;
     } catch {
       return null;
     }
+  }
+
+  private diagnosePushError(err: any): { title: string; detail: string } {
+    const status = err?.status;
+    const name = String(err?.name || '');
+    const msg = String(err?.error?.message || err?.message || err || '').toLowerCase();
+
+    if (status === 401 || status === 403) {
+      return {
+        title: 'Sesión requerida',
+        detail: 'Vuelve a iniciar sesión para vincular este dispositivo.',
+      };
+    }
+    if (status === 0 || status >= 500) {
+      return {
+        title: 'Servidor temporalmente no disponible',
+        detail: 'El servidor está iniciando o sin conexión. Espera unos segundos y reintenta.',
+      };
+    }
+    if (name === 'NotAllowedError' || msg.includes('denied') || msg.includes('permission')) {
+      return {
+        title: 'Permiso denegado',
+        detail: 'Habilita «Notificaciones» en el candado 🔒 junto a la dirección web.',
+      };
+    }
+    if (msg.includes('no active service worker')) {
+      return {
+        title: 'Servicio en preparación',
+        detail: 'Recarga la página una vez para activar el Service Worker e intenta de nuevo.',
+      };
+    }
+    if (
+      name === 'AbortError' ||
+      msg.includes('push service') ||
+      msg.includes('registration failed') ||
+      msg.includes('gcm') ||
+      msg.includes('fcm')
+    ) {
+      return {
+        title: 'Navegador bloqueando alertas push',
+        detail:
+          'Si usas Brave activa «Usar servicios de Google para mensajería push» en Configuración → Privacidad; tampoco funciona en ventanas de incógnito.',
+      };
+    }
+    if (msg.includes('atob') || msg.includes('applicationserverkey')) {
+      return {
+        title: 'Llave VAPID mal configurada',
+        detail: 'La llave pública del servidor tiene un formato inválido o espacios extra.',
+      };
+    }
+    return {
+      title: 'No se pudo activar',
+      detail: 'Revisa que no estés en modo incógnito, que el servidor esté encendido e intenta de nuevo.',
+    };
   }
 
   private urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
@@ -362,15 +445,16 @@ export class PushNotificationService {
   async enable(): Promise<boolean> {
     if (!this.supported() || this.busy()) return false;
     this.busy.set(true);
+    this.lastError.set(null);
     try {
       const result = await Notification.requestPermission();
       this.permission.set(result);
       if (result !== 'granted') {
         if (result === 'denied') {
-          this.toast.warning(
-            'Notificaciones bloqueadas en el navegador',
-            'Haz clic en el icono de ajustes/candado 🔒 junto a la dirección web arriba y permite «Notificaciones».',
-          );
+          const msg =
+            'Haz clic en el icono de ajustes/candado 🔒 junto a la dirección web arriba y permite «Notificaciones».';
+          this.lastError.set(msg);
+          this.toast.warning('Notificaciones bloqueadas en el navegador', msg);
         }
         return false;
       }
@@ -380,19 +464,22 @@ export class PushNotificationService {
           `${this.apiUrl}/public-key`,
         ),
       );
-      const publicKey = keyRes?.data?.publicKey;
+      const publicKey = keyRes?.data?.publicKey?.trim();
       this.serverEnabled.set(!!keyRes?.data?.enabled);
       if (!keyRes?.data?.enabled || !publicKey) {
-        this.toast.warning(
-          'Alertas no disponibles',
-          'El servidor aún no tiene activadas las notificaciones push.',
-        );
+        const msg =
+          'El servidor aún no tiene cargadas las llaves VAPID (reinicia el backend local o agrégalas en Render).';
+        this.lastError.set(msg);
+        this.toast.warning('Alertas no disponibles', msg);
         return false;
       }
 
       const reg = await this.getRegistration();
-      if (!reg) {
-        this.toast.error('No se pudo activar', 'El navegador no permitió registrar el servicio de alertas.');
+      if (!reg || !reg.active) {
+        const msg =
+          'El Service Worker aún se está instalando. Recarga la página e intenta de nuevo.';
+        this.lastError.set(msg);
+        this.toast.error('No se pudo activar', msg);
         return false;
       }
 
@@ -410,12 +497,15 @@ export class PushNotificationService {
       await this.sendSubscriptionToServer(sub);
       this.markConfirmedByUser(true);
       this.clearSavedDeclinePreference();
+      this.lastError.set(null);
       this.subscribed.set(true);
       void this.loadPreferences();
       this.toast.success('¡Alertas activadas!', 'Te avisaremos aunque cierres Huellitas.');
       return true;
-    } catch {
-      this.toast.error('No se pudo activar', 'Intenta de nuevo en unos segundos.');
+    } catch (err) {
+      const diagnosed = this.diagnosePushError(err);
+      this.lastError.set(diagnosed.detail);
+      this.toast.error(diagnosed.title, diagnosed.detail);
       return false;
     } finally {
       this.busy.set(false);
@@ -498,18 +588,28 @@ export class PushNotificationService {
   }
 
   async sendTest(): Promise<void> {
+    if (this.testing()) return;
+    this.testing.set(true);
     try {
       this.playNotificationSound();
       const res = await firstValueFrom(
         this.http.post<ApiResponse<{ sent: number }>>(`${this.apiUrl}/test`, {}),
       );
       if (!res?.data?.sent) {
-        this.toast.warning('Sin dispositivos', 'No se encontró ningún dispositivo activo para la prueba.');
+        this.toast.warning(
+          'Sin dispositivos activos',
+          'Re-vincula este dispositivo desactivando y volviendo a activar las alertas.',
+        );
       } else {
-        this.toast.info('Prueba enviada', 'Cierra o minimiza esta pestaña para ver la alerta del sistema.');
+        this.toast.info(
+          'Prueba enviada',
+          `Se envió a ${res.data.sent} dispositivo(s). Minimiza o cambia de pestaña para ver el aviso del sistema.`,
+        );
       }
     } catch {
       this.toast.error('No se pudo enviar la prueba', 'Intenta de nuevo.');
+    } finally {
+      this.testing.set(false);
     }
   }
 }

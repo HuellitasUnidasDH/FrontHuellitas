@@ -131,4 +131,10 @@ export class PetService {
       .post<ApiResponse<PublicationComment>>(`${this.PETS_URL}/${petId}/comments`, { content })
       .pipe(map((res) => res.data));
   }
+
+  deleteComment(petId: string, commentId: string): Observable<{ message: string }> {
+    return this.http
+      .delete<ApiResponse<{ message: string }>>(`${this.PETS_URL}/${petId}/comments/${commentId}`)
+      .pipe(map((res) => res.data));
+  }
 }

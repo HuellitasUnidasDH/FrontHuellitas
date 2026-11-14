@@ -72,11 +72,6 @@ interface NotificationTimeGroup {
                 >
                   Actividad y Notificaciones
                 </h1>
-                <span
-                  class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 shrink-0"
-                >
-                  En Vivo • {{ brand.city }}
-                </span>
               </div>
               <p class="text-[11px] sm:text-xs font-medium text-slate-600 dark:text-slate-300 mt-0.5 sm:mt-1 line-clamp-2 sm:line-clamp-none">
                 Comentarios en tus publicaciones, avistamientos en cascada, solicitudes de adopción y actividad de tu familia.

@@ -51,10 +51,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (fullNameField?.invalid && fullNameField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>El nombre completo debe tener al menos 3 letras.</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (fullNameField?.hasError('required')) {
+                  El nombre completo es obligatorio (mínimo 3 caracteres).
+                } @else {
+                  Te faltan {{ 3 - (fullNameField?.value || '').trim().length }} caracteres para el mínimo de 3.
+                }
+              </p>
             }
           </div>
 
@@ -85,10 +88,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (emailField?.invalid && emailField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (emailField?.hasError('required')) {
+                  El correo electrónico es obligatorio.
+                } @else {
+                  Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).
+                }
+              </p>
             }
           </div>
 
@@ -126,10 +132,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (phoneField?.invalid && phoneField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>El número debe tener exactamente 10 dígitos numéricos sin espacios ni guiones.</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (phoneLength() === 0) {
+                  El teléfono celular de 10 dígitos es obligatorio.
+                } @else {
+                  Faltan {{ 10 - phoneLength() }} dígitos para completar los 10 números requeridos.
+                }
+              </p>
             }
           </div>
 
@@ -250,6 +259,16 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
                 <span>Al menos un número (0-9) o símbolo especial</span>
               </div>
             </div>
+
+            @if (passwordField?.invalid && passwordField?.touched) {
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (passwordField?.hasError('required')) {
+                  La contraseña de acceso es obligatoria.
+                } @else {
+                  Completa los requisitos marcados arriba antes de continuar.
+                }
+              </p>
+            }
           </div>
 
           <!-- Aceptación Obligatoria del Aviso de Privacidad -->
@@ -281,17 +300,16 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               </label>
             </div>
             @if (acceptPrivacyField?.invalid && acceptPrivacyField?.touched) {
-              <div class="mt-2 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400 font-medium">
-                <span>⚠️</span>
-                <span>Debes aceptar el Aviso de Privacidad para poder crear tu cuenta.</span>
-              </div>
+              <p class="mt-2 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                Debes marcar la casilla del Aviso de Privacidad para poder crear tu cuenta.
+              </p>
             }
           </div>
 
           <!-- Botón de Registro -->
           <button
             type="submit"
-            [disabled]="registerForm.invalid || isLoading()"
+            [disabled]="isLoading()"
             class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
           >
             @if (isLoading()) {
@@ -476,7 +494,7 @@ export class RegisterComponent {
         next: () => {
           localStorage.setItem('vet_privacy_accepted', new Date().toISOString());
           this.isLoading.set(false);
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/']);
         },
         error: () => {
           this.isLoading.set(false);

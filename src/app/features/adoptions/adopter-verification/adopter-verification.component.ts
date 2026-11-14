@@ -57,12 +57,14 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center text-xs">
             <div
               class="p-3 rounded-2xl border transition-all flex sm:flex-col items-center justify-between sm:justify-center gap-2"
-              [ngClass]="currentLevel() >= 1 ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold' : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-800 text-slate-400'"
+              [ngClass]="hasLevel1() ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold' : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400 font-bold'"
             >
               <span class="text-lg">📱</span>
               <div>
                 <span class="block">Nivel 1: Teléfono</span>
-                <span class="text-[10px] uppercase font-extrabold">✓ Confirmado</span>
+                <span class="text-[10px] uppercase font-extrabold">
+                  {{ hasLevel1() ? '✓ Confirmado' : '⚠️ Falta teléfono (10 dígitos)' }}
+                </span>
               </div>
             </div>
 
@@ -180,9 +182,18 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 </p>
               </div>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-              ✓ Confirmado
-            </span>
+            @if (hasLevel1()) {
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
+                ✓ Confirmado
+              </span>
+            } @else {
+              <a
+                routerLink="/perfil"
+                class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:underline"
+              >
+                Registrar en Mi Perfil →
+              </a>
+            }
           </div>
         </section>
 
@@ -247,61 +258,119 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                ¿Quiénes habitan el hogar? (adultos, niños y edades) *
-              </label>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  ¿Quiénes habitan el hogar? (adultos, niños y edades) *
+                </label>
+                <span class="text-[11px] font-medium tabular-nums" [ngClass]="l2Len('peopleInHome') >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
+                  {{ l2Len('peopleInHome') }}/3 mín.
+                </span>
+              </div>
               <input
                 type="text"
                 [(ngModel)]="level2Form.peopleInHome"
+                (blur)="markL2Touched('peopleInHome')"
                 [disabled]="!!verification()?.isLevel2Completed"
                 placeholder="Ej: 2 adultos (30 y 32 años) y 1 niño de 7 años"
-                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white disabled:opacity-60"
+                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border text-slate-800 dark:text-white disabled:opacity-60 focus:outline-none transition-colors"
+                [ngClass]="l2ShouldShowError('peopleInHome') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
               />
+              @if (l2ShouldShowError('peopleInHome')) {
+                <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {{ l2MinMsg('peopleInHome', 'Indica cuántas personas viven en tu domicilio y sus edades aproximadas.') }}
+                </p>
+              }
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                Experiencia previa con animales de compañía *
-              </label>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  Experiencia previa con animales de compañía *
+                </label>
+                <span class="text-[11px] font-medium tabular-nums" [ngClass]="l2Len('previousExperience') >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
+                  {{ l2Len('previousExperience') }}/3 mín.
+                </span>
+              </div>
               <textarea
                 [(ngModel)]="level2Form.previousExperience"
+                (blur)="markL2Touched('previousExperience')"
                 [disabled]="!!verification()?.isLevel2Completed"
                 rows="2"
                 placeholder="He tenido perros mestizos antes, vivieron conmigo hasta su vejez..."
-                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white disabled:opacity-60"
+                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border text-slate-800 dark:text-white disabled:opacity-60 focus:outline-none transition-colors"
+                [ngClass]="l2ShouldShowError('previousExperience') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
               ></textarea>
+              @if (l2ShouldShowError('previousExperience')) {
+                <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {{ l2MinMsg('previousExperience', 'Describe brevemente tu experiencia previa o si será tu primera mascota.') }}
+                </p>
+              }
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                Plan en caso de mudanza, cambio de trabajo o viaje largo *
-              </label>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  Plan en caso de mudanza, cambio de trabajo o viaje largo *
+                </label>
+                <span class="text-[11px] font-medium tabular-nums" [ngClass]="l2Len('relocationPlan') >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
+                  {{ l2Len('relocationPlan') }}/3 mín.
+                </span>
+              </div>
               <input
                 type="text"
                 [(ngModel)]="level2Form.relocationPlan"
+                (blur)="markL2Touched('relocationPlan')"
                 [disabled]="!!verification()?.isLevel2Completed"
                 placeholder="La mascota se mudará conmigo a donde vaya o se queda con familia de confianza"
-                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white disabled:opacity-60"
+                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border text-slate-800 dark:text-white disabled:opacity-60 focus:outline-none transition-colors"
+                [ngClass]="l2ShouldShowError('relocationPlan') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
               />
+              @if (l2ShouldShowError('relocationPlan')) {
+                <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {{ l2MinMsg('relocationPlan', 'Explica quién cuidará o cómo trasladarás a la mascota ante cambios.') }}
+                </p>
+              }
             </div>
 
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                ¿Quién solventará gastos veterinarios, vacunas y alimento? *
-              </label>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase">
+                  ¿Quién solventará gastos veterinarios, vacunas y alimento? *
+                </label>
+                <span class="text-[11px] font-medium tabular-nums" [ngClass]="l2Len('financialResponsible') >= 3 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
+                  {{ l2Len('financialResponsible') }}/3 mín.
+                </span>
+              </div>
               <input
                 type="text"
                 [(ngModel)]="level2Form.financialResponsible"
+                (blur)="markL2Touched('financialResponsible')"
                 [disabled]="!!verification()?.isLevel2Completed"
                 placeholder="Ej: Yo mismo(a) mediante mis ingresos fijos"
-                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white disabled:opacity-60"
+                class="w-full px-3 py-2.5 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border text-slate-800 dark:text-white disabled:opacity-60 focus:outline-none transition-colors"
+                [ngClass]="l2ShouldShowError('financialResponsible') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-300 dark:border-slate-700 focus:border-emerald-500'"
               />
+              @if (l2ShouldShowError('financialResponsible')) {
+                <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {{ l2MinMsg('financialResponsible', 'Indica quién cubrirá alimentación y consultas médicas.') }}
+                </p>
+              }
             </div>
 
             @if (!verification()?.isLevel2Completed) {
+              @if (level2Attempted() && l2MissingItems().length > 0) {
+                <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-700 dark:text-rose-300 space-y-1">
+                  <p class="font-bold">Completa los siguientes campos para enviar Nivel 2:</p>
+                  <ul class="list-disc pl-4 space-y-0.5">
+                    @for (item of l2MissingItems(); track item) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                </div>
+              }
               <button
                 (click)="submitLevel2()"
-                [disabled]="isSavingLevel2() || !isLevel2FormValid()"
+                [disabled]="isSavingLevel2()"
                 class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-md cursor-pointer disabled:opacity-50 transition-all"
               >
                 @if (isSavingLevel2()) {
@@ -391,13 +460,18 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </span>
             </label>
 
+            @if (level3Attempted() && !level3Form.signedCommitmentLetter && verification()?.isLevel2Completed) {
+              <p class="text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                Debes marcar la casilla de aceptación de la Carta Compromiso para enviar tu solicitud de Nivel 3.
+              </p>
+            }
+
             @if (!verification()?.isLevel3Completed) {
               <button
                 (click)="submitLevel3()"
                 [disabled]="
                   isSavingLevel3() ||
                   !verification()?.isLevel2Completed ||
-                  !level3Form.signedCommitmentLetter ||
                   verification()?.level3Status === 'PENDIENTE'
                 "
                 class="px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
@@ -428,6 +502,9 @@ export class AdopterVerificationComponent implements OnInit {
   isLoading = signal<boolean>(true);
   isSavingLevel2 = signal<boolean>(false);
   isSavingLevel3 = signal<boolean>(false);
+  level2Touched = signal<Record<string, boolean>>({});
+  level2Attempted = signal<boolean>(false);
+  level3Attempted = signal<boolean>(false);
 
   isRescuerOrAdmin = computed(() => {
     const role = this.authService.currentUser()?.role;
@@ -448,20 +525,54 @@ export class AdopterVerificationComponent implements OnInit {
     signedCommitmentLetter: false,
   };
 
+  hasLevel1 = computed(() => {
+    const u = this.authService.currentUser();
+    if (!u) return false;
+    if (this.isRescuerOrAdmin()) return true;
+    if ((u.verificationLevel ?? 0) >= 1 || u.isPhoneVerified) return true;
+    return (u.phone || '').replace(/\D/g, '').length >= 10;
+  });
+
   currentLevel(): number {
     const v = this.verification();
     if (v?.isLevel3Completed) return 3;
     if (v?.isLevel2Completed) return 2;
-    return 1;
+    return this.hasLevel1() ? 1 : 0;
+  }
+
+  markL2Touched(field: string): void {
+    this.level2Touched.update((prev) => ({ ...prev, [field]: true }));
+  }
+
+  l2Len(field: 'peopleInHome' | 'previousExperience' | 'relocationPlan' | 'financialResponsible'): number {
+    return (this.level2Form[field] || '').trim().length;
+  }
+
+  l2ShouldShowError(field: 'peopleInHome' | 'previousExperience' | 'relocationPlan' | 'financialResponsible'): boolean {
+    return (this.level2Touched()[field] || this.level2Attempted()) && this.l2Len(field) < 3;
+  }
+
+  l2MinMsg(
+    field: 'peopleInHome' | 'previousExperience' | 'relocationPlan' | 'financialResponsible',
+    emptyMsg: string,
+  ): string {
+    const len = this.l2Len(field);
+    if (len === 0) return `${emptyMsg} (mínimo 3 caracteres).`;
+    const missing = 3 - len;
+    return `Respuesta muy corta (${len}/3): agrega ${missing} ${missing === 1 ? 'carácter más' : 'caracteres más'}.`;
+  }
+
+  l2MissingItems(): string[] {
+    const items: string[] = [];
+    if (this.l2Len('peopleInHome') < 3) items.push(`Habitantes del hogar (${this.l2Len('peopleInHome')}/3 caracteres mín.)`);
+    if (this.l2Len('previousExperience') < 3) items.push(`Experiencia previa (${this.l2Len('previousExperience')}/3 caracteres mín.)`);
+    if (this.l2Len('relocationPlan') < 3) items.push(`Plan ante mudanza o viaje (${this.l2Len('relocationPlan')}/3 caracteres mín.)`);
+    if (this.l2Len('financialResponsible') < 3) items.push(`Responsable económico (${this.l2Len('financialResponsible')}/3 caracteres mín.)`);
+    return items;
   }
 
   isLevel2FormValid(): boolean {
-    return (
-      this.level2Form.peopleInHome.trim().length >= 3 &&
-      this.level2Form.previousExperience.trim().length >= 3 &&
-      this.level2Form.relocationPlan.trim().length >= 3 &&
-      this.level2Form.financialResponsible.trim().length >= 3
-    );
+    return this.l2MissingItems().length === 0;
   }
 
   ngOnInit(): void {
@@ -493,8 +604,8 @@ export class AdopterVerificationComponent implements OnInit {
   }
 
   submitLevel2(): void {
+    this.level2Attempted.set(true);
     if (!this.isLevel2FormValid()) {
-      this.notify.warning('Por favor responde todos los campos del cuestionario de Nivel 2.');
       return;
     }
     this.isSavingLevel2.set(true);
@@ -515,8 +626,12 @@ export class AdopterVerificationComponent implements OnInit {
   }
 
   submitLevel3(): void {
+    this.level3Attempted.set(true);
     if (!this.verification()?.isLevel2Completed) {
       this.notify.warning('Un Rescatista o Administrador debe aprobar primero tu Nivel 2.');
+      return;
+    }
+    if (!this.level3Form.signedCommitmentLetter) {
       return;
     }
     this.isSavingLevel3.set(true);

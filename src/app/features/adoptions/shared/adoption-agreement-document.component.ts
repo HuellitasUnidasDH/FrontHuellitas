@@ -166,34 +166,54 @@ import { NotificationService } from '../../../core/services/notification.service
                 <input
                   type="text"
                   [(ngModel)]="form.adopterFullName"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  (blur)="markTouched('adopterFullName')"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterFullName') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterFullName')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa tu nombre completo tal como aparece en tu identificación.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Teléfono / WhatsApp de contacto *</label>
                 <input
                   type="tel"
                   [(ngModel)]="form.adopterPhone"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  (blur)="markTouched('adopterPhone')"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterPhone') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterPhone')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa un teléfono de contacto válido.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Redes Sociales (Facebook / Instagram) *</label>
                 <input
                   type="text"
                   [(ngModel)]="form.adopterSocialMedia"
+                  (blur)="markTouched('adopterSocialMedia')"
                   placeholder="https://facebook.com/tu.perfil o @usuario"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterSocialMedia') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterSocialMedia')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Indica tu perfil o usuario de red social.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Domicilio completo donde vivirá la mascota *</label>
                 <input
                   type="text"
                   [(ngModel)]="form.adopterAddress"
+                  (blur)="markTouched('adopterAddress')"
                   placeholder="Calle, número, colonia y referencia"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterAddress') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterAddress')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa calle, colonia y referencia de tu domicilio.</p>
+                }
               </div>
             </div>
 
@@ -236,7 +256,10 @@ import { NotificationService } from '../../../core/services/notification.service
 
             <!-- Checkboxes de conformidad -->
             <div class="space-y-2.5 text-xs">
-              <label class="flex items-start gap-2.5 cursor-pointer">
+              <label
+                class="flex items-start gap-2.5 cursor-pointer p-2.5 rounded-xl border transition-colors"
+                [ngClass]="attemptedSubmit() && !form.agreementAccepted ? 'bg-rose-500/8 border-rose-500/40' : 'border-transparent'"
+              >
                 <input
                   type="checkbox"
                   [(ngModel)]="form.agreementAccepted"
@@ -248,7 +271,10 @@ import { NotificationService } from '../../../core/services/notification.service
               </label>
 
               @if (!request().pet?.isSterilized) {
-                <label class="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <label
+                  class="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl border transition-colors"
+                  [ngClass]="attemptedSubmit() && !form.sterilizationCommitmentAccepted ? 'bg-rose-500/10 border-rose-500/50' : 'bg-amber-500/10 border-amber-500/30'"
+                >
                   <input
                     type="checkbox"
                     [(ngModel)]="form.sterilizationCommitmentAccepted"
@@ -265,18 +291,21 @@ import { NotificationService } from '../../../core/services/notification.service
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-black text-slate-800 dark:text-white">
-                  ✍️ Firma Digital del Adoptante * (Dibuja tu firma con dedo o ratón)
+                  Firma Digital del Adoptante * (Dibuja tu firma con dedo o ratón)
                 </label>
                 <button
                   type="button"
                   (click)="clearSignature()"
                   class="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] cursor-pointer hover:bg-slate-300"
                 >
-                  🧹 Limpiar firma
+                  Limpiar firma
                 </button>
               </div>
 
-              <div class="rounded-2xl border-2 border-dashed border-emerald-500/50 bg-white overflow-hidden relative">
+              <div
+                class="rounded-2xl border-2 border-dashed bg-white overflow-hidden relative transition-colors"
+                [ngClass]="attemptedSubmit() && !hasDrawnSignature() ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-500/50'"
+              >
                 <canvas
                   #signatureCanvas
                   width="640"
@@ -294,7 +323,23 @@ import { NotificationService } from '../../../core/services/notification.service
                   </span>
                 }
               </div>
+              @if (attemptedSubmit() && !hasDrawnSignature()) {
+                <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  Dibuja tu firma dentro del recuadro para validar el convenio.
+                </p>
+              }
             </div>
+
+            @if (attemptedSubmit() && agreementMissingItems().length > 0) {
+              <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-700 dark:text-rose-300 space-y-1">
+                <p class="font-bold">Revisa lo siguiente antes de firmar el convenio:</p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                  @for (item of agreementMissingItems(); track item) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              </div>
+            }
 
             <div class="flex justify-end pt-2">
               <button
@@ -405,6 +450,8 @@ export class AdoptionAgreementDocumentComponent {
 
   isUploadingProof = signal(false);
   hasDrawnSignature = signal(false);
+  attemptedSubmit = signal(false);
+  touchedFields = signal<Record<string, boolean>>({});
   private drawing = false;
 
   form = {
@@ -511,32 +558,35 @@ export class AdoptionAgreementDocumentComponent {
     });
   }
 
-  submitAgreement(): void {
-    if (
-      !this.form.adopterFullName.trim() ||
-      !this.form.adopterPhone.trim() ||
-      !this.form.adopterSocialMedia.trim() ||
-      !this.form.adopterAddress.trim()
-    ) {
-      this.notify.warning('Campos incompletos', 'Completa nombre, teléfono, redes sociales y domicilio.');
-      return;
-    }
+  markTouched(field: string): void {
+    this.touchedFields.update((prev) => ({ ...prev, [field]: true }));
+  }
 
-    if (!this.form.agreementAccepted) {
-      this.notify.warning('Confirmación requerida', 'Debes aceptar las cláusulas del Convenio de Adopción.');
-      return;
-    }
+  agreementFieldInvalid(
+    field: 'adopterFullName' | 'adopterPhone' | 'adopterSocialMedia' | 'adopterAddress',
+  ): boolean {
+    return (this.touchedFields()[field] || this.attemptedSubmit()) && !this.form[field].trim();
+  }
 
+  agreementMissingItems(): string[] {
+    const items: string[] = [];
+    if (!this.form.adopterFullName.trim()) items.push('Nombre completo conforme a identificación');
+    if (!this.form.adopterPhone.trim()) items.push('Teléfono o WhatsApp de contacto');
+    if (!this.form.adopterSocialMedia.trim()) items.push('Perfil o usuario de red social');
+    if (!this.form.adopterAddress.trim()) items.push('Domicilio completo donde vivirá la mascota');
+    if (!this.form.agreementAccepted) items.push('Casilla de aceptación del Convenio y seguimiento');
     if (!this.request().pet?.isSterilized && !this.form.sterilizationCommitmentAccepted) {
-      this.notify.warning(
-        'Compromiso de esterilización requerido',
-        'Por política del protocolo debes confirmar la esterilización a los 5-6 meses.',
-      );
-      return;
+      items.push('Casilla de compromiso obligatorio de esterilización');
     }
-
     if (!this.hasDrawnSignature() || !this.signatureCanvas?.nativeElement) {
-      this.notify.warning('Firma requerida', 'Por favor dibuja tu firma digital en el recuadro.');
+      items.push('Firma digital dibujada dentro del recuadro');
+    }
+    return items;
+  }
+
+  submitAgreement(): void {
+    this.attemptedSubmit.set(true);
+    if (this.agreementMissingItems().length > 0 || !this.signatureCanvas?.nativeElement) {
       return;
     }
 

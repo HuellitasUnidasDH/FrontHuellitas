@@ -48,10 +48,14 @@ interface PetRequestGroup {
             </div>
             <div>
               <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Panel del Rescatista y Evaluación
+                {{ isRescuerOrAdmin() ? 'Panel del Rescatista y Evaluación' : 'Gestión de Mis Adopciones' }}
               </h1>
               <p class="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
-                Protocolo oficial de 4 pasos, niveles de adoptantes y seguimientos agrupados por mascota (2 semanas, 1 mes, medio año y 1 año).
+                {{
+                  isRescuerOrAdmin()
+                    ? 'Protocolo oficial de 4 pasos, niveles de adoptantes y seguimientos agrupados por mascota (2 semanas, 1 mes, medio año y 1 año).'
+                    : 'Evalúa a tus candidatos con el protocolo oficial de 4 pasos, libera convenios y lleva el seguimiento de las mascotas que tú publicaste.'
+                }}
               </p>
             </div>
           </div>
@@ -87,18 +91,20 @@ interface PetRequestGroup {
             📥 Solicitudes por Mascota ({{ requests().length }})
           </button>
 
-          <button
-            (click)="activeTab.set('VERIFICATIONS')"
-            class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
-            [ngClass]="activeTab() === 'VERIFICATIONS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
-          >
-            <span>🛡️ Aprobar Niveles 2 y 3</span>
-            @if (pendingVerificationsCount() > 0) {
-              <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
-                {{ pendingVerificationsCount() }}
-              </span>
-            }
-          </button>
+          @if (isRescuerOrAdmin()) {
+            <button
+              (click)="activeTab.set('VERIFICATIONS')"
+              class="px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              [ngClass]="activeTab() === 'VERIFICATIONS' ? 'bg-emerald-500 text-slate-950 shadow-md font-black' : 'liquid-glass text-slate-600 dark:text-slate-300'"
+            >
+              <span>🛡️ Aprobar Niveles 2 y 3</span>
+              @if (pendingVerificationsCount() > 0) {
+                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                  {{ pendingVerificationsCount() }}
+                </span>
+              }
+            </button>
+          }
 
           <button
             (click)="activeTab.set('FOLLOWUPS')"
@@ -675,6 +681,11 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   uploadingFollowupId = signal<string | null>(null);
   lastUpdated = signal<Date>(new Date());
 
+  isRescuerOrAdmin = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === UserRole.ADMIN || role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE;
+  });
+
   pendingVerificationsCount = computed(() => {
     return this.verifications().filter(
       (v) => v.level2Status === 'PENDIENTE' || v.level3Status === 'PENDIENTE',
@@ -737,15 +748,8 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
-    const role = this.authService.currentUser()?.role;
-    if (role !== UserRole.RESCATISTA_VERIFICADO && role !== UserRole.ALBERGUE && role !== UserRole.ADMIN) {
-      this.notify.error('Acceso denegado', 'Esta vista es exclusiva para rescatistas verificados y administradores.');
-      this.router.navigate(['/dashboard']);
-      return;
-    }
-
     const tabParam = this.route.snapshot.queryParamMap.get('tab');
-    if (tabParam === 'verifications') {
+    if (tabParam === 'verifications' && this.isRescuerOrAdmin()) {
       this.activeTab.set('VERIFICATIONS');
     } else if (tabParam === 'followups') {
       this.activeTab.set('FOLLOWUPS');
@@ -787,10 +791,12 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
         this.lastUpdated.set(new Date());
       },
     });
-    this.adoptionService.getVerificationsForReview().subscribe({
-      next: (vers) => this.verifications.set(vers || []),
-      error: () => {},
-    });
+    if (this.isRescuerOrAdmin()) {
+      this.adoptionService.getVerificationsForReview().subscribe({
+        next: (vers) => this.verifications.set(vers || []),
+        error: () => {},
+      });
+    }
   }
 
   refreshData(): void {
@@ -798,10 +804,12 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
-        this.adoptionService.getVerificationsForReview().subscribe({
-          next: (vers) => this.verifications.set(vers || []),
-          error: () => {},
-        });
+        if (this.isRescuerOrAdmin()) {
+          this.adoptionService.getVerificationsForReview().subscribe({
+            next: (vers) => this.verifications.set(vers || []),
+            error: () => {},
+          });
+        }
         this.adoptionService.getFollowups().subscribe({
           next: (fols) => {
             this.followups.set(fols || []);
@@ -821,10 +829,12 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
     this.adoptionService.getPublisherInbox().subscribe({
       next: (reqs) => {
         this.requests.set(reqs || []);
-        this.adoptionService.getVerificationsForReview().subscribe({
-          next: (vers) => this.verifications.set(vers || []),
-          error: () => {},
-        });
+        if (this.isRescuerOrAdmin()) {
+          this.adoptionService.getVerificationsForReview().subscribe({
+            next: (vers) => this.verifications.set(vers || []),
+            error: () => {},
+          });
+        }
         this.adoptionService.getFollowups().subscribe({
           next: (fols) => {
             this.followups.set(fols || []);

@@ -46,6 +46,19 @@ import {
                   >
                     Activadas ✓
                   </span>
+                  @if (push.preferences(); as prefs) {
+                    <span
+                      class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    >
+                      📱 {{ prefs.devices || 1 }} {{ (prefs.devices || 1) === 1 ? 'dispositivo' : 'dispositivos' }}
+                    </span>
+                  }
+                } @else if (push.serverEnabled() === false) {
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                  >
+                    Pendiente en servidor
+                  </span>
                 }
               </div>
 
@@ -81,7 +94,7 @@ import {
             </div>
           </div>
 
-          <div class="flex items-center gap-2 self-start sm:self-center flex-shrink-0">
+          <div class="flex flex-wrap items-center gap-2 self-start sm:self-center flex-shrink-0">
             @if (push.status() === 'off') {
               <button
                 type="button"
@@ -90,6 +103,14 @@ import {
                 class="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 text-xs font-black shadow-md shadow-emerald-500/25 cursor-pointer transition-all active:scale-95"
               >
                 {{ push.busy() ? 'Activando…' : '🔔 Activar alertas' }}
+              </button>
+            } @else if (push.status() === 'blocked') {
+              <button
+                type="button"
+                (click)="push.refreshState()"
+                class="px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold cursor-pointer transition-colors"
+              >
+                🔄 Ya activé el permiso
               </button>
             } @else if (push.status() === 'on') {
               <button
@@ -104,26 +125,45 @@ import {
           </div>
         </div>
 
-        @if (push.status() === 'on' && push.preferences(); as prefs) {
+        @if (push.lastError(); as errMsg) {
           <div
-            class="relative z-10 mt-3.5 pt-3.5 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap gap-2"
+            class="relative z-10 mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-[11px] sm:text-xs text-rose-700 dark:text-rose-300 flex items-start justify-between gap-2"
           >
-            @for (opt of options; track opt.key) {
-              <button
-                type="button"
-                (click)="toggle(opt.key, prefs[opt.key])"
-                class="px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer"
-                [ngClass]="
-                  prefs[opt.key]
-                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
-                    : 'bg-slate-100 dark:bg-slate-800/70 text-slate-500 border-slate-200 dark:border-slate-700 line-through opacity-70'
-                "
-                [attr.aria-pressed]="prefs[opt.key]"
-              >
-                <span>{{ opt.icon }}</span>
-                <span>{{ opt.label }}</span>
-              </button>
-            }
+            <span>⚠️ {{ errMsg }}</span>
+            <button
+              type="button"
+              (click)="push.lastError.set(null)"
+              class="text-rose-500 hover:text-rose-700 dark:hover:text-rose-200 font-bold cursor-pointer shrink-0"
+              title="Cerrar aviso"
+            >
+              ✕
+            </button>
+          </div>
+        }
+
+        @if (push.status() === 'on' && push.preferences(); as prefs) {
+          <div class="relative z-10 mt-3.5 pt-3.5 border-t border-slate-200/60 dark:border-slate-800/60 space-y-2">
+            <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Tipos de alerta que quieres recibir:
+            </p>
+            <div class="flex flex-wrap gap-2">
+              @for (opt of options; track opt.key) {
+                <button
+                  type="button"
+                  (click)="toggle(opt.key, prefs[opt.key])"
+                  class="px-3 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 border transition-all cursor-pointer"
+                  [ngClass]="
+                    prefs[opt.key]
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40'
+                      : 'bg-slate-100 dark:bg-slate-800/70 text-slate-500 border-slate-200 dark:border-slate-700 line-through opacity-70'
+                  "
+                  [attr.aria-pressed]="prefs[opt.key]"
+                >
+                  <span>{{ opt.icon }}</span>
+                  <span>{{ opt.label }}</span>
+                </button>
+              }
+            </div>
           </div>
         }
       </section>

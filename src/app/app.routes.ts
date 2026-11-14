@@ -38,6 +38,11 @@ export const routes: Routes = [
       import('./features/allies/allies-directory.component').then((m) => m.AlliesDirectoryComponent),
   },
   {
+    path: 'nosotros',
+    loadComponent: () =>
+      import('./features/about/about.component').then((m) => m.AboutComponent),
+  },
+  {
     path: 'notificaciones',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -71,7 +76,7 @@ export const routes: Routes = [
   },
   {
     path: 'panel-rescatista',
-    canActivate: [authGuard, roleGuard([UserRole.RESCATISTA_VERIFICADO, UserRole.ALBERGUE, UserRole.ADMIN])],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/adoptions/rescuer-dashboard/rescuer-dashboard.component').then(
         (m) => m.RescuerDashboardComponent,
@@ -79,7 +84,7 @@ export const routes: Routes = [
   },
   {
     path: 'panel-rescatista/solicitud/:id',
-    canActivate: [authGuard, roleGuard([UserRole.RESCATISTA_VERIFICADO, UserRole.ALBERGUE, UserRole.ADMIN])],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/adoptions/adoption-evaluation-detail/adoption-evaluation-detail.component').then(
         (m) => m.AdoptionEvaluationDetailComponent,

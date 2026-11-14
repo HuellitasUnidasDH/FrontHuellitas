@@ -343,12 +343,20 @@ import {
         <!-- ========================================================== -->
         @if (activeTab() === 'PUBLISHED') {
           <section class="space-y-4">
-            <div class="p-4 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-xs text-sky-900 dark:text-sky-200 flex items-start gap-3">
-              <span class="text-xl flex-shrink-0">🛡️</span>
-              <div>
-                <strong class="block font-black">Supervisión Oficial por Rescatistas Verificados (Opción 2)</strong>
-                <span>Para garantizar adopciones responsables y evitar riesgos legales, los procesos formales son evaluados y aprobados únicamente por rescatistas o albergues verificados. Desde aquí puedes monitorear el progreso en tiempo real de tus publicaciones activas.</span>
+            <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-950 dark:text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-start gap-3">
+                <span class="text-xl flex-shrink-0">📋</span>
+                <div>
+                  <strong class="block font-black">Gestiona tus Adopciones Publicadas</strong>
+                  <span>Desde el Centro de Adopciones puedes revisar postulantes, hacer entrevistas, liberar el convenio y dar seguimiento a tus mascotas.</span>
+                </div>
               </div>
+              <a
+                routerLink="/panel-rescatista"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs shadow-sm whitespace-nowrap text-center hover:brightness-105 transition-all"
+              >
+                Gestionar Solicitudes →
+              </a>
             </div>
 
             @if (publishedProgress().length === 0) {

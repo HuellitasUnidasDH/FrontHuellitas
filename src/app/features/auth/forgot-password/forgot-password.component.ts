@@ -90,7 +90,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </div>
               @if (emailField?.invalid && emailField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
-                  Ingresa un correo electrónico con formato válido
+                  @if (emailField?.hasError('required')) {
+                    Ingresa el correo electrónico con el que te registraste.
+                  } @else {
+                    Ingresa un correo electrónico con formato válido (ejemplo&#64;dominio.com).
+                  }
                 </p>
               }
             </div>
@@ -98,7 +102,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             <!-- Botón de Envío -->
             <button
               type="submit"
-              [disabled]="forgotForm.invalid || isLoading()"
+              [disabled]="isLoading()"
               class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
             >
               @if (isLoading()) {
