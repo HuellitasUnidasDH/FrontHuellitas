@@ -1,25 +1,23 @@
 <div
-  class="bg-[#f6faf8] dark:bg-[#080d17] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-300"
+  class="bg-[#f6faf8] dark:bg-[#080d17] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 isolate relative overflow-x-hidden transition-colors duration-300"
   [class.min-h-screen]="!isMessagesRoute()"
   [class.h-\[100dvh\]]="isMessagesRoute()"
   [class.overflow-hidden]="isMessagesRoute()"
 >
   
   <!-- Subtle Atmospheric Emerald & Teal Light (Restrained Editorial Backdrop) -->
-  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-45 dark:opacity-30">
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 opacity-45 dark:opacity-30">
     <div class="absolute -top-40 -left-32 w-[30rem] h-[30rem] rounded-full bg-gradient-to-tr from-emerald-500/20 via-teal-400/12 to-transparent blur-3xl"></div>
     <div class="absolute bottom-0 right-0 w-[28rem] h-[28rem] rounded-full bg-gradient-to-tl from-teal-500/15 via-emerald-500/10 to-transparent blur-3xl"></div>
   </div>
 
   <!-- Floating Dynamic Island Navbar -->
-  <div class="relative z-40">
-    <app-navbar />
-  </div>
+  <app-navbar />
 
-  <!-- Main Content Routed with breathing space below floating navbar and above mobile dock -->
+  <!-- Main Content Routed without stacking trap so fixed modals cleanly sit over navbar & footer -->
   <main
-    class="flex-1 relative z-10 pt-20 sm:pt-24"
-    [class.pb-28]="!isMessagesRoute()"
+    class="flex-1 pt-20 sm:pt-24"
+    [class.pb-6]="!isMessagesRoute()"
     [class.md:pb-10]="!isMessagesRoute()"
     [class.pb-20]="isMessagesRoute()"
     [class.md:pb-3]="isMessagesRoute()"
@@ -29,9 +27,9 @@
     <router-outlet />
   </main>
 
-  <!-- Footer (oculto en vista de chat a pantalla fija para evitar doble scroll de fondo) -->
+  <!-- Footer (oculto en vista de chat a pantalla fija y cuando hay modales activos) -->
   @if (!isMessagesRoute()) {
-    <footer class="relative z-10 pt-6 pb-28 md:py-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#090e1a]/85 backdrop-blur-xl text-xs text-slate-500 dark:text-slate-400 transition-colors">
+    <footer class="app-site-footer relative z-0 pt-6 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] md:py-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#090e1a]/85 backdrop-blur-xl text-xs text-slate-500 dark:text-slate-400 transition-colors">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="text-center md:text-left space-y-1">
           <p class="font-semibold text-slate-800 dark:text-slate-200 inline-flex items-center gap-2">

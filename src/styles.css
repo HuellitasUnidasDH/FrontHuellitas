@@ -154,7 +154,7 @@ body.mobile-drawer-open {
   overscroll-behavior: none !important;
 }
 
-/* Desvanecimiento y ocultamiento dinámico de las barras de navegación y banner PWA al abrir cualquier modal */
+/* Desvanecimiento y ocultamiento dinámico de las barras de navegación, footer y banner PWA al abrir cualquier modal */
 body.privacy-modal-active app-navbar header,
 body.privacy-modal-active app-navbar nav,
 body.modal-open app-navbar header,
@@ -163,4 +163,11 @@ body.modal-open app-pwa-install,
 body.privacy-modal-active app-pwa-install,
 body.mobile-drawer-open app-pwa-install {
   display: none !important;
+}
+
+body.modal-open .app-site-footer,
+body.privacy-modal-active .app-site-footer,
+body.mobile-drawer-open .app-site-footer {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }

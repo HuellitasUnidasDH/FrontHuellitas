@@ -102,13 +102,45 @@ export class AuthService {
   public needsPrivacyAcceptance = computed(() => {
     const user = this.currentUserSignal();
     if (!user) return false;
-    const activeVersion = this.privacyPolicySignal().version || AuthService.CURRENT_PRIVACY_VERSION;
-    return !user.acceptedPrivacyVersion || user.acceptedPrivacyVersion === 'OUTDATED' || user.acceptedPrivacyVersion !== activeVersion;
+    const activeVersion = (this.privacyPolicySignal().version || AuthService.CURRENT_PRIVACY_VERSION).trim();
+    const userVersion = (user.acceptedPrivacyVersion || '').trim();
+    return !userVersion || userVersion === 'OUTDATED' || userVersion !== activeVersion;
   });
 
   constructor() {
     this.validateSessionOnStartup();
     this.refreshPrivacyPolicy();
+  }
+
+  public syncPrivacyStatusFromServer(): void {
+    const current = this.currentUserSignal();
+    const accessToken = this.getAccessToken();
+    if (!current || !accessToken || this.isTokenExpired(accessToken, 10)) return;
+
+    this.http.get<ApiResponse<User>>(`${environment.apiUrl}/users/me`).subscribe({
+      next: (res) => {
+        const fresh = res?.data;
+        const latest = this.currentUserSignal();
+        if (!fresh || !latest || fresh.id !== latest.id) return;
+        const nextVersion = fresh.acceptedPrivacyVersion ?? latest.acceptedPrivacyVersion;
+        const nextAcceptedAt = fresh.privacyAcceptedAt ?? latest.privacyAcceptedAt;
+        if (
+          nextVersion !== latest.acceptedPrivacyVersion ||
+          nextAcceptedAt !== latest.privacyAcceptedAt
+        ) {
+          const updatedUser: User = {
+            ...latest,
+            acceptedPrivacyVersion: nextVersion,
+            privacyAcceptedAt: nextAcceptedAt,
+          };
+          this.storage.setItem('user', JSON.stringify(updatedUser));
+          this.currentUserSignal.set(updatedUser);
+        }
+      },
+      error: () => {
+        // Silently ignore transient network issues during background sync
+      },
+    });
   }
 
   public refreshPrivacyPolicy(): void {
@@ -186,6 +218,7 @@ export class AuthService {
         // Renovar silenciosamente al arrancar la app.
         // Solo limpiar sesión si el servidor rechaza el token (401/403), nunca por microcorte de red en el celular.
         this.refreshToken().subscribe({
+          next: () => this.syncPrivacyStatusFromServer(),
           error: (err) => {
             if (err?.status === 401 || err?.status === 403) {
               this.clearSessionSilent();
@@ -196,6 +229,8 @@ export class AuthService {
         // El token ya caducó y no hay refresh token válido -> limpiar estado inmediatamente
         this.clearSessionSilent();
       }
+    } else if (typeof queueMicrotask === 'function') {
+      queueMicrotask(() => this.syncPrivacyStatusFromServer());
     }
   }
 

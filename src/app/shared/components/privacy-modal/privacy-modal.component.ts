@@ -10,111 +10,148 @@ import { ScrollLockService } from '../../../core/services/scroll-lock.service';
   imports: [CommonModule, FormsModule],
   template: `
     @if (isOpen) {
-      <!-- Super-layer overlay (z-[999]) with full backdrop blur and dimming to completely cover everything including floating navbar -->
-      <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-y-auto overscroll-contain transition-all duration-300 animate-fade-in">
+      <div
+        class="fixed inset-0 z-[999] flex items-center justify-center p-2.5 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto overscroll-contain transition-all duration-200 animate-fade-in"
+        (click)="!isMandatory ? onClose() : null"
+      >
         <div
-          class="w-full h-full max-h-[92dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-2xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl flex flex-col overflow-hidden transition-all my-auto"
+          (click)="$event.stopPropagation()"
+          class="w-full max-h-[92dvh] sm:max-h-[88dvh] sm:max-w-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl flex flex-col overflow-hidden my-auto"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between pb-4 border-b border-slate-200/60 dark:border-slate-800/80">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 flex items-center justify-center text-xl text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                📜
+          <div class="flex items-start justify-between gap-3 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+            <div class="flex items-center gap-3 min-w-0">
+              <div
+                class="w-10 h-10 rounded-xl bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 flex items-center justify-center flex-shrink-0"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
+                  />
+                </svg>
               </div>
-              <div>
-                <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+              <div class="min-w-0">
+                <h3 class="text-sm sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">
                   {{ authService.privacyPolicy().title }}
                 </h3>
-                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                  Versión: {{ authService.privacyPolicy().version }} · Cumplimiento LFPDPPP & GDPR
-                </span>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                  Versión {{ authService.privacyPolicy().version }} · Cumplimiento LFPDPPP y GDPR
+                </p>
               </div>
             </div>
 
-            <!-- Solo mostrar botón de cerrar si NO es de aceptación obligatoria -->
             @if (!isMandatory) {
               <button
                 type="button"
                 (click)="onClose()"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                class="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex-shrink-0"
                 title="Cerrar ventana"
+                aria-label="Cerrar aviso de privacidad"
               >
-                ✕
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
               </button>
             }
           </div>
 
-          <!-- Alerta de aceptación mandatoria si aplica -->
+          <!-- Status / Mandatory Banner -->
           @if (isMandatory) {
-            <div class="mt-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
-              <span class="text-base">⚠️</span>
+            <div class="mt-3 p-3 rounded-xl bg-amber-500/12 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
+              <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+                />
+              </svg>
               <span>
-                <strong>Actualización de Términos Requerida ({{ authService.privacyPolicy().version }}):</strong> Hemos actualizado nuestro Aviso de Privacidad. Debes leer y aceptar los términos para continuar utilizando la aplicación.
+                <strong>Actualización requerida ({{ authService.privacyPolicy().version }}):</strong> Lee y acepta los términos vigentes para continuar usando tu cuenta.
+              </span>
+            </div>
+          } @else if (authService.isAuthenticated()) {
+            <div class="mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs flex items-center gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span>
+                Ya aceptaste la versión vigente (<strong>{{ authService.privacyPolicy().version }}</strong>).
+                @if (authService.currentUser()?.privacyAcceptedAt; as acceptedDate) {
+                  <span class="text-emerald-700/80 dark:text-emerald-300/80">
+                    · Registrado el {{ acceptedDate | date: 'mediumDate' }}
+                  </span>
+                }
               </span>
             </div>
           }
 
           <!-- Legal Content Body (Scrollable) -->
-          <div class="flex-1 overflow-y-auto py-4 pr-2 space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed custom-scrollbar">
-            
+          <div class="flex-1 min-h-0 overflow-y-auto py-4 pr-1.5 space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed custom-scrollbar">
             @if (authService.privacyPolicy().introBanner) {
-              <section class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
-                <p class="font-semibold whitespace-pre-line">
+              <section class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
+                <p class="font-medium whitespace-pre-line">
                   {{ authService.privacyPolicy().introBanner }}
                 </p>
               </section>
             }
 
-            <div class="space-y-4">
+            <div class="space-y-3">
               @for (block of formattedBlocks(); track $index) {
-                <div class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+                <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
                   @if (block.heading) {
-                    <h4 class="font-bold text-sm text-white mb-1.5">
+                    <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white mb-1.5">
                       {{ block.heading }}
                     </h4>
                   }
-                  <p class="whitespace-pre-line text-slate-300 leading-relaxed">{{ block.body }}</p>
+                  <p class="whitespace-pre-line text-slate-600 dark:text-slate-300 leading-relaxed">{{ block.body }}</p>
                 </div>
               }
             </div>
-
           </div>
 
           <!-- Footer Actions -->
-          <div class="pt-4 border-t border-slate-200/60 dark:border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-              <input
-                type="checkbox"
-                id="modalCheckAccept"
-                [(ngModel)]="isTermsCheckboxChecked"
-                class="w-4 h-4 rounded text-emerald-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 cursor-pointer"
-              />
-              <label for="modalCheckAccept" class="cursor-pointer select-none">
-                He leído y acepto las cláusulas legales y el tratamiento de datos.
+          <div class="pt-4 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            @if (isMandatory) {
+              <label for="modalCheckAccept" class="flex items-start sm:items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="modalCheckAccept"
+                  [(ngModel)]="isTermsCheckboxChecked"
+                  class="mt-0.5 sm:mt-0 w-4 h-4 rounded text-emerald-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 cursor-pointer"
+                />
+                <span>He leído y acepto las cláusulas legales y el tratamiento de datos.</span>
               </label>
-            </div>
-
-            <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-              @if (!isMandatory) {
-                <button
-                  type="button"
-                  (click)="onClose()"
-                  class="px-4 py-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
-                >
-                  Cerrar
-                </button>
-              }
 
               <button
                 type="button"
                 (click)="onAccept()"
                 [disabled]="!isTermsCheckboxChecked"
-                class="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-102 active:scale-98 flex items-center gap-1.5"
+                class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors inline-flex items-center justify-center gap-1.5 flex-shrink-0"
               >
                 <span>Aceptar y Continuar</span>
-                <span>✓</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
               </button>
-            </div>
+            } @else {
+              <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                @if (authService.isAuthenticated()) {
+                  Puedes consultar este aviso en cualquier momento desde el pie de página.
+                } @else {
+                  Documento informativo. Al crear una cuenta o iniciar sesión confirmarás su aceptación.
+                }
+              </p>
+
+              <button
+                type="button"
+                (click)="onClose()"
+                class="w-full sm:w-auto px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-colors cursor-pointer flex-shrink-0"
+              >
+                Cerrar
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -128,7 +165,7 @@ import { ScrollLockService } from '../../../core/services/scroll-lock.service';
       background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.35);
       border-radius: 9999px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -170,6 +207,7 @@ export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['isOpen']) {
       if (this.isOpen) {
+        this.isTermsCheckboxChecked = false;
         this.authService.refreshPrivacyPolicy();
         this.scrollLock.lock(this.lockKey, 'privacy');
       } else {
@@ -183,6 +221,7 @@ export class PrivacyNoticeModalComponent implements OnChanges, OnDestroy {
   }
 
   onAccept(): void {
+    if (!this.isMandatory || !this.isTermsCheckboxChecked) return;
     this.accepted.emit();
   }
 
