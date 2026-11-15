@@ -1,17 +1,15 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { AllyService } from '../../core/services/ally.service';
-import { ColoniaService } from '../../core/services/colonia.service';
+import { NavigationHistoryService } from '../../core/services/navigation-history.service';
 import { Ally, AllyCategory } from '../../core/models/ally.model';
-import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import { buildWhatsAppUrl } from '../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-allies-directory',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule],
   template: `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
@@ -39,12 +37,13 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
             </div>
           </div>
 
-          <a
-            routerLink="/"
-            class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+          <button
+            type="button"
+            (click)="goBack()"
+            class="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
-            ← Volver al Muro
-          </a>
+            {{ navHistory.getBackLabel('← Volver al Muro') }}
+          </button>
         </div>
       </section>
 
@@ -141,6 +140,7 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
                     <a
                       [href]="getWhatsAppUrl(ally.whatsappPhone, ally.businessName)"
                       target="_blank"
+                      rel="noopener noreferrer"
                       class="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs text-center flex items-center justify-center gap-1 shadow-md transition-colors"
                     >
                       <span>💬</span> WhatsApp
@@ -164,7 +164,12 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 })
 export class AlliesDirectoryComponent implements OnInit {
   brand = BRAND_CONFIG;
+  navHistory = inject(NavigationHistoryService);
   private allyService = inject(AllyService);
+
+  goBack(): void {
+    this.navHistory.goBack(['/']);
+  }
 
   allies = signal<Ally[]>([]);
   isLoading = signal<boolean>(true);
@@ -207,7 +212,7 @@ export class AlliesDirectoryComponent implements OnInit {
   }
 
   getWhatsAppUrl(phone: string, name: string): string {
-    const text = encodeURIComponent(`Hola ${name}, vi su negocio en el directorio de ${this.brand.name} Dolores Hidalgo. Me gustaría pedir informes sobre sus servicios.`);
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    const text = `Hola ${name}, vi su negocio en el directorio de ${this.brand.name} Dolores Hidalgo. Me gustaría pedir informes sobre sus servicios.`;
+    return buildWhatsAppUrl(phone, text);
   }
 }

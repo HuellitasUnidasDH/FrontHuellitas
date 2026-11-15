@@ -1,13 +1,16 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PetService } from '../../../core/services/pet.service';
 import { GroupService } from '../../../core/services/group.service';
+import { ColoniaService } from '../../../core/services/colonia.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { AdoptionStatus, PetGender, PetSize } from '../../../core/models/pet.model';
+import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
+import { AdoptionStatus, EnergyLevel, PetGender, PetSize } from '../../../core/models/pet.model';
+import { Colonia } from '../../../core/models/colonia.model';
 import { UserRole } from '../../../core/models/user.model';
 import { PetGroup } from '../../../core/models/group.model';
 
@@ -19,9 +22,13 @@ import { PetGroup } from '../../../core/models/group.model';
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <div class="mb-6 flex items-center justify-between">
         <div>
-          <a routerLink="/pets" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500">
-            ← Volver al listado
-          </a>
+          <button
+            type="button"
+            (click)="goBack()"
+            class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 cursor-pointer"
+          >
+            {{ navHistory.getBackLabel('← Volver al listado') }}
+          </button>
           <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
             {{ isEditMode() ? 'Editar Datos de Mascota' : 'Registrar Nueva Mascota' }}
           </h1>
@@ -46,9 +53,16 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="name"
                   placeholder="Ej. Rocky"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': petForm.get('name')?.touched && petForm.get('name')?.invalid }"
                 />
                 @if (petForm.get('name')?.touched && petForm.get('name')?.invalid) {
-                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">El nombre es requerido</p>
+                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1 font-medium">
+                    @if (petForm.get('name')?.hasError('required')) {
+                      Ingresa el nombre de la mascota para continuar.
+                    } @else {
+                      El nombre no puede superar 60 caracteres.
+                    }
+                  </p>
                 }
               </div>
 
@@ -58,14 +72,21 @@ import { PetGroup } from '../../../core/models/group.model';
                 </label>
                 <select
                   formControlName="species"
+                  [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': petForm.get('species')?.touched && petForm.get('species')?.invalid }"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
+                  <option value="" disabled>Selecciona especie...</option>
                   <option value="Perro">Perro</option>
                   <option value="Gato">Gato</option>
                   <option value="Ave">Ave</option>
                   <option value="Conejo">Conejo</option>
                   <option value="Otro">Otro</option>
                 </select>
+                @if (petForm.get('species')?.touched && petForm.get('species')?.invalid) {
+                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1 font-medium">
+                    Selecciona la especie de la mascota.
+                  </p>
+                }
               </div>
 
               <div>
@@ -88,8 +109,10 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="gender"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
-                  <option [value]="PetGender.MALE">Macho</option>
-                  <option [value]="PetGender.FEMALE">Hembra</option>
+                  <option [ngValue]="null">No especificado</option>
+                  <option [ngValue]="PetGender.MALE">Macho</option>
+                  <option [ngValue]="PetGender.FEMALE">Hembra</option>
+                  <option [ngValue]="PetGender.UNKNOWN">Desconocido</option>
                 </select>
               </div>
             </div>
@@ -106,31 +129,47 @@ import { PetGroup } from '../../../core/models/group.model';
                   type="button"
                   (click)="setPhotoSource('FILE')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': photoSource() !== 'FILE' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  📁 Dispositivo
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <span>Dispositivo</span>
                 </button>
                 <button
                   type="button"
                   (click)="setPhotoSource('CAMERA')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': photoSource() !== 'CAMERA' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  📸 Usar Cámara
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                  <span>Usar Cámara</span>
                 </button>
                 <button
                   type="button"
                   (click)="setPhotoSource('URL')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'URL', 'text-slate-600 dark:text-slate-400': photoSource() !== 'URL' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  🔗 Enlace URL
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                  <span>Enlace URL</span>
                 </button>
               </div>
 
               @if (photoSource() === 'FILE') {
                 <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all">
-                  <span class="text-2xl mb-1">📷</span>
+                  <svg class="w-7 h-7 text-emerald-500 mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
                   <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para seleccionar foto desde celular o PC</span>
                   <span class="text-[10px] text-slate-500 dark:text-slate-400">JPG, PNG o WEBP</span>
                   <input
@@ -156,16 +195,18 @@ import { PetGroup } from '../../../core/models/group.model';
                       <button
                         type="button"
                         (click)="capturePhotoFromCamera()"
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1.5"
                       >
-                        📸 Capturar Foto
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3" /><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /></svg>
+                        <span>Capturar Foto</span>
                       </button>
                       <button
                         type="button"
                         (click)="toggleCameraFacingMode()"
-                        class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
+                        class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors inline-flex items-center gap-1.5"
                       >
-                        🔄 Girar cámara
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
+                        <span>Girar cámara</span>
                       </button>
                     </div>
                   } @else {
@@ -178,12 +219,14 @@ import { PetGroup } from '../../../core/models/group.model';
                       <button
                         type="button"
                         (click)="startCameraStream()"
-                        class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all"
+                        class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all inline-flex items-center gap-1.5"
                       >
-                        🎥 Encender cámara en vivo
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                        <span>Encender cámara en vivo</span>
                       </button>
-                      <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
-                        📱 Abrir cámara del teléfono
+                      <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all inline-flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+                        <span>Abrir cámara del teléfono</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -213,20 +256,73 @@ import { PetGroup } from '../../../core/models/group.model';
                     class="w-16 h-16 rounded-xl object-cover border border-emerald-500/40 shadow-sm"
                   />
                   <div class="text-xs text-slate-600 dark:text-slate-300">
-                    <span class="font-bold block text-slate-900 dark:text-white">Foto lista</span>
+                    <span class="font-bold block text-slate-900 dark:text-white">Foto principal lista</span>
                     <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
                       {{ photoSource() === 'URL' ? 'Enlace web válido' : 'Imagen capturada desde tu dispositivo' }}
                     </span>
                   </div>
                 </div>
               }
+
+              <!-- Galería Adicional (Multi-foto para ficha de adopción) -->
+              <div class="mt-3 p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-100 block">
+                      Galería de Fotos Adicionales (opcional)
+                    </span>
+                    <span class="text-[11px] text-slate-500">
+                      Agrega más ángulos para enriquecer su ficha ({{ galleryPhotos().length }}/{{ maxPhotosAllowed() }}).
+                    </span>
+                  </div>
+                  @if (galleryPhotos().length < maxPhotosAllowed()) {
+                    <label class="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                      {{ isUploadingExtraPhoto() ? 'Subiendo...' : '+ Agregar foto' }}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        (change)="onAddGalleryPhoto($event)"
+                        [disabled]="isUploadingExtraPhoto()"
+                        class="hidden"
+                      />
+                    </label>
+                  }
+                </div>
+
+                @if (galleryPhotos().length > 0) {
+                  <div class="flex flex-wrap gap-2.5">
+                    @for (gUrl of galleryPhotos(); track gUrl + $index) {
+                      <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700">
+                        <img [src]="gUrl" [alt]="'Foto galería ' + ($index + 1)" class="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          (click)="removeGalleryPhoto($index)"
+                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 text-white flex items-center justify-center hover:bg-rose-600 cursor-pointer"
+                          title="Quitar foto"
+                        >
+                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
             </div>
           </div>
 
           <!-- Family / Group Section -->
           <div class="pt-6 border-t border-slate-200/60 dark:border-slate-800">
             <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
-              <span>👨‍👩‍👧‍👦</span> Familia / Grupo Compartido
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Familia / Grupo Compartido</span>
             </h3>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Si asignas esta mascota a una familia, todos los miembros podrán verla, subir fotos y compartir recuerdos.
@@ -240,10 +336,10 @@ import { PetGroup } from '../../../core/models/group.model';
                 formControlName="groupId"
                 class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               >
-                <option [ngValue]="null">🔒 Mascota Individual (Sin grupo compartido)</option>
+                <option [ngValue]="null">Mascota Individual (Sin grupo compartido)</option>
                 @for (group of availableGroups(); track group.id) {
                   <option [ngValue]="group.id">
-                    👨‍👩‍👧‍👦 {{ group.name }} (Código: {{ group.inviteCode }})
+                    {{ group.name }} (Código: {{ group.inviteCode }})
                   </option>
                 }
               </select>
@@ -315,6 +411,7 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="size"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
+                  <option [ngValue]="null">No especificado</option>
                   <option value="CHICO">Chico</option>
                   <option value="MEDIANO">Mediano</option>
                   <option value="GRANDE">Grande</option>
@@ -382,6 +479,90 @@ import { PetGroup } from '../../../core/models/group.model';
               </div>
 
               @if (petForm.get('isForAdoption')?.value || isEditMode()) {
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Colonia / Zona (Dolores Hidalgo)
+                    </label>
+                    <select
+                      formControlName="coloniaId"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option value="">Selecciona una colonia (opcional)...</option>
+                      @for (colonia of colonias(); track colonia.id) {
+                        <option [value]="colonia.id">{{ colonia.postalCode ? '[' + colonia.postalCode + '] ' : '' }}{{ colonia.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Nivel de Energía
+                    </label>
+                    <select
+                      formControlName="energyLevel"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option value="BAJO">Bajo (Tranquilo)</option>
+                      <option value="MEDIO">Medio (Equilibrado)</option>
+                      <option value="ALTO">Alto (Activo / Juguetón)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Convivencia con Niños
+                    </label>
+                    <select
+                      formControlName="goodWithKids"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option [ngValue]="true">Apto (Bueno con niños)</option>
+                      <option [ngValue]="false">No recomendado</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Convivencia con Otras Mascotas
+                    </label>
+                    <select
+                      formControlName="goodWithOtherPets"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option [ngValue]="true">Sociable</option>
+                      <option [ngValue]="false">No / Prefiere ser único</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                    Rasgos de Temperamento
+                  </label>
+                  <div class="flex flex-wrap gap-1.5">
+                    @for (tag of commonTemperamentTags; track tag) {
+                      <button
+                        type="button"
+                        (click)="toggleTemperamentTag(tag)"
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+                        [ngClass]="
+                          selectedTemperamentTags().includes(tag)
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-sm'
+                            : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        "
+                      >
+                        {{ tag }}
+                      </button>
+                    }
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                     Historia de Rescate / Descripción de Adopción
@@ -396,17 +577,37 @@ import { PetGroup } from '../../../core/models/group.model';
               }
             </div>
 
-            <!-- Nota de Privacidad: Mis Mascotas es exclusivamente personal -->
-            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 flex items-start gap-3">
-              <span class="text-xl leading-none mt-0.5">🛡️</span>
-              <div class="space-y-0.5">
-                <span class="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  Registro Personal en "Mis Mascotas"
-                </span>
-                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Esta ficha es <strong>exclusivamente para tu mascota personal</strong> (expediente clínico y álbum de recuerdos). No se publicará en adopción. Si rescatas un animalito y necesitas encontrarle hogar responsable, repórtalo en el Muro Comunitario como <strong>"En Resguardo"</strong> para recibir acompañamiento de rescatistas verificados.
-                </p>
-              </div>
+            <!-- Visibilidad: Registro personal o Publicación en Adopción Responsable -->
+            <div class="mt-4 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-2.5">
+              <label
+                class="flex items-start gap-3"
+                [ngClass]="canToggleAdoption() ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+              >
+                <input
+                  type="checkbox"
+                  formControlName="isForAdoption"
+                  class="mt-0.5 w-5 h-5 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                />
+                <div class="space-y-0.5">
+                  <span class="text-xs font-black text-slate-900 dark:text-white block">
+                    Publicar en Catálogo de Adopción Responsable
+                  </span>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Si dejas esta casilla sin marcar, la ficha queda en tu lista privada <strong>"Mis Mascotas"</strong> (expediente clínico). Si la activas, aparecerá en <strong>Adopciones</strong> y podrás evaluar postulantes desde <a routerLink="/panel-rescatista" [queryParams]="{ tab: 'publications' }" class="text-emerald-600 dark:text-emerald-400 font-bold underline">Mis Publicaciones</a>.
+                  </p>
+                </div>
+              </label>
+
+              @if (!hasMinimumLevel1()) {
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-800 dark:text-amber-200 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Para activar publicaciones de adopción necesitas completar al menos el <strong>Nivel 1</strong> (teléfono de contacto de 10 dígitos en tu perfil).
+                  </span>
+                  <a routerLink="/verificacion" class="font-black underline whitespace-nowrap">
+                    Completar Nivel 1 →
+                  </a>
+                </div>
+              }
             </div>
           </div>
 
@@ -425,15 +626,16 @@ import { PetGroup } from '../../../core/models/group.model';
 
           <!-- Submit Buttons -->
           <div class="pt-6 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-end gap-3">
-            <a
-              routerLink="/pets"
+            <button
+              type="button"
+              (click)="goBack()"
               class="px-5 py-2.5 rounded-xl bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold transition-colors cursor-pointer"
             >
               Cancelar
-            </a>
+            </button>
             <button
               type="submit"
-              [disabled]="petForm.invalid || isSubmitting()"
+              [disabled]="isSubmitting()"
               class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 disabled:opacity-50 cursor-pointer transition-all hover:scale-102 active:scale-98 flex items-center gap-2"
             >
               @if (isSubmitting()) {
@@ -453,18 +655,39 @@ export class PetFormComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private petService = inject(PetService);
   private groupService = inject(GroupService);
+  private coloniaService = inject(ColoniaService);
   private notification = inject(NotificationService);
   private imageUploadService = inject(ImageUploadService);
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  public navHistory = inject(NavigationHistoryService);
+
+  goBack(): void {
+    this.navHistory.goBack(['/pets']);
+  }
 
   PetGender = PetGender;
+
+  readonly commonTemperamentTags = [
+    'Cariñoso(a)',
+    'Juguetón(a)',
+    'Tranquilo(a)',
+    'Protector(a)',
+    'Bueno con niños',
+    'Sociable con perros',
+    'Convive con gatos',
+    'Aprende rápido',
+  ];
 
   isEditMode = signal(false);
   isSubmitting = signal(false);
   petId = signal<string | null>(null);
   availableGroups = signal<PetGroup[]>([]);
+  colonias = signal<Colonia[]>([]);
+  galleryPhotos = signal<string[]>([]);
+  isUploadingExtraPhoto = signal(false);
+  selectedTemperamentTags = signal<string[]>([]);
 
   photoSource = signal<'FILE' | 'CAMERA' | 'URL'>('FILE');
   photoPreview = signal<string | null>(null);
@@ -475,22 +698,53 @@ export class PetFormComponent implements OnInit, OnDestroy {
   private activeCameraStream: MediaStream | null = null;
   private loadedPetStatus?: AdoptionStatus;
 
+  hasMinimumLevel1 = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (
+      user.role === UserRole.ADMIN ||
+      user.role === UserRole.RESCATISTA_VERIFICADO ||
+      user.role === UserRole.ALBERGUE ||
+      (user.verificationLevel ?? 0) >= 1 ||
+      user.isPhoneVerified
+    ) {
+      return true;
+    }
+    return (user.phone || '').replace(/\D/g, '').length >= 10;
+  });
+
+  maxPhotosAllowed = computed(() => {
+    const role = this.authService.currentUser()?.role;
+    return role === UserRole.ADMIN || role === UserRole.RESCATISTA_VERIFICADO || role === UserRole.ALBERGUE ? 6 : 3;
+  });
+
+  canToggleAdoption = computed(() => {
+    if (this.loadedPetStatus === 'ADOPTADA' || this.loadedPetStatus === 'EN_SEGUIMIENTO') {
+      return false;
+    }
+    return this.hasMinimumLevel1() || this.loadedPetStatus === 'DISPONIBLE' || this.loadedPetStatus === 'EN_PROCESO';
+  });
+
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
-    species: ['Perro', [Validators.required]],
+    species: ['', [Validators.required]],
     breed: [''],
-    gender: [PetGender.MALE],
+    gender: [null as PetGender | null],
     groupId: [null as string | null],
+    coloniaId: [''],
     photoUrl: [''],
     birthDate: [''],
     approximateAge: [''],
-    size: ['MEDIANO' as PetSize],
+    size: [null as PetSize | null],
+    energyLevel: [null as EnergyLevel | null],
     weightKg: [null as number | null],
     color: [''],
     specialMarks: [''],
     microchipNumber: [''],
     isSterilized: [false],
     isDewormed: [false],
+    goodWithKids: [null as boolean | null],
+    goodWithOtherPets: [null as boolean | null],
     vaccinesText: [''],
     isForAdoption: [false],
     rescueStory: [''],
@@ -499,12 +753,20 @@ export class PetFormComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadGroups();
+    this.coloniaService.getAll().subscribe({
+      next: (cols) => this.colonias.set(cols || []),
+      error: () => {},
+    });
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.isEditMode.set(true);
       this.petId.set(id);
       this.loadPetData(id);
+    }
+
+    if (!this.hasMinimumLevel1()) {
+      this.petForm.get('isForAdoption')?.disable({ emitEvent: false });
     }
   }
 
@@ -534,23 +796,37 @@ export class PetFormComponent implements OnInit, OnDestroy {
           name: pet.name,
           species: pet.species,
           breed: pet.breed || '',
-          gender: pet.gender,
+          gender: (pet.gender as PetGender) ?? null,
           groupId: pet.groupId || null,
+          coloniaId: pet.coloniaId || '',
           photoUrl: pet.photoUrl || '',
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
           approximateAge: pet.approximateAge || '',
-          size: pet.size || 'MEDIANO',
+          size: pet.size ?? null,
+          energyLevel: pet.energyLevel ?? null,
           weightKg: pet.weightKg ? Number(pet.weightKg) : null,
           color: pet.color || '',
           specialMarks: pet.specialMarks || '',
           microchipNumber: pet.microchipNumber || '',
           isSterilized: pet.isSterilized,
           isDewormed: !!pet.isDewormed,
+          goodWithKids: pet.goodWithKids ?? null,
+          goodWithOtherPets: pet.goodWithOtherPets ?? null,
           vaccinesText: (pet.vaccinesList || []).join(', '),
           isForAdoption: pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO',
           rescueStory: pet.rescueStory || '',
           notes: pet.notes || '',
         });
+
+        this.selectedTemperamentTags.set(pet.temperamentTags || []);
+        const existingGallery = (pet.photos && pet.photos.length > 0 ? pet.photos : pet.photoUrl ? [pet.photoUrl] : []).filter(Boolean);
+        this.galleryPhotos.set(existingGallery);
+
+        if (this.canToggleAdoption()) {
+          this.petForm.get('isForAdoption')?.enable({ emitEvent: false });
+        } else {
+          this.petForm.get('isForAdoption')?.disable({ emitEvent: false });
+        }
 
         if (pet.photoUrl) {
           this.photoPreview.set(pet.photoUrl);
@@ -561,6 +837,41 @@ export class PetFormComponent implements OnInit, OnDestroy {
         this.router.navigate(['/pets']);
       },
     });
+  }
+
+  toggleTemperamentTag(tag: string): void {
+    this.selectedTemperamentTags.update((curr) =>
+      curr.includes(tag) ? curr.filter((t) => t !== tag) : [...curr, tag],
+    );
+  }
+
+  onAddGalleryPhoto(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      this.notification.warning('Archivo no válido', 'Selecciona una imagen JPG, PNG o WEBP.');
+      return;
+    }
+
+    this.isUploadingExtraPhoto.set(true);
+    this.imageUploadService.uploadImage(file, 'pets').subscribe({
+      next: (url) => {
+        this.isUploadingExtraPhoto.set(false);
+        this.galleryPhotos.update((prev) =>
+          prev.length < this.maxPhotosAllowed() ? [...prev, url] : prev,
+        );
+      },
+      error: () => {
+        this.isUploadingExtraPhoto.set(false);
+        this.notification.error('No se pudo subir la foto adicional');
+      },
+    });
+  }
+
+  removeGalleryPhoto(index: number): void {
+    this.galleryPhotos.update((prev) => prev.filter((_, i) => i !== index));
   }
 
   onPhotoFileSelected(event: Event): void {
@@ -683,18 +994,16 @@ export class PetFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.petForm.invalid) return;
+    if (this.petForm.invalid) {
+      this.petForm.markAllAsTouched();
+      this.notification.warning('Falta completar datos obligatorios', 'Revisa los campos resaltados antes de guardar.');
+      return;
+    }
 
     this.isSubmitting.set(true);
-    const formVal = this.petForm.value;
+    const formVal = this.petForm.getRawValue();
 
     const finalizeSubmission = (finalPhotoUrl?: string) => {
-      const userRole = this.authService.currentUser()?.role;
-      const isRescuerOrAdmin =
-        userRole === UserRole.RESCATISTA_VERIFICADO ||
-        userRole === UserRole.ALBERGUE ||
-        userRole === UserRole.ADMIN;
-
       const parsedVaccines = (formVal.vaccinesText || '')
         .split(',')
         .map((v) => v.trim())
@@ -706,18 +1015,30 @@ export class PetFormComponent implements OnInit, OnDestroy {
         this.loadedPetStatus !== 'DISPONIBLE' &&
         this.loadedPetStatus !== 'NO_EN_ADOPCION'
           ? this.loadedPetStatus
-          : formVal.isForAdoption && isRescuerOrAdmin
+          : formVal.isForAdoption && this.hasMinimumLevel1()
             ? 'DISPONIBLE'
             : 'NO_EN_ADOPCION';
+
+      const combinedPhotos = Array.from(
+        new Set(
+          [
+            ...(finalPhotoUrl ? [finalPhotoUrl] : []),
+            ...this.galleryPhotos(),
+          ].filter(Boolean),
+        ),
+      ).slice(0, this.maxPhotosAllowed());
 
       const payload: any = {
         name: formVal.name!,
         species: formVal.species!,
         breed: formVal.breed || undefined,
-        gender: formVal.gender || PetGender.MALE,
-        size: formVal.size || 'MEDIANO',
+        gender: formVal.gender ?? null,
+        size: formVal.size ?? null,
+        energyLevel: formVal.energyLevel ?? null,
         groupId: formVal.groupId || null,
-        photoUrl: finalPhotoUrl || undefined,
+        coloniaId: formVal.coloniaId || undefined,
+        photoUrl: finalPhotoUrl || combinedPhotos[0] || undefined,
+        photos: combinedPhotos.length > 0 ? combinedPhotos : undefined,
         birthDate: formVal.birthDate || undefined,
         approximateAge: formVal.approximateAge?.trim() || undefined,
         weightKg: formVal.weightKg ? Number(formVal.weightKg) : undefined,
@@ -726,10 +1047,21 @@ export class PetFormComponent implements OnInit, OnDestroy {
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
         isDewormed: !!formVal.isDewormed,
+        goodWithKids: formVal.goodWithKids ?? null,
+        goodWithOtherPets: formVal.goodWithOtherPets ?? null,
+        temperamentTags: this.selectedTemperamentTags(),
         vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
         status: resolvedStatus,
         rescueStory: formVal.rescueStory?.trim() || undefined,
         notes: formVal.notes || undefined,
+      };
+
+      const navigateAfterSave = (savedId: string) => {
+        if (resolvedStatus === 'DISPONIBLE' || resolvedStatus === 'EN_PROCESO') {
+          this.router.navigate(['/panel-rescatista'], { queryParams: { tab: 'publications' } });
+        } else {
+          this.router.navigate(['/pets', savedId]);
+        }
       };
 
       if (this.isEditMode() && this.petId()) {
@@ -737,7 +1069,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           next: () => {
             this.isSubmitting.set(false);
             this.notification.success('Actualizado', 'Datos de la mascota actualizados exitosamente');
-            this.router.navigate(['/pets', this.petId()!]);
+            navigateAfterSave(this.petId()!);
           },
           error: () => this.isSubmitting.set(false),
         });
@@ -746,7 +1078,7 @@ export class PetFormComponent implements OnInit, OnDestroy {
           next: (created) => {
             this.isSubmitting.set(false);
             this.notification.success('Registrado', 'Mascota registrada correctamente');
-            this.router.navigate(['/pets', created.id]);
+            navigateAfterSave(created.id);
           },
           error: () => this.isSubmitting.set(false),
         });

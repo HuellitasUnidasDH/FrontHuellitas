@@ -1,6 +1,7 @@
 import { AdoptionFollowup, AdoptionRequest, AdoptionRequestStatus, ADOPTION_STAGE_META, FOLLOWUP_MILESTONE_LABELS } from '../../../core/models/adoption.model';
 import { Pet } from '../../../core/models/pet.model';
 import { User } from '../../../core/models/user.model';
+export { formatActorRoleLabel } from '../../../core/utils/app-helpers.util';
 
 export interface PetFollowupGroup {
   petId: string;
@@ -75,6 +76,7 @@ export function getCandidateVerificationBadge(user?: User | null): {
   subtitle: string;
   badgeClass: string;
   icon: string;
+  iconKey: 'shield' | 'home' | 'phone' | 'alert';
 } {
   const lvl = user?.verificationLevel ?? 0;
   if (lvl >= 3) {
@@ -83,7 +85,8 @@ export function getCandidateVerificationBadge(user?: User | null): {
       title: 'Nivel 3 • Adoptante Verificado',
       subtitle: 'Teléfono + Cuestionario Socioambiental + Carta Compromiso aprobados',
       badgeClass: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/25',
-      icon: '🛡️',
+      icon: 'N3',
+      iconKey: 'shield',
     };
   }
   if (lvl === 2) {
@@ -92,7 +95,8 @@ export function getCandidateVerificationBadge(user?: User | null): {
       title: 'Nivel 2 • Cuestionario Aprobado',
       subtitle: 'Teléfono verificado y cuestionario de hogar aprobado',
       badgeClass: 'bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-lg shadow-sky-500/25',
-      icon: '🏠',
+      icon: 'N2',
+      iconKey: 'home',
     };
   }
   if (lvl === 1 || user?.isPhoneVerified) {
@@ -101,7 +105,8 @@ export function getCandidateVerificationBadge(user?: User | null): {
       title: 'Nivel 1 • Teléfono Verificado',
       subtitle: 'Falta aprobar cuestionario Nivel 2 y Nivel 3',
       badgeClass: 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40',
-      icon: '📱',
+      icon: 'N1',
+      iconKey: 'phone',
     };
   }
   return {
@@ -109,7 +114,8 @@ export function getCandidateVerificationBadge(user?: User | null): {
     title: 'Nivel 0 • Cuenta Básica',
     subtitle: 'Sin verificación de adoptante completada todavía',
     badgeClass: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30',
-    icon: '⚠️',
+    icon: 'N0',
+    iconKey: 'alert',
   };
 }
 
@@ -129,5 +135,32 @@ export function getRequestStepIndex(req: AdoptionRequest): number {
     default:
       return 0;
   }
+}
+
+export interface QuestionnaireComparisonPill {
+  label: string;
+  value: string;
+  tone: 'emerald' | 'amber' | 'slate';
+}
+
+export function extractQuestionnairePills(req: AdoptionRequest): QuestionnaireComparisonPill[] {
+  const q = req.questionnaireData;
+  if (!q) return [];
+  const pills: QuestionnaireComparisonPill[] = [];
+
+  if (q.housingType) {
+    pills.push({ label: 'Vivienda', value: q.housingType, tone: 'slate' });
+  }
+  if (q.familyAgreed) {
+    const agreed = /acuerdo|si|sí|todos|apoyo/i.test(q.familyAgreed) && !/no\b|sin acuerdo|duda/i.test(q.familyAgreed);
+    pills.push({ label: 'Familia', value: q.familyAgreed, tone: agreed ? 'emerald' : 'amber' });
+  }
+  if (q.currentPets) {
+    pills.push({ label: 'Mascotas', value: q.currentPets, tone: 'slate' });
+  }
+  if (q.relocationPlan) {
+    pills.push({ label: 'Plan mudanza', value: q.relocationPlan, tone: 'slate' });
+  }
+  return pills;
 }
 

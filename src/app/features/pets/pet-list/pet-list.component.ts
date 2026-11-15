@@ -7,6 +7,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { Pet } from '../../../core/models/pet.model';
+import { formatPetGenderLabel } from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-pet-list',
@@ -23,9 +24,23 @@ import { Pet } from '../../../core/models/pet.model';
 
         <a
           routerLink="/pets/new"
-          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-md shadow-emerald-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-xs shadow-sm transition-colors cursor-pointer"
         >
           <span>+ Nueva Mascota</span>
+        </a>
+      </div>
+
+      <!-- Shortcut toward published adoptions -->
+      <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <span class="text-slate-700 dark:text-slate-200">
+          ¿Buscas tus mascotas publicadas en adopción responsable? Las publicaciones activas o pausadas se administran por separado de tus mascotas personales.
+        </span>
+        <a
+          routerLink="/panel-rescatista"
+          [queryParams]="{ tab: 'publications' }"
+          class="font-black text-emerald-700 dark:text-emerald-300 hover:underline whitespace-nowrap"
+        >
+          Ir a Mis Publicaciones →
         </a>
       </div>
 
@@ -40,7 +55,10 @@ import { Pet } from '../../../core/models/pet.model';
             placeholder="Buscar por nombre o número de microchip..."
             class="w-full pl-10 pr-4 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
           />
-          <span class="absolute left-3.5 top-2.5 text-slate-400 text-sm">🔍</span>
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
         </div>
 
         <!-- Species Filter Pills -->
@@ -67,7 +85,7 @@ import { Pet } from '../../../core/models/pet.model';
             [class.dark:text-slate-300]="selectedSpecies() !== 'Perro'"
             class="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap shadow-sm"
           >
-            🐶 Perros
+            Perros
           </button>
           <button
             (click)="setSpeciesFilter('Gato')"
@@ -79,7 +97,7 @@ import { Pet } from '../../../core/models/pet.model';
             [class.dark:text-slate-300]="selectedSpecies() !== 'Gato'"
             class="px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap shadow-sm"
           >
-            🐱 Gatos
+            Gatos
           </button>
           <button
             (click)="applyFilters()"
@@ -97,7 +115,12 @@ import { Pet } from '../../../core/models/pet.model';
         </div>
       } @else if (pets().length === 0) {
         <div class="text-center py-20 liquid-glass rounded-3xl">
-          <span class="text-5xl">🔎</span>
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </div>
           <h3 class="text-lg font-bold text-slate-900 dark:text-white mt-4">No se encontraron mascotas</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
             Prueba ajustando tus términos de búsqueda o registra una nueva mascota.
@@ -111,30 +134,36 @@ import { Pet } from '../../../core/models/pet.model';
                 <!-- Card Header -->
                 <div class="flex items-start justify-between">
                   <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-slate-800 border border-emerald-500/20 dark:border-slate-700 flex items-center justify-center text-2xl">
-                      @if (pet.species.toLowerCase().includes('gato')) { 🐱 }
-                      @else if (pet.species.toLowerCase().includes('perro')) { 🐶 }
-                      @else { 🐾 }
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-slate-800 border border-emerald-500/20 dark:border-slate-700 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="4" r="2" />
+                        <circle cx="18" cy="8" r="2" />
+                        <circle cx="20" cy="16" r="2" />
+                        <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+                      </svg>
                     </div>
                     <div>
                       <h3 class="font-bold text-base text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
                         <a [routerLink]="['/pets', pet.id]">{{ pet.name }}</a>
                       </h3>
-                      <p class="text-xs text-slate-500 dark:text-slate-400">{{ pet.species }} · {{ pet.breed || 'Sin raza' }}</p>
+                      <p class="text-xs text-slate-500 dark:text-slate-400">{{ pet.species }}{{ pet.breed ? ' · ' + pet.breed : '' }}</p>
                       @if (pet.group) {
                         <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                          👨‍👩‍👧‍👦 {{ pet.group.name }}
+                          <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                          <span>{{ pet.group.name }}</span>
                         </span>
                       }
                     </div>
                   </div>
 
-                  <span
-                    class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase"
-                    [ngClass]="pet.gender === 'MALE' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30' : 'bg-pink-500/15 text-pink-700 dark:text-pink-400 border border-pink-500/30'"
-                  >
-                    {{ pet.gender === 'MALE' ? 'Macho' : 'Hembra' }}
-                  </span>
+                  @if (formatGender(pet.gender); as genderLabel) {
+                    <span
+                      class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase"
+                      [ngClass]="pet.gender === 'MALE' ? 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border border-sky-500/30' : pet.gender === 'FEMALE' ? 'bg-pink-500/15 text-pink-700 dark:text-pink-400 border border-pink-500/30' : 'bg-slate-500/15 text-slate-600 dark:text-slate-300 border border-slate-500/30'"
+                    >
+                      {{ genderLabel }}
+                    </span>
+                  }
                 </div>
 
                 <!-- Attributes Info -->
@@ -174,18 +203,24 @@ import { Pet } from '../../../core/models/pet.model';
                 @if (canEditPet(pet)) {
                   <a
                     [routerLink]="['/pets/edit', pet.id]"
-                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer flex items-center justify-center"
                     title="Editar mascota"
                   >
-                    ✏️
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    </svg>
                   </a>
 
                   <button
                     (click)="onDeletePet(pet)"
-                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-rose-500/20 border border-transparent text-xs text-rose-500 dark:text-rose-400 transition-colors cursor-pointer"
+                    class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-rose-500/20 border border-transparent text-xs text-rose-500 dark:text-rose-400 transition-colors cursor-pointer flex items-center justify-center"
                     title="Eliminar mascota"
                   >
-                    🗑️
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
                   </button>
                 }
               </div>
@@ -201,6 +236,10 @@ export class PetListComponent implements OnInit {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   authService = inject(AuthService);
+
+  formatGender(gender?: string | null): string {
+    return formatPetGenderLabel(gender, '');
+  }
 
   canEditPet(pet: Pet): boolean {
     const user = this.authService.currentUser();
@@ -248,7 +287,7 @@ export class PetListComponent implements OnInit {
       confirmText: 'Sí, dar de baja',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: 'trash',
     });
     if (!confirmed) return;
 

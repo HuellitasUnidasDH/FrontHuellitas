@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PwaService } from '../../../core/services/pwa.service';
+import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
 @Component({
@@ -63,11 +64,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     <!-- 2. Modal de Instrucciones de Instalación (iOS Safari o Guía de Navegador) -->
     @if (pwaService.showInstructionsModal()) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn"
+        class="fixed inset-0 z-[85] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn overflow-y-auto overscroll-contain"
         (click)="pwaService.closeInstructionsModal()"
       >
         <div
-          class="liquid-glass rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-emerald-500/30 space-y-5 relative"
+          class="liquid-glass rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-emerald-500/30 space-y-5 relative my-auto max-h-[88dvh] overflow-y-auto overscroll-contain"
           (click)="$event.stopPropagation()"
         >
           <button
@@ -146,7 +147,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
     }
   `,
 })
-export class PwaInstallComponent {
+export class PwaInstallComponent implements OnDestroy {
   pwaService = inject(PwaService);
+  private readonly scrollLock = inject(ScrollLockService);
   brand = BRAND_CONFIG;
+
+  constructor() {
+    effect(() => {
+      if (this.pwaService.showInstructionsModal()) {
+        this.scrollLock.lock('pwa-instructions');
+      } else {
+        this.scrollLock.unlock('pwa-instructions');
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.scrollLock.unlock('pwa-instructions');
+  }
 }

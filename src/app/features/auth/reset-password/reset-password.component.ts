@@ -11,18 +11,22 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative">
-      <div class="w-full max-w-md liquid-glass rounded-3xl p-7 sm:p-9 shadow-2xl relative overflow-hidden transition-all border border-emerald-500/20">
+    <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
+      <div class="w-full max-w-md liquid-glass rounded-2xl sm:rounded-3xl p-7 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
 
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl shadow-lg shadow-emerald-500/25 mb-3">
-            🔑
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="7.5" cy="15.5" r="5.5" />
+              <path d="m21 2-9.6 9.6" />
+              <path d="m15.5 7.5 3 3L22 7l-3-3" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Restablecer Contraseña
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Restablecer contraseña
           </h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
             Crea una nueva contraseña segura para tu cuenta de {{ brand.name }}.
           </p>
         </div>
@@ -83,7 +87,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <input
                   [type]="showPassword() ? 'text' : 'password'"
                   formControlName="newPassword"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres (mayús., minús. y número/símbolo)"
                   class="w-full pl-4 pr-11 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                   [ngClass]="{
                     '!border-rose-500 !ring-2 !ring-rose-500/20': newPasswordField?.invalid && newPasswordField?.touched
@@ -109,7 +113,13 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </div>
               @if (newPasswordField?.invalid && newPasswordField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
-                  La contraseña debe tener al menos 6 caracteres
+                  @if (newPasswordField?.hasError('required')) {
+                    Ingresa una nueva contraseña (mínimo 8 caracteres).
+                  } @else if (newPasswordField?.hasError('minlength')) {
+                    Tu contraseña es muy corta ({{ (newPasswordField?.value || '').length }}/8): agrega {{ 8 - (newPasswordField?.value || '').length }} más.
+                  } @else {
+                    Debe incluir al menos 1 mayúscula, 1 minúscula y 1 número o símbolo.
+                  }
                 </p>
               }
             </div>
@@ -125,12 +135,16 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 placeholder="Repite tu nueva contraseña"
                 class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 [ngClass]="{
-                  '!border-rose-500 !ring-2 !ring-rose-500/20': passwordsMismatch()
+                  '!border-rose-500 !ring-2 !ring-rose-500/20': passwordsMismatch() || (confirmPasswordField?.hasError('required') && confirmPasswordField?.touched)
                 }"
               />
-              @if (passwordsMismatch()) {
+              @if (confirmPasswordField?.hasError('required') && confirmPasswordField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
-                  Las contraseñas no coinciden
+                  Confirma tu nueva contraseña repitiéndola aquí.
+                </p>
+              } @else if (passwordsMismatch()) {
+                <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
+                  Las contraseñas no coinciden.
                 </p>
               }
             </div>
@@ -138,7 +152,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
             <!-- Botón de Envío -->
             <button
               type="submit"
-              [disabled]="resetForm.invalid || passwordsMismatch() || isLoading()"
+              [disabled]="isLoading()"
               class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
             >
               @if (isLoading()) {
@@ -176,7 +190,14 @@ export class ResetPasswordComponent implements OnInit {
   showPassword = signal<boolean>(false);
 
   resetForm = this.fb.nonNullable.group({
-    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    newPassword: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(8),
+        Validators.pattern(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/),
+      ],
+    ],
     confirmPassword: ['', [Validators.required]],
   });
 

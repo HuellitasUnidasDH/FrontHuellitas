@@ -1,8 +1,34 @@
 // Serverless Function en Vercel para generar etiquetas Open Graph dinámicas
 // (Foto, Título y Descripción reales de cada mascota) para Facebook, WhatsApp, X y Telegram.
 
-const BACKEND_API_URL =
-  process.env.BACKEND_API_URL || 'https://backhuellitas.onrender.com/api/v1';
+const BACKEND_API_URL = (
+  process.env.BACKEND_API_URL || 'https://backhuellitas.onrender.com/api/v1'
+).replace(/\/+$/, '');
+const DEFAULT_PUBLIC_ORIGIN = (
+  process.env.PUBLIC_SITE_URL || 'https://huellitas-sand.vercel.app'
+).replace(/\/+$/, '');
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveSafeOrigin(req) {
+  const rawHostHeader = String(
+    req.headers['x-forwarded-host'] || req.headers.host || '',
+  ).trim();
+  const hostWithoutPort = rawHostHeader.split(':')[0].toLowerCase();
+  const isTrustedHost =
+    hostWithoutPort === 'huellitas-sand.vercel.app' ||
+    /^huellitas-[a-z0-9-]+\.vercel\.app$/.test(hostWithoutPort) ||
+    hostWithoutPort === 'localhost' ||
+    hostWithoutPort === '127.0.0.1';
+
+  if (isTrustedHost && /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(rawHostHeader)) {
+    const protocol =
+      hostWithoutPort === 'localhost' || hostWithoutPort === '127.0.0.1'
+        ? 'http'
+        : 'https';
+    return `${protocol}://${rawHostHeader}`;
+  }
+  return DEFAULT_PUBLIC_ORIGIN;
+}
 
 function escapeHtml(str) {
   return String(str || '')
@@ -35,32 +61,40 @@ function getReportBadgeTitle(rep) {
 
 module.exports = async function handler(req, res) {
   try {
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:4200';
-    const origin = `${protocol}://${host}`;
+    const origin = resolveSafeOrigin(req);
 
     const rawId = String(req.query.id || '').trim();
-    const rawType = String(req.query.type || 'post').trim();
+    const rawType = String(req.query.type || 'post').trim() === 'pet' ? 'pet' : 'post';
     const mode = String(req.query.mode || 'html').trim();
 
     const isPet = rawType === 'pet' || rawId.startsWith('pet-');
     const cleanUuid = rawId.replace(/^(lost-|pet-)/, '');
+    const hasValidUuid = UUID_REGEX.test(cleanUuid);
+    const idPrefix = rawId.startsWith('pet-')
+      ? 'pet-'
+      : rawId.startsWith('lost-')
+        ? 'lost-'
+        : '';
 
     let title = 'Huellitas Unidas Dolores Hidalgo — Rescate y Adopción Responsable';
     let description =
       'Plataforma ciudadana para el rescate, reporte de mascotas extraviadas y adopción responsable en Dolores Hidalgo, Gto.';
     let rawImageUrl = `${origin}/icons/icon-512x512.png`;
-    const canonicalPath =
-      rawType === 'pet' ? `/adopciones/${cleanUuid}` : `/publicacion/${rawId || cleanUuid}`;
+    const canonicalPath = !hasValidUuid
+      ? '/'
+      : rawType === 'pet'
+        ? `/adopciones/${cleanUuid}`
+        : `/publicacion/${idPrefix}${cleanUuid}`;
     const canonicalUrl = `${origin}${canonicalPath}`;
 
-    if (cleanUuid) {
+    if (hasValidUuid) {
       const endpoint = isPet
         ? `${BACKEND_API_URL}/pets/public/${encodeURIComponent(cleanUuid)}`
         : `${BACKEND_API_URL}/lost-pets/${encodeURIComponent(cleanUuid)}`;
 
       const response = await fetch(endpoint, {
         headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000),
       });
 
       if (response.ok) {
@@ -104,36 +138,61 @@ module.exports = async function handler(req, res) {
     // Modo binario de imagen: si la foto está guardada en Base64 en la BD,
     // Facebook requiere un endpoint HTTP real con Content-Type: image/jpeg.
     if (mode === 'image') {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'");
       if (rawImageUrl && rawImageUrl.startsWith('data:image/')) {
-        const matches = rawImageUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        const matches = rawImageUrl.match(
+          /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=]+)$/i,
+        );
         if (matches && matches[2]) {
-          const mimeType = matches[1] || 'image/jpeg';
+          const mimeType = matches[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : matches[1];
           const buffer = Buffer.from(matches[2], 'base64');
           res.setHeader('Content-Type', mimeType);
           res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
           return res.status(200).send(buffer);
         }
       }
-      if (rawImageUrl && rawImageUrl.startsWith('http')) {
-        return res.redirect(302, rawImageUrl);
+      if (rawImageUrl) {
+        try {
+          const parsedImgUrl = new URL(rawImageUrl, origin);
+          if (parsedImgUrl.protocol === 'https:' || parsedImgUrl.protocol === 'http:') {
+            return res.redirect(302, parsedImgUrl.toString());
+          }
+        } catch {
+          // Fall back to default app icon below.
+        }
       }
       return res.redirect(302, `${origin}/icons/icon-512x512.png`);
     }
 
     // Si la foto es un Data URL Base64, apuntar og:image a este mismo endpoint con ?mode=image
-    let finalOgImage = rawImageUrl;
-    if (rawImageUrl && rawImageUrl.startsWith('data:image/')) {
+    let finalOgImage = `${origin}/icons/icon-512x512.png`;
+    if (
+      hasValidUuid &&
+      rawImageUrl &&
+      /^data:image\/(?:png|jpeg|jpg|webp|gif);base64,/i.test(rawImageUrl)
+    ) {
       finalOgImage = `${origin}/api/og?mode=image&type=${encodeURIComponent(
         rawType,
-      )}&id=${encodeURIComponent(rawId)}`;
-    } else if (rawImageUrl && rawImageUrl.startsWith('/')) {
+      )}&id=${encodeURIComponent(`${idPrefix}${cleanUuid}`)}`;
+    } else if (rawImageUrl && rawImageUrl.startsWith('/') && !rawImageUrl.startsWith('//')) {
       finalOgImage = `${origin}${rawImageUrl}`;
+    } else if (rawImageUrl) {
+      try {
+        const parsedOg = new URL(rawImageUrl);
+        if (parsedOg.protocol === 'https:' || parsedOg.protocol === 'http:') {
+          finalOgImage = parsedOg.toString();
+        }
+      } catch {
+        // Keep default app icon if invalid.
+      }
     }
 
     const safeTitle = escapeHtml(title);
     const safeDesc = escapeHtml(description.slice(0, 300));
     const safeImage = escapeHtml(finalOgImage);
     const safeUrl = escapeHtml(canonicalUrl);
+    const safeJsonPath = JSON.stringify(canonicalPath).replace(/</g, '\\u003c');
 
     const html = `<!doctype html>
 <html lang="es">
@@ -158,7 +217,7 @@ module.exports = async function handler(req, res) {
 </head>
 <body>
   <p>Redirigiendo a <a href="${safeUrl}">${safeTitle}</a>...</p>
-  <script>window.location.replace(${JSON.stringify(canonicalPath)});</script>
+  <script>window.location.replace(${safeJsonPath});</script>
 </body>
 </html>`;
 

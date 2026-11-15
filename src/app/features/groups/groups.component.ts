@@ -7,6 +7,7 @@ import { PetService } from '../../core/services/pet.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import { PetGroup, GroupFeedMoment } from '../../core/models/group.model';
 import { Pet } from '../../core/models/pet.model';
 
@@ -217,11 +218,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showCreateModal()) {
         <div
           (click)="closeCreateModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -249,7 +250,17 @@ import { Pet } from '../../core/models/pet.model';
                     formControlName="name"
                     placeholder="Ej. Familia Ramírez, Hogar Peludo..."
                     class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500"
+                    [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': createForm.get('name')?.invalid && createForm.get('name')?.touched }"
                   />
+                  @if (createForm.get('name')?.invalid && createForm.get('name')?.touched) {
+                    <p class="mt-1 text-xs text-rose-400 font-medium">
+                      @if (createForm.get('name')?.hasError('required')) {
+                        Ingresa un nombre para identificar tu grupo familiar.
+                      } @else {
+                        El nombre no debe exceder 80 caracteres.
+                      }
+                    </p>
+                  }
                 </div>
 
                 <div>
@@ -277,8 +288,7 @@ import { Pet } from '../../core/models/pet.model';
 
                 <button
                   type="submit"
-                  [disabled]="createForm.invalid"
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
                 >
                   Crear Familia
                 </button>
@@ -292,11 +302,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showJoinModal()) {
         <div
           (click)="closeJoinModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-center"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-center my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900 text-left">
@@ -325,7 +335,19 @@ import { Pet } from '../../core/models/pet.model';
                     formControlName="inviteCode"
                     placeholder="FAM-1234"
                     class="w-full px-4 py-3 rounded-2xl liquid-glass-input text-center text-xl font-black tracking-widest uppercase text-emerald-400 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': joinForm.get('inviteCode')?.invalid && joinForm.get('inviteCode')?.touched }"
                   />
+                  @if (joinForm.get('inviteCode')?.invalid && joinForm.get('inviteCode')?.touched) {
+                    <p class="mt-2 text-xs text-rose-400 font-medium text-center">
+                      @if (joinForm.get('inviteCode')?.hasError('required')) {
+                        Ingresa el código de invitación compartido por el titular de la familia.
+                      } @else if (joinForm.get('inviteCode')?.hasError('minlength')) {
+                        El código debe tener al menos 4 caracteres ({{ (joinForm.get('inviteCode')?.value || '').trim().length }}/4).
+                      } @else {
+                        El código no puede tener más de 12 caracteres.
+                      }
+                    </p>
+                  }
                 </div>
               </div>
 
@@ -341,8 +363,7 @@ import { Pet } from '../../core/models/pet.model';
 
                 <button
                   type="submit"
-                  [disabled]="joinForm.invalid"
-                  class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-md cursor-pointer"
                 >
                   Unirme a la Familia
                 </button>
@@ -356,11 +377,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showAssignModal() && selectedGroupForAssign()) {
         <div
           (click)="closeAssignPetModal()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-auto max-h-[95dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-auto max-h-[92dvh] sm:max-h-[88vh] sm:max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -427,11 +448,11 @@ import { Pet } from '../../core/models/pet.model';
       @if (showFeedModal() && selectedGroupForFeed()) {
         <div
           (click)="closeGroupFeed()"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-hidden"
+          class="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
           <div
             (click)="$event.stopPropagation()"
-            class="w-full h-full max-h-[100dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+            class="w-full h-full max-h-[94dvh] sm:h-auto sm:max-h-[88vh] sm:max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150 my-auto"
           >
             <!-- Header Pinned -->
             <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-slate-900">
@@ -522,6 +543,7 @@ export class GroupsComponent implements OnInit, OnDestroy {
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
+  private scrollLock = inject(ScrollLockService);
   private fb = inject(FormBuilder);
 
   currentUser = this.authService.currentUser;
@@ -561,16 +583,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   private lockBodyScroll(locked: boolean): void {
-    if (typeof document !== 'undefined') {
-      if (locked) {
-        document.body.classList.add('modal-open');
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
-      } else {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
-      }
+    if (locked) {
+      this.scrollLock.lock('groups-modal');
+    } else {
+      this.scrollLock.unlock('groups-modal');
     }
   }
 
@@ -617,7 +633,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   onSubmitCreate(): void {
-    if (this.createForm.invalid) return;
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
 
     const val = this.createForm.value;
     this.groupService.create({ name: val.name!, description: val.description || undefined }).subscribe({
@@ -644,7 +663,10 @@ export class GroupsComponent implements OnInit, OnDestroy {
   }
 
   onSubmitJoin(): void {
-    if (this.joinForm.invalid) return;
+    if (this.joinForm.invalid) {
+      this.joinForm.markAllAsTouched();
+      return;
+    }
 
     const code = this.joinForm.value.inviteCode!;
     this.groupService.join({ inviteCode: code }).subscribe({

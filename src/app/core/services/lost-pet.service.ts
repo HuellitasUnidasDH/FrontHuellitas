@@ -81,6 +81,12 @@ export class LostPetService {
       .pipe(map((r) => r.data));
   }
 
+  deleteComment(reportId: string, commentId: string): Observable<{ message: string }> {
+    return this.http
+      .delete<ApiResponse<{ message: string }>>(`${this.URL}/${reportId}/comments/${commentId}`)
+      .pipe(map((r) => r.data));
+  }
+
   delete(id: string): Observable<{ message: string }> {
     return this.http
       .delete<ApiResponse<{ message: string }>>(`${this.URL}/${id}`)

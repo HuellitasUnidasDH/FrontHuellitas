@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,9 +8,42 @@ import { AuditService } from '../../core/services/audit.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { AuthService, DEFAULT_PRIVACY_POLICY_CONFIG } from '../../core/services/auth.service';
+import { ScrollLockService } from '../../core/services/scroll-lock.service';
+import {
+  ContentReport,
+  ContentReportStatus,
+  ModerationAction,
+  ModerationService,
+} from '../../core/services/moderation.service';
+import { formatPetGenderLabel } from '../../core/utils/app-helpers.util';
+import { LostPetService } from '../../core/services/lost-pet.service';
+import { AllyService } from '../../core/services/ally.service';
+import { ColoniaService } from '../../core/services/colonia.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Pet } from '../../core/models/pet.model';
+import { LostPetReport, LostPetStatus, LostPetType } from '../../core/models/lost-pet.model';
+import { Ally, AllyCategory } from '../../core/models/ally.model';
+import { Colonia } from '../../core/models/colonia.model';
 import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
+import {
+  ACTIVE_ROLE_OPTIONS,
+  ADOPTION_STATUS_META,
+  ALL_ROLE_OPTIONS,
+  ALLY_CATEGORY_OPTIONS,
+  LEGACY_ROLE_OPTIONS,
+  LOST_PET_STATUS_META,
+  LOST_PET_TYPE_LABELS,
+  MODERATION_ACTION_META_MAP,
+  MODERATION_ACTION_OPTIONS,
+  ModerationActionMeta,
+  QUICK_MODERATION_NOTES,
+  REPORT_REASON_LABELS,
+  REPORT_STATUS_META,
+  REPORT_TARGET_LABELS,
+  downloadCsv,
+  getRoleMeta,
+  normalizeSearchText,
+} from './admin-metadata';
 
 @Component({
   selector: 'app-admin',
@@ -28,8 +61,9 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             </span>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">DevSecOps & Control Total</span>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1.5">
-            Centro de Mando y Auditoría 🛡️
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1.5 flex items-center gap-2.5">
+            <span>Centro de Mando y Auditoría</span>
+            <svg class="w-6 h-6 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
           </h1>
           <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Supervisa el estado del servidor en tiempo real, rastrea intentos de acceso y ciberataques, gestiona usuarios y administra registros médicos zoológicos.
@@ -50,7 +84,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.dark:text-slate-400]="activeTab() !== 'monitoring'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>📊</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
             <span>Monitoreo</span>
           </button>
 
@@ -66,7 +100,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.dark:text-slate-400]="activeTab() !== 'audit'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>🛡️</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
             <span>Logs y Auditoría</span>
           </button>
 
@@ -82,7 +116,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.dark:text-slate-400]="activeTab() !== 'users'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>👥</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>Personas ({{ users().length }})</span>
           </button>
 
@@ -98,8 +132,61 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             [class.dark:text-slate-400]="activeTab() !== 'pets'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>🐾</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
             <span>Mascotas ({{ pets().length }})</span>
+          </button>
+
+          <!-- Moderación / Denuncias -->
+          <button
+            (click)="switchTab('moderation')"
+            [class.bg-white]="activeTab() === 'moderation'"
+            [class.dark:bg-slate-800]="activeTab() === 'moderation'"
+            [class.text-slate-950]="activeTab() === 'moderation'"
+            [class.dark:text-white]="activeTab() === 'moderation'"
+            [class.shadow-md]="activeTab() === 'moderation'"
+            [class.text-slate-600]="activeTab() !== 'moderation'"
+            [class.dark:text-slate-400]="activeTab() !== 'moderation'"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
+          >
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            <span>Moderación</span>
+            @if (pendingReportsCount() > 0) {
+              <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                {{ pendingReportsCount() }}
+              </span>
+            }
+          </button>
+
+          <!-- Muro Comunitario -->
+          <button
+            (click)="switchTab('posts')"
+            [class.bg-white]="activeTab() === 'posts'"
+            [class.dark:bg-slate-800]="activeTab() === 'posts'"
+            [class.text-slate-950]="activeTab() === 'posts'"
+            [class.dark:text-white]="activeTab() === 'posts'"
+            [class.shadow-md]="activeTab() === 'posts'"
+            [class.text-slate-600]="activeTab() !== 'posts'"
+            [class.dark:text-slate-400]="activeTab() !== 'posts'"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
+          >
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+            <span>Muro ({{ lostReports().length }})</span>
+          </button>
+
+          <!-- Aliados -->
+          <button
+            (click)="switchTab('allies')"
+            [class.bg-white]="activeTab() === 'allies'"
+            [class.dark:bg-slate-800]="activeTab() === 'allies'"
+            [class.text-slate-950]="activeTab() === 'allies'"
+            [class.dark:text-white]="activeTab() === 'allies'"
+            [class.shadow-md]="activeTab() === 'allies'"
+            [class.text-slate-600]="activeTab() !== 'allies'"
+            [class.dark:text-slate-400]="activeTab() !== 'allies'"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
+          >
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
+            <span>Aliados ({{ allies().length }})</span>
           </button>
         </div>
       </div>
@@ -141,10 +228,10 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               </div>
               <button
                 (click)="loadStats()"
-                class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
                 title="Actualizar métricas"
               >
-                🔄
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
               </button>
             </div>
           </div>
@@ -156,7 +243,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Usuarios</span>
-                <span class="text-xl">👥</span>
+                <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div class="mt-2 text-3xl font-black text-slate-900 dark:text-white">
                 {{ stats()?.users?.total || users().length }}
@@ -171,42 +258,54 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             <!-- Card 2: Total Mascotas -->
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mascotas Registradas</span>
-                <span class="text-xl">🐾</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mascotas & Adopción</span>
+                <svg class="w-5 h-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
               </div>
               <div class="mt-2 text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                {{ stats()?.pets?.total || pets().length }}
+                {{ stats()?.pets?.total ?? pets().length }}
               </div>
-              <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                Expedientes clínicos y cartillas activas
+              <div class="mt-2 text-xs text-slate-600 dark:text-slate-400 flex flex-wrap gap-2">
+                <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ stats()?.pets?.availableForAdoption || 0 }} disponibles</span>
+                <span>·</span>
+                <span class="font-bold text-sky-600 dark:text-sky-400">{{ stats()?.pets?.adopted || 0 }} adoptadas</span>
               </div>
             </div>
 
-            <!-- Card 3: Inicios de Sesión Hoy -->
-            <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
+            <!-- Card 3: Comunidad & Moderación -->
+            <div
+              (click)="switchTab(pendingReportsCount() > 0 ? 'moderation' : 'posts')"
+              class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden cursor-pointer hover:border-amber-500/40 transition-all"
+              title="Haz clic para abrir Moderación o Muro Comunitario"
+            >
               <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Accesos Hoy</span>
-                <span class="text-xl">🔑</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Comunidad & Reportes</span>
+                <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
               </div>
-              <div class="mt-2 text-3xl font-black text-cyan-600 dark:text-cyan-400">
-                {{ stats()?.security?.loginsSuccessToday || 0 }}
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-3xl font-black" [ngClass]="(stats()?.community?.pendingModerationReports || 0) > 0 ? 'text-rose-500' : 'text-cyan-600 dark:text-cyan-400'">
+                  {{ stats()?.community?.pendingModerationReports ?? pendingReportsCount() }}
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">denuncias pendientes</span>
               </div>
               <div class="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                Autenticaciones JWT exitosas en las últimas 24h
+                {{ stats()?.community?.activeLostReports ?? 0 }} alertas activas · {{ stats()?.community?.pendingAdoptionRequests ?? 0 }} adopciones en trámite
               </div>
             </div>
 
             <!-- Card 4: Seguridad & Intentos Fallidos -->
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Alertas de Seguridad</span>
-                <span class="text-xl">🛡️</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Seguridad & Accesos Hoy</span>
+                <svg class="w-5 h-5 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
               </div>
-              <div class="mt-2 text-3xl font-black" [ngClass]="(stats()?.security?.loginsFailedToday || 0) > 0 ? 'text-amber-500' : 'text-slate-900 dark:text-white'">
-                {{ stats()?.security?.totalSecurityAlerts || 0 }}
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-3xl font-black text-cyan-600 dark:text-cyan-400">
+                  {{ stats()?.security?.loginsSuccessToday || 0 }}
+                </span>
+                <span class="text-xs font-bold text-slate-500 dark:text-slate-400">accesos hoy</span>
               </div>
               <div class="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                <span class="text-rose-500 font-bold">{{ stats()?.security?.loginsFailedToday || 0 }} fallos hoy</span> mitigados por seguridad
+                <span class="text-rose-500 font-bold">{{ stats()?.security?.loginsFailedToday || 0 }} fallos hoy</span> · {{ stats()?.security?.totalSecurityAlerts || 0 }} alertas totales
               </div>
             </div>
 
@@ -215,62 +314,36 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
           <!-- Deep Breakdown Grids -->
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <!-- Desglose de Usuarios por Rol -->
+            <!-- Desglose de Usuarios por Rol (Todos los roles Huellitas) -->
             <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>👤</span>
+                <svg class="w-4 h-4 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Composición de Usuarios por Rol</span>
               </h3>
               
               <div class="space-y-3">
-                <!-- Administradores -->
-                <div>
-                  <div class="flex justify-between text-xs font-bold mb-1">
-                    <span class="text-rose-600 dark:text-rose-400">Administradores</span>
-                    <span class="text-slate-700 dark:text-slate-300">{{ stats()?.users?.byRole?.admin || 0 }}</span>
+                @for (roleBar of roleCompositionBars(); track roleBar.key) {
+                  <div>
+                    <div class="flex justify-between text-xs font-bold mb-1">
+                      <span [class]="roleBar.textClass">{{ roleBar.label }}</span>
+                      <span class="text-slate-700 dark:text-slate-300 font-mono">{{ roleBar.count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        [ngClass]="roleBar.barClass"
+                        [style.width.%]="calcPercentage(roleBar.count, stats()?.users?.total || 1)"
+                      ></div>
+                    </div>
                   </div>
-                  <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div
-                      class="bg-rose-500 h-full rounded-full transition-all duration-500"
-                      [style.width.%]="calcPercentage(stats()?.users?.byRole?.admin || 0, stats()?.users?.total || 1)"
-                    ></div>
-                  </div>
-                </div>
-
-                <!-- Veterinarios -->
-                <div>
-                  <div class="flex justify-between text-xs font-bold mb-1">
-                    <span class="text-teal-600 dark:text-teal-400">Médicos Veterinarios</span>
-                    <span class="text-slate-700 dark:text-slate-300">{{ stats()?.users?.byRole?.veterinarian || 0 }}</span>
-                  </div>
-                  <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div
-                      class="bg-teal-500 h-full rounded-full transition-all duration-500"
-                      [style.width.%]="calcPercentage(stats()?.users?.byRole?.veterinarian || 0, stats()?.users?.total || 1)"
-                    ></div>
-                  </div>
-                </div>
-
-                <!-- Dueños -->
-                <div>
-                  <div class="flex justify-between text-xs font-bold mb-1">
-                    <span class="text-emerald-600 dark:text-emerald-400">Dueños de Mascotas</span>
-                    <span class="text-slate-700 dark:text-slate-300">{{ stats()?.users?.byRole?.petOwner || 0 }}</span>
-                  </div>
-                  <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div
-                      class="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                      [style.width.%]="calcPercentage(stats()?.users?.byRole?.petOwner || 0, stats()?.users?.total || 1)"
-                    ></div>
-                  </div>
-                </div>
+                }
               </div>
             </div>
 
             <!-- Desglose de Mascotas por Especie -->
             <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🐾</span>
+                <svg class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
                 <span>Distribución por Especies Animales</span>
               </h3>
 
@@ -302,7 +375,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
           <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>⚡</span>
+                <svg class="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 <span>Últimos Eventos de Seguridad del Sistema</span>
               </h3>
               <button
@@ -358,24 +431,44 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
         <div class="space-y-6 animate-fade-in">
           
           <!-- Filters & Search Toolbar -->
-          <div class="liquid-glass p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-md">
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-md">
             <!-- Search bar -->
-            <div class="relative flex-1">
-              <input
-                type="text"
-                [(ngModel)]="logSearch"
-                (keyup.enter)="loadAuditLogs(1)"
-                placeholder="Buscar por IP, correo, detalle o recurso..."
-                class="w-full pl-10 pr-4 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
-              />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+            <div class="relative flex-1 flex items-center gap-2">
+              <div class="relative flex-1">
+                <input
+                  type="text"
+                  [ngModel]="logSearch()"
+                  (ngModelChange)="onLogSearchChange($event)"
+                  (keyup.enter)="loadAuditLogs(1)"
+                  placeholder="Buscar por IP, correo, detalle, usuario o recurso..."
+                  class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+                />
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                @if (logSearch()) {
+                  <button
+                    type="button"
+                    (click)="onLogSearchChange(''); loadAuditLogs(1)"
+                    class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                    title="Limpiar búsqueda"
+                  >
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                }
+              </div>
+              <button
+                type="button"
+                (click)="loadAuditLogs(1)"
+                class="px-3 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold hover:opacity-90 cursor-pointer shrink-0"
+              >
+                Buscar
+              </button>
             </div>
 
             <!-- Action type filter -->
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <select
-                [(ngModel)]="selectedActionFilter"
-                (ngModelChange)="loadAuditLogs(1)"
+                [ngModel]="selectedActionFilter()"
+                (ngModelChange)="selectedActionFilter.set($event); loadAuditLogs(1)"
                 class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
               >
                 <option value="">Todos los Eventos</option>
@@ -389,10 +482,11 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               </select>
 
               <button
+                type="button"
                 (click)="loadAuditLogs(1)"
                 class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <span>🔄</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
                 <span>Actualizar</span>
               </button>
             </div>
@@ -405,7 +499,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
             </div>
           } @else if (auditLogs().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl">
-              <span class="text-4xl">📜</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300 mt-2">No se encontraron registros de auditoría</p>
             </div>
           } @else {
@@ -486,27 +580,65 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
       @if (activeTab() === 'users') {
         <div class="space-y-6 animate-fade-in">
           <!-- User Filters & Search -->
-          <div class="liquid-glass p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-md">
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between shadow-md">
             <div class="relative flex-1">
               <input
                 type="text"
-                [(ngModel)]="userSearch"
-                placeholder="Buscar usuario por nombre o correo..."
-                class="w-full pl-10 pr-4 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+                [ngModel]="userSearch()"
+                (ngModelChange)="userSearch.set($event)"
+                placeholder="Buscar usuario por nombre, correo, teléfono o colonia..."
+                class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              @if (userSearch()) {
+                <button
+                  type="button"
+                  (click)="userSearch.set('')"
+                  class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              }
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <select
-                [(ngModel)]="selectedRoleFilter"
+                [ngModel]="selectedRoleFilter()"
+                (ngModelChange)="selectedRoleFilter.set($event)"
                 class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
               >
                 <option value="">Todos los Roles</option>
-                <option [value]="UserRole.ADMIN">Administradores</option>
-                <option [value]="UserRole.VETERINARIAN">Veterinarios</option>
-                <option [value]="UserRole.PET_OWNER">Dueños</option>
+                @for (roleOpt of activeRoleOptions; track roleOpt.value) {
+                  <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+                }
+                <optgroup label="Roles anteriores (compatibilidad)">
+                  @for (legacyOpt of legacyRoleOptions; track legacyOpt.value) {
+                    <option [value]="legacyOpt.value">{{ legacyOpt.label }}</option>
+                  }
+                </optgroup>
               </select>
+
+              <select
+                [ngModel]="selectedUserStatusFilter()"
+                (ngModelChange)="selectedUserStatusFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todos los Estados</option>
+                <option value="ACTIVE">Solo Activos</option>
+                <option value="SUSPENDED">Solo Suspendidos</option>
+              </select>
+
+              <button
+                type="button"
+                (click)="exportUsersCsv()"
+                [disabled]="filteredUsers().length === 0"
+                class="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+                title="Descargar listado filtrado en CSV"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <span>CSV ({{ filteredUsers().length }})</span>
+              </button>
 
               @if (isAdmin()) {
                 <button
@@ -515,8 +647,8 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                   class="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                   title="Editar el contenido del Aviso de Privacidad y actualizar la versión legal requerida"
                 >
-                  <span>📜</span>
-                  <span>Actualizar Versión Legal</span>
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span>Versión Legal</span>
                 </button>
               }
             </div>
@@ -528,9 +660,18 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           } @else if (filteredUsers().length === 0) {
-            <div class="text-center py-16 liquid-glass rounded-3xl">
-              <span class="text-4xl">👥</span>
-              <p class="text-sm font-bold text-slate-700 dark:text-slate-300 mt-2">No se encontraron usuarios</p>
+            <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron usuarios con esos filtros</p>
+              @if (userSearch() || selectedRoleFilter() || selectedUserStatusFilter()) {
+                <button
+                  type="button"
+                  (click)="clearUserFilters()"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold cursor-pointer"
+                >
+                  Limpiar filtros
+                </button>
+              }
             </div>
           } @else {
             <div class="liquid-glass rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 dark:border-slate-800">
@@ -539,7 +680,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                   <thead class="bg-slate-200/50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
                     <tr>
                       <th class="py-3.5 px-4 sm:px-6">Usuario</th>
-                      <th class="py-3.5 px-4">Teléfono</th>
+                      <th class="py-3.5 px-4">Teléfono / Verificación</th>
                       <th class="py-3.5 px-4">Rol Asignado</th>
                       <th class="py-3.5 px-4">Términos</th>
                       <th class="py-3.5 px-4">Estado</th>
@@ -552,37 +693,64 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                         <td class="py-4 px-4 sm:px-6">
                           <div class="font-bold text-slate-900 dark:text-white text-sm">{{ user.fullName }}</div>
                           <div class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ user.email }}</div>
-                        </td>
-                        <td class="py-4 px-4 font-mono text-slate-700 dark:text-slate-300">
-                          {{ user.phone || 'Sin registrar' }}
+                          @if (user.colonia?.name) {
+                            <div class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                              <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                              <span>Col. {{ user.colonia.name }}</span>
+                            </div>
+                          }
                         </td>
                         <td class="py-4 px-4">
-                          <!-- Select dropdown to immediately assign/change role -->
+                          <div class="font-mono text-xs text-slate-700 dark:text-slate-300">
+                            {{ user.phone || 'Sin registrar' }}
+                          </div>
+                          <div class="mt-1 flex items-center gap-1.5">
+                            <select
+                              [ngModel]="user.verificationLevel ?? 0"
+                              (ngModelChange)="onUpdateUserVerificationLevel(user, +$event)"
+                              class="px-2 py-0.5 rounded-md text-[11px] font-bold liquid-glass-input cursor-pointer focus:outline-none focus:border-emerald-500"
+                              [ngClass]="{
+                                'text-emerald-600 dark:text-emerald-400': (user.verificationLevel ?? 0) >= 2,
+                                'text-sky-600 dark:text-sky-400': (user.verificationLevel ?? 0) === 1,
+                                'text-slate-500 dark:text-slate-400': (user.verificationLevel ?? 0) === 0
+                              }"
+                              title="Nivel de verificación del usuario"
+                            >
+                              <option [ngValue]="0">Nivel 0 · Básico</option>
+                              <option [ngValue]="1">Nivel 1 · Teléfono</option>
+                              <option [ngValue]="2">Nivel 2 · Evaluado</option>
+                              <option [ngValue]="3">Nivel 3 · Completo</option>
+                            </select>
+                          </div>
+                        </td>
+                        <td class="py-4 px-4">
+                          <!-- Select dropdown to assign/change any Huellitas role -->
                           <select
                             [ngModel]="user.role"
                             (ngModelChange)="onUpdateUserRole(user, $event)"
                             [disabled]="user.id === currentAdminId()"
-                            class="px-2.5 py-1 rounded-lg text-xs font-bold liquid-glass-input cursor-pointer focus:outline-none focus:border-emerald-500"
-                            [ngClass]="{
-                              'text-rose-600 dark:text-rose-400': user.role === UserRole.ADMIN,
-                              'text-teal-600 dark:text-teal-400': user.role === UserRole.VETERINARIAN,
-                              'text-sky-600 dark:text-sky-400': user.role === UserRole.PET_OWNER
-                            }"
+                            class="px-2.5 py-1.5 rounded-lg text-xs font-bold liquid-glass-input cursor-pointer focus:outline-none focus:border-emerald-500"
+                            [ngClass]="getRoleSelectClass(user.role)"
                           >
-                            <option [value]="UserRole.ADMIN">Administrador</option>
-                            <option [value]="UserRole.VETERINARIAN">Veterinario</option>
-                            <option [value]="UserRole.PET_OWNER">Dueño de Mascota</option>
+                            @for (roleOpt of activeRoleOptions; track roleOpt.value) {
+                              <option [value]="roleOpt.value">{{ roleOpt.label }}</option>
+                            }
+                            @for (legacyOpt of legacyRoleOptions; track legacyOpt.value) {
+                              @if (user.role === legacyOpt.value) {
+                                <option [value]="legacyOpt.value">{{ legacyOpt.label }}</option>
+                              }
+                            }
                           </select>
                         </td>
                         <td class="py-4 px-4">
                           @if (user.acceptedPrivacyVersion && user.acceptedPrivacyVersion !== 'OUTDATED' && user.acceptedPrivacyVersion === currentPrivacyVersion()) {
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                              <span>✓</span>
+                              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                               <span>{{ user.acceptedPrivacyVersion }}</span>
                             </span>
                           } @else {
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                              <span>⚠️</span>
+                              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                               <span>{{ user.acceptedPrivacyVersion || 'Pendiente' }}</span>
                             </span>
                           }
@@ -622,25 +790,62 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
       <!-- ========================================================= -->
       @if (activeTab() === 'pets') {
         <div class="space-y-6 animate-fade-in">
-          <!-- Pet Search -->
-          <div class="liquid-glass p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between shadow-md">
+          <!-- Pet Search & Filters -->
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-md">
             <div class="relative flex-1">
               <input
                 type="text"
-                [(ngModel)]="petSearch"
-                placeholder="Buscar mascota por nombre, especie, chip o dueño..."
-                class="w-full pl-10 pr-4 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+                [ngModel]="petSearch()"
+                (ngModelChange)="petSearch.set($event)"
+                placeholder="Buscar mascota por nombre, raza, especie, chip o dueño..."
+                class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              @if (petSearch()) {
+                <button
+                  type="button"
+                  (click)="petSearch.set('')"
+                  class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              }
             </div>
 
-            <a
-              routerLink="/pets/new"
-              class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer"
-            >
-              <span>+</span>
-              <span>Registrar Mascota</span>
-            </a>
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                [ngModel]="selectedPetSpeciesFilter()"
+                (ngModelChange)="selectedPetSpeciesFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todas las Especies</option>
+                <option value="perro">Perros</option>
+                <option value="gato">Gatos</option>
+                <option value="otro">Otras especies</option>
+              </select>
+
+              <select
+                [ngModel]="selectedPetStatusFilter()"
+                (ngModelChange)="selectedPetStatusFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todos los Estados</option>
+                <option value="DISPONIBLE">En Adopción</option>
+                <option value="EN_PROCESO">En Proceso</option>
+                <option value="ADOPTADA">Adoptada</option>
+                <option value="EN_SEGUIMIENTO">Seguimiento</option>
+                <option value="NO_EN_ADOPCION">Expediente Personal</option>
+              </select>
+
+              <a
+                routerLink="/pets/new"
+                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <span>+</span>
+                <span>Registrar Mascota</span>
+              </a>
+            </div>
           </div>
 
           <!-- Pets Table / Cards -->
@@ -649,9 +854,18 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
           } @else if (filteredPets().length === 0) {
-            <div class="text-center py-16 liquid-glass rounded-3xl">
-              <span class="text-4xl">🐾</span>
-              <p class="text-sm font-bold text-slate-700 dark:text-slate-300 mt-2">No se encontraron mascotas registradas</p>
+            <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron mascotas con esos filtros</p>
+              @if (petSearch() || selectedPetSpeciesFilter() || selectedPetStatusFilter()) {
+                <button
+                  type="button"
+                  (click)="petSearch.set(''); selectedPetSpeciesFilter.set(''); selectedPetStatusFilter.set('')"
+                  class="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-xs font-bold cursor-pointer"
+                >
+                  Limpiar filtros
+                </button>
+              }
             </div>
           } @else {
             <div class="liquid-glass rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 dark:border-slate-800">
@@ -661,7 +875,8 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                     <tr>
                       <th class="py-3.5 px-4 sm:px-6">Mascota</th>
                       <th class="py-3.5 px-4">Especie / Raza</th>
-                      <th class="py-3.5 px-4">Dueño Registrado</th>
+                      <th class="py-3.5 px-4">Estado Adopción</th>
+                      <th class="py-3.5 px-4">Dueño / Publicador</th>
                       <th class="py-3.5 px-4">Microchip</th>
                       <th class="py-3.5 px-4 sm:px-6 text-right">Acciones</th>
                     </tr>
@@ -671,15 +886,15 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                       <tr class="hover:bg-white/40 dark:hover:bg-slate-800/30 transition-colors">
                         <td class="py-4 px-4 sm:px-6">
                           <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-lg">
-                              {{ pet.species.toLowerCase() === 'perro' || pet.species.toLowerCase() === 'canino' ? '🐶' : pet.species.toLowerCase() === 'gato' || pet.species.toLowerCase() === 'felino' ? '🐱' : '🐾' }}
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase">
+                              {{ (pet.species || 'M').slice(0, 2) }}
                             </div>
                             <div>
                               <a [routerLink]="['/pets', pet.id]" class="font-bold text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
                                 {{ pet.name }}
                               </a>
                               <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                                {{ pet.gender === 'MALE' ? 'Macho' : 'Hembra' }} · {{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin peso' }}
+                                {{ formatPetGenderLabel(pet.gender) }} · {{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin peso' }}
                               </div>
                             </div>
                           </div>
@@ -690,6 +905,14 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                           </span>
                           <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">
                             {{ pet.breed || 'Mestizo' }}
+                          </span>
+                        </td>
+                        <td class="py-4 px-4">
+                          <span
+                            class="px-2 py-0.5 rounded-md text-[11px] font-bold inline-block"
+                            [ngClass]="getAdoptionStatusBadge(pet.status).badgeClass"
+                          >
+                            {{ getAdoptionStatusBadge(pet.status).label }}
                           </span>
                         </td>
                         <td class="py-4 px-4">
@@ -725,17 +948,750 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
       }
 
       <!-- ========================================================= -->
+      <!-- TAB 5: MODERACIÓN Y DENUNCIAS COMUNITARIAS                -->
+      <!-- ========================================================= -->
+      @if (activeTab() === 'moderation') {
+        <div class="space-y-6 animate-fade-in">
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-md">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                [ngModel]="moderationSearch()"
+                (ngModelChange)="moderationSearch.set($event)"
+                placeholder="Buscar denuncia por motivo, descripción, denunciante o ID..."
+                class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              @if (moderationSearch()) {
+                <button
+                  type="button"
+                  (click)="moderationSearch.set('')"
+                  class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              }
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1.5">
+              @for (st of [
+                { value: '', label: 'Todos' },
+                { value: 'PENDIENTE', label: 'Pendientes' },
+                { value: 'EN_REVISION', label: 'En Revisión' },
+                { value: 'SANCIONADO', label: 'Sancionados' },
+                { value: 'DESESTIMADO', label: 'Desestimados' }
+              ]; track st.value) {
+                <button
+                  type="button"
+                  (click)="selectedModerationStatus.set(st.value)"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border"
+                  [ngClass]="selectedModerationStatus() === st.value
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-sm'
+                    : 'bg-white/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500/40'"
+                >
+                  {{ st.label }}
+                </button>
+              }
+
+              <button
+                type="button"
+                (click)="loadModerationReports()"
+                class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <svg class="w-3.5 h-3.5" [class.animate-spin]="isLoadingReports()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                <span>Actualizar</span>
+              </button>
+            </div>
+          </div>
+
+          @if (isLoadingReports()) {
+            <div class="py-20 flex justify-center">
+              <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          } @else if (filteredReports().length === 0) {
+            <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No hay denuncias que coincidan con el filtro</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 gap-4">
+              @for (report of filteredReports(); track report.id) {
+                <div class="liquid-glass p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                  <div class="space-y-3 flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span
+                        class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+                        [ngClass]="getReportStatusMeta(report.status).badgeClass"
+                      >
+                        {{ getReportStatusMeta(report.status).label }}
+                      </span>
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {{ getReportTargetLabel(report.targetType) }}
+                      </span>
+                      <span class="text-xs font-bold text-rose-600 dark:text-rose-400">
+                        {{ getReportReasonLabel(report.reason) }}
+                      </span>
+                      @if (report.actionTaken && getModerationActionMeta(report.actionTaken); as actionMeta) {
+                        <span
+                          class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                          [ngClass]="actionMeta.badgeClass"
+                        >
+                          {{ actionMeta.shortLabel }}
+                        </span>
+                      }
+                      <span class="text-[11px] text-slate-400 font-mono">
+                        {{ report.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                      </span>
+                    </div>
+
+                    @if (report.targetSummary; as summary) {
+                      <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-3">
+                        @if (summary.photoUrl) {
+                          <img
+                            [src]="summary.photoUrl"
+                            [alt]="summary.title"
+                            class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                        }
+                        <div class="flex-1 min-w-0 space-y-0.5">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-black text-slate-900 dark:text-white truncate">
+                              {{ summary.title }}
+                            </span>
+                            <span
+                              class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                              [ngClass]="summary.isDeleted
+                                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'"
+                            >
+                              {{ summary.statusLabel }}
+                            </span>
+                          </div>
+                          @if (summary.subtitle) {
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {{ summary.subtitle }}
+                            </div>
+                          }
+                          @if (summary.previewText) {
+                            <p class="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">
+                              {{ summary.previewText }}
+                            </p>
+                          }
+                          @if (summary.author; as author) {
+                            <div class="pt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>
+                                Autor: <strong class="text-slate-700 dark:text-slate-200">{{ author.fullName }}</strong>
+                              </span>
+                              @if (author.isBanned || !author.isActive) {
+                                <span class="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold text-[10px]">
+                                  Cuenta suspendida
+                                </span>
+                              }
+                              @if (author.priorSanctionsCount > 0) {
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                  {{ author.priorSanctionsCount }} sanción(es) previas
+                                </span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <p class="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                      {{ report.description }}
+                    </p>
+
+                    <div class="text-xs text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span>
+                        Reportado por: <strong class="text-slate-700 dark:text-slate-200">{{ report.reporterUser?.fullName || 'Usuario' }}</strong>
+                        @if (report.reporterUser?.email) {
+                          <span class="font-mono"> ({{ report.reporterUser?.email }})</span>
+                        }
+                      </span>
+                      <span class="font-mono text-[11px]">ID objetivo: {{ report.targetId }}</span>
+                    </div>
+
+                    @if (report.adminResolutionNotes) {
+                      <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                        <span class="font-bold">Resolución Admin:</span> {{ report.adminResolutionNotes }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="flex flex-wrap lg:flex-col items-stretch gap-2 shrink-0 lg:w-44">
+                    @if (report.targetSummary?.routePath; as routePath) {
+                      <a
+                        [routerLink]="routePath"
+                        class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold text-center transition-colors"
+                      >
+                        {{ report.targetType === 'PET_POST' ? 'Ver Ficha' : 'Ver Publicación' }}
+                      </a>
+                    }
+
+                    <button
+                      type="button"
+                      (click)="openResolveReportModal(report)"
+                      class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer transition-colors shadow-sm"
+                    >
+                      Dictaminar / Sancionar
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ========================================================= -->
+      <!-- TAB 6: PUBLICACIONES DEL MURO COMUNITARIO                 -->
+      <!-- ========================================================= -->
+      @if (activeTab() === 'posts') {
+        <div class="space-y-6 animate-fade-in">
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-md">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                [ngModel]="postSearch()"
+                (ngModelChange)="postSearch.set($event)"
+                placeholder="Buscar publicación por nombre, descripción, colonia, dirección o autor..."
+                class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              @if (postSearch()) {
+                <button
+                  type="button"
+                  (click)="postSearch.set('')"
+                  class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              }
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                [ngModel]="selectedPostTypeFilter()"
+                (ngModelChange)="selectedPostTypeFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todas las Categorías</option>
+                <option value="ANIMAL_HERIDO">Animal Herido</option>
+                <option value="EN_RESGUARDO">En Resguardo</option>
+                <option value="EN_ADOPCION">En Adopción</option>
+                <option value="SE_BUSCA">Se Busca</option>
+                <option value="CAMPANA_COMUNITARIA">Campaña Comunitaria</option>
+              </select>
+
+              <select
+                [ngModel]="selectedPostStatusFilter()"
+                (ngModelChange)="selectedPostStatusFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todos los Estados</option>
+                <option value="BUSQUEDA_ACTIVA">Activa</option>
+                <option value="AVISTADA_RECIENTEMENTE">Avistada</option>
+                <option value="REENCONTRADA">Resuelta / Reencontrada</option>
+                <option value="CERRADO">Cerrada</option>
+              </select>
+
+              <button
+                type="button"
+                (click)="loadLostReports()"
+                class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                <span>Actualizar</span>
+              </button>
+            </div>
+          </div>
+
+          @if (isLoadingPosts()) {
+            <div class="py-20 flex justify-center">
+              <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          } @else if (filteredLostReports().length === 0) {
+            <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron publicaciones en el muro</p>
+            </div>
+          } @else {
+            <div class="liquid-glass rounded-3xl overflow-hidden shadow-xl border border-slate-200/80 dark:border-slate-800">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs sm:text-sm">
+                  <thead class="bg-slate-200/50 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">
+                    <tr>
+                      <th class="py-3.5 px-4 sm:px-6">Publicación</th>
+                      <th class="py-3.5 px-4">Categoría</th>
+                      <th class="py-3.5 px-4">Ubicación</th>
+                      <th class="py-3.5 px-4">Autor</th>
+                      <th class="py-3.5 px-4">Estado</th>
+                      <th class="py-3.5 px-4 sm:px-6 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200/60 dark:divide-slate-800/80">
+                    @for (post of filteredLostReports(); track post.id) {
+                      <tr class="hover:bg-white/40 dark:hover:bg-slate-800/30 transition-colors">
+                        <td class="py-4 px-4 sm:px-6 max-w-xs">
+                          <div class="font-bold text-slate-900 dark:text-white">{{ post.petName || 'Sin nombre' }} · {{ post.species }}</div>
+                          <div class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{{ post.distinctiveFeatures }}</div>
+                        </td>
+                        <td class="py-4 px-4">
+                          <span
+                            class="px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap"
+                            [ngClass]="getPostTypeMeta(post.type).badgeClass"
+                          >
+                            {{ getPostTypeMeta(post.type).label }}
+                          </span>
+                        </td>
+                        <td class="py-4 px-4 text-xs text-slate-600 dark:text-slate-300">
+                          <div class="font-semibold">{{ post.colonia?.name || 'Dolores Hidalgo' }}</div>
+                          <div class="text-slate-500 dark:text-slate-400 truncate max-w-[180px]">{{ post.lastSeenLocation }}</div>
+                        </td>
+                        <td class="py-4 px-4 text-xs">
+                          <div class="font-semibold text-slate-800 dark:text-slate-200">{{ post.reporter?.fullName || 'Usuario' }}</div>
+                          <div class="font-mono text-slate-500 dark:text-slate-400">{{ post.contactPhone }}</div>
+                        </td>
+                        <td class="py-4 px-4">
+                          <select
+                            [ngModel]="post.status"
+                            (ngModelChange)="onUpdatePostStatus(post, $event)"
+                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold liquid-glass-input cursor-pointer"
+                          >
+                            <option value="BUSQUEDA_ACTIVA">Activa</option>
+                            <option value="AVISTADA_RECIENTEMENTE">Avistada</option>
+                            <option value="REENCONTRADA">Resuelta</option>
+                            <option value="CERRADO">Cerrada</option>
+                          </select>
+                        </td>
+                        <td class="py-4 px-4 sm:px-6 text-right space-x-2 whitespace-nowrap">
+                          <a
+                            [routerLink]="['/publicacion', post.id]"
+                            class="px-2.5 py-1.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 text-xs font-bold border border-sky-500/20 inline-block"
+                          >
+                            Ver
+                          </a>
+                          <button
+                            type="button"
+                            (click)="onDeleteLostReport(post)"
+                            class="px-2.5 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold border border-rose-500/20 cursor-pointer"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ========================================================= -->
+      <!-- TAB 7: DIRECTORIO DE ALIADOS COMERCIALES                  -->
+      <!-- ========================================================= -->
+      @if (activeTab() === 'allies') {
+        <div class="space-y-6 animate-fade-in">
+          <div class="liquid-glass p-4 rounded-2xl flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between shadow-md">
+            <div class="relative flex-1">
+              <input
+                type="text"
+                [ngModel]="allySearch()"
+                (ngModelChange)="allySearch.set($event)"
+                placeholder="Buscar aliado por nombre, dirección, colonia, teléfono o promoción..."
+                class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
+              />
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              @if (allySearch()) {
+                <button
+                  type="button"
+                  (click)="allySearch.set('')"
+                  class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              }
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select
+                [ngModel]="selectedAllyCategoryFilter()"
+                (ngModelChange)="selectedAllyCategoryFilter.set($event)"
+                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              >
+                <option value="">Todas las Categorías</option>
+                @for (cat of allyCategoryOptions; track cat.value) {
+                  <option [value]="cat.value">{{ cat.label }}</option>
+                }
+              </select>
+
+              <button
+                type="button"
+                (click)="openAllyModal()"
+                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
+              >
+                + Nuevo Aliado
+              </button>
+            </div>
+          </div>
+
+          @if (isLoadingAllies()) {
+            <div class="py-20 flex justify-center">
+              <div class="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          } @else if (filteredAllies().length === 0) {
+            <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
+              <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron aliados con esos filtros</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              @for (ally of filteredAllies(); track ally.id) {
+                <div class="liquid-glass p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col justify-between gap-4">
+                  <div class="space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                          {{ getAllyCategoryLabel(ally.category) }}
+                        </div>
+                        <h4 class="text-base font-black text-slate-900 dark:text-white">{{ ally.businessName }}</h4>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <span
+                          class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                          [ngClass]="ally.isActive ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'"
+                        >
+                          {{ ally.isActive ? 'Activo' : 'Oculto' }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{{ ally.address }} @if (ally.colonia?.name) { · Col. {{ ally.colonia?.name }} }</span>
+                    </p>
+                    <p class="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      <span>{{ ally.phone }} @if (ally.whatsappPhone) { · WA {{ ally.whatsappPhone }} }</span>
+                    </p>
+
+                    @if (ally.hasPromotionForAdopters && ally.promotionDescription) {
+                      <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
+                        <strong>Convenio:</strong> {{ ally.promotionDescription }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800">
+                    <button
+                      type="button"
+                      (click)="toggleAllyActive(ally)"
+                      class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer"
+                      [ngClass]="ally.isActive ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'"
+                    >
+                      {{ ally.isActive ? 'Ocultar' : 'Activar' }}
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openAllyModal(ally)"
+                      class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ========================================================= -->
+      <!-- MODAL DE RESOLUCIÓN DE DENUNCIA                           -->
+      <!-- ========================================================= -->
+      @if (resolvingReport(); as activeReport) {
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xl overflow-y-auto overscroll-contain">
+          <div class="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 class="text-base font-black text-slate-900 dark:text-white">Dictaminar Denuncia y Ejecutar Sanción</h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                  {{ getReportTargetLabel(activeReport.targetType) }} · {{ getReportReasonLabel(activeReport.reason) }}
+                </p>
+              </div>
+              <button
+                type="button"
+                (click)="resolvingReport.set(null)"
+                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
+                title="Cerrar"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            @if (activeReport.targetSummary; as summary) {
+              <div class="p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-xs font-black text-slate-900 dark:text-white">{{ summary.title }}</span>
+                  <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {{ summary.statusLabel }}
+                  </span>
+                </div>
+                @if (summary.author; as author) {
+                  <p class="text-[11px] text-slate-600 dark:text-slate-400">
+                    Autor: <strong>{{ author.fullName }}</strong>
+                    @if (author.email) { · <span class="font-mono">{{ author.email }}</span> }
+                    @if (author.priorSanctionsCount > 0) { · <strong class="text-amber-600 dark:text-amber-400">{{ author.priorSanctionsCount }} sanción(es) previas</strong> }
+                  </p>
+                }
+                <p class="text-xs text-slate-700 dark:text-slate-300 pt-1 italic">
+                  «{{ activeReport.description }}»
+                </p>
+              </div>
+            }
+
+            <div class="space-y-2 text-xs">
+              <label class="font-bold text-slate-700 dark:text-slate-300 block">Medida de Moderación a Ejecutar *</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                @for (opt of availableModerationActions(activeReport); track opt.value) {
+                  @let disabled = isModerationActionDisabled(activeReport, opt.value);
+                  <button
+                    type="button"
+                    [disabled]="disabled"
+                    (click)="reportResolutionForm.action = opt.value"
+                    class="p-3 rounded-2xl border text-left transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                    [ngClass]="reportResolutionForm.action === opt.value
+                      ? opt.optionClass + ' ring-2 ring-emerald-500/40 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-black text-slate-900 dark:text-white">{{ opt.label }}</span>
+                      @if (opt.destructive) {
+                        <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                          Acción Directa
+                        </span>
+                      }
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                      {{ disabled ? 'No disponible para cuentas administrativas.' : opt.description }}
+                    </p>
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (getModerationActionMeta(reportResolutionForm.action)?.destructive) {
+              <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-800 dark:text-rose-200 leading-relaxed">
+                <strong>Efecto inmediato:</strong> Las publicaciones retiradas desaparecerán del muro y catálogo (cancelando solicitudes de adopción abiertas), las cuentas suspendidas perderán su sesión activa al instante y los reportes abiertos duplicados se cerrarán automáticamente.
+              </div>
+            }
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <label class="font-bold text-slate-700 dark:text-slate-300">Notas de resolución / Justificación</label>
+                <span class="text-[10px] text-slate-400">Visible en bitácora y notificación</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (preset of quickModerationNotes; track preset) {
+                  <button
+                    type="button"
+                    (click)="selectModerationNotePreset(preset)"
+                    class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-medium text-slate-700 dark:text-slate-300 transition-colors cursor-pointer text-left"
+                  >
+                    + {{ preset }}
+                  </button>
+                }
+              </div>
+              <textarea
+                [(ngModel)]="reportResolutionForm.adminNotes"
+                rows="3"
+                placeholder="Describe el fundamento y la medida aplicada..."
+                class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+              ></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                (click)="resolvingReport.set(null)"
+                class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                (click)="submitReportResolution()"
+                [disabled]="isSavingReport()"
+                class="px-5 py-2 rounded-xl text-xs font-black cursor-pointer disabled:opacity-50 transition-colors"
+                [ngClass]="getModerationActionMeta(reportResolutionForm.action)?.destructive
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'"
+              >
+                {{ isSavingReport() ? 'Ejecutando...' : (getModerationActionMeta(reportResolutionForm.action)?.destructive ? 'Ejecutar Sanción' : 'Guardar Dictamen') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ========================================================= -->
+      <!-- MODAL DE ALIADO COMERCIAL (CREAR / EDITAR)                -->
+      <!-- ========================================================= -->
+      @if (isAllyModalOpen()) {
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xl overflow-y-auto overscroll-contain">
+          <div class="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-black text-slate-900 dark:text-white">
+                {{ editingAllyId() ? 'Editar Aliado Comercial' : 'Nuevo Aliado Comercial' }}
+              </h3>
+              <button
+                type="button"
+                (click)="isAllyModalOpen.set(false)"
+                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
+                title="Cerrar"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="sm:col-span-2">
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nombre del negocio *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="allyForm.businessName"
+                  [class.border-rose-500]="allyAttempted() && !allyForm.businessName.trim()"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                  placeholder="Ej. Veterinaria San Roque"
+                />
+                @if (allyAttempted() && !allyForm.businessName.trim()) {
+                  <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">Ingresa el nombre del negocio o aliado.</p>
+                }
+              </div>
+              <div>
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Categoría *</label>
+                <select
+                  [(ngModel)]="allyForm.category"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                >
+                  @for (cat of allyCategoryOptions; track cat.value) {
+                    <option [value]="cat.value">{{ cat.label }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Colonia</label>
+                <select
+                  [(ngModel)]="allyForm.coloniaId"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                >
+                  <option value="">Sin especificar</option>
+                  @for (col of colonias(); track col.id) {
+                    <option [value]="col.id">{{ col.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Teléfono *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="allyForm.phone"
+                  [class.border-rose-500]="allyAttempted() && !allyForm.phone.trim()"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                  placeholder="4181820000"
+                />
+                @if (allyAttempted() && !allyForm.phone.trim()) {
+                  <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">Ingresa un teléfono de contacto.</p>
+                }
+              </div>
+              <div>
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">WhatsApp</label>
+                <input
+                  type="text"
+                  [(ngModel)]="allyForm.whatsappPhone"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                  placeholder="4181820000"
+                />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Dirección *</label>
+                <input
+                  type="text"
+                  [(ngModel)]="allyForm.address"
+                  [class.border-rose-500]="allyAttempted() && !allyForm.address.trim()"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                  placeholder="Calle, número y colonia en Dolores Hidalgo"
+                />
+                @if (allyAttempted() && !allyForm.address.trim()) {
+                  <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">Indica la dirección del establecimiento.</p>
+                }
+              </div>
+              <div class="sm:col-span-2">
+                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Descripción / Servicios</label>
+                <textarea
+                  [(ngModel)]="allyForm.description"
+                  rows="2"
+                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                ></textarea>
+              </div>
+              <div class="sm:col-span-2 flex items-center gap-2 pt-1">
+                <input type="checkbox" id="allyPromo" [(ngModel)]="allyForm.hasPromotionForAdopters" class="rounded" />
+                <label for="allyPromo" class="font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                  Tiene promoción especial para adoptantes Huellitas
+                </label>
+              </div>
+              @if (allyForm.hasPromotionForAdopters) {
+                <div class="sm:col-span-2">
+                  <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Detalle de la promoción</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="allyForm.promotionDescription"
+                    class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+                    placeholder="Ej. 20% de descuento en primera consulta"
+                  />
+                </div>
+              }
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                (click)="isAllyModalOpen.set(false)"
+                class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                (click)="saveAllyModal()"
+                [disabled]="isSavingAlly()"
+                class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer disabled:opacity-50"
+              >
+                {{ isSavingAlly() ? 'Guardando...' : 'Guardar Aliado' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ========================================================= -->
       <!-- MODAL EXCLUSIVO DE ADMIN: EDITAR AVISO DE PRIVACIDAD      -->
       <!-- ========================================================= -->
       @if (isPrivacyEditorOpen() && isAdmin()) {
-        <div class="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-hidden animate-fade-in">
-          <div class="w-full h-full max-h-[96dvh] sm:h-auto sm:max-h-[90vh] sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden">
+        <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-2 sm:p-6 bg-slate-950/85 backdrop-blur-2xl overflow-y-auto overscroll-contain animate-fade-in">
+          <div class="w-full max-h-[94dvh] sm:h-auto sm:max-h-[90dvh] sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl flex flex-col overflow-hidden my-auto">
             
             <!-- Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-2xl">
-                  📜
+                <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
                 <div>
                   <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
@@ -752,7 +1708,7 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                 class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Cerrar"
               >
-                ✕
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
@@ -767,8 +1723,12 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                     type="text"
                     [(ngModel)]="privacyEditorForm.version"
                     placeholder="Ej: 2026-v2.0"
+                    [class.border-rose-500]="privacyAttempted() && !privacyEditorForm.version.trim()"
                     class="w-full px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-950/70 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
                   />
+                  @if (privacyAttempted() && !privacyEditorForm.version.trim()) {
+                    <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">Indica el código de versión legal (ej. 2026-v2.0).</p>
+                  }
                 </div>
                 <div class="sm:col-span-2">
                   <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
@@ -815,8 +1775,12 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
                   [(ngModel)]="privacyEditorForm.content"
                   rows="11"
                   placeholder="Escribe aquí las cláusulas del Aviso de Privacidad..."
+                  [class.border-rose-500]="privacyAttempted() && !privacyEditorForm.content.trim()"
                   class="w-full px-3.5 py-3 rounded-2xl bg-slate-100 dark:bg-slate-950/80 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs leading-relaxed focus:outline-none focus:border-emerald-500"
                 ></textarea>
+                @if (privacyAttempted() && !privacyEditorForm.content.trim()) {
+                  <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">Redacta el contenido del Aviso de Privacidad antes de publicar.</p>
+                }
               </div>
 
               <label class="flex items-start gap-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 cursor-pointer">
@@ -848,13 +1812,13 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
               <button
                 type="button"
                 (click)="savePrivacyPolicyChanges()"
-                [disabled]="isSavingPrivacyPolicy() || !privacyEditorForm.version.trim() || !privacyEditorForm.content.trim()"
+                [disabled]="isSavingPrivacyPolicy()"
                 class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50 transition-all flex items-center gap-1.5"
               >
                 @if (isSavingPrivacyPolicy()) {
                   <span>Guardando...</span>
                 } @else {
-                  <span>💾 Guardar y Publicar Aviso Legal</span>
+                  <span>Guardar y Publicar Aviso Legal</span>
                 }
               </button>
             </div>
@@ -866,15 +1830,40 @@ import { AuditLog, SystemStats } from '../../core/models/audit-log.model';
     </div>
   `,
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   private userService = inject(UserService);
   private petService = inject(PetService);
   private auditService = inject(AuditService);
+  private moderationService = inject(ModerationService);
+  private lostPetService = inject(LostPetService);
+  private allyService = inject(AllyService);
+  private coloniaService = inject(ColoniaService);
   private notification = inject(NotificationService);
   private confirmService = inject(ConfirmService);
   private authService = inject(AuthService);
+  private scrollLock = inject(ScrollLockService);
 
-  activeTab = signal<'monitoring' | 'audit' | 'users' | 'pets'>('monitoring');
+  private logSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    effect(() => {
+      const anyModalOpen = Boolean(
+        this.resolvingReport() || this.isAllyModalOpen() || this.isPrivacyEditorOpen(),
+      );
+      this.scrollLock.setLocked('admin-modal', anyModalOpen);
+    });
+  }
+
+  activeTab = signal<
+    'monitoring' | 'audit' | 'users' | 'pets' | 'moderation' | 'posts' | 'allies'
+  >('monitoring');
+
+  // Role & catalog metadata
+  activeRoleOptions = ACTIVE_ROLE_OPTIONS;
+  legacyRoleOptions = LEGACY_ROLE_OPTIONS;
+  allyCategoryOptions = ALLY_CATEGORY_OPTIONS;
+  quickModerationNotes = QUICK_MODERATION_NOTES;
+  formatPetGenderLabel = formatPetGenderLabel;
 
   // Stats State
   stats = signal<SystemStats | null>(null);
@@ -889,20 +1878,75 @@ export class AdminComponent implements OnInit {
   selectedActionFilter = signal('');
   logSearch = signal('');
 
-  // Users State
+  // Users State (Signals required for Zoneless Angular computed() tracking)
   users = signal<User[]>([]);
   isLoadingUsers = signal(false);
-  userSearch = '';
-  selectedRoleFilter = '';
+  userSearch = signal('');
+  selectedRoleFilter = signal('');
+  selectedUserStatusFilter = signal('');
 
   // Pets State
   pets = signal<Pet[]>([]);
   isLoadingPets = signal(false);
-  petSearch = '';
+  petSearch = signal('');
+  selectedPetSpeciesFilter = signal('');
+  selectedPetStatusFilter = signal('');
+
+  // Moderation Reports State
+  reports = signal<ContentReport[]>([]);
+  isLoadingReports = signal(false);
+  moderationSearch = signal('');
+  selectedModerationStatus = signal('');
+  resolvingReport = signal<ContentReport | null>(null);
+  isSavingReport = signal(false);
+  reportResolutionForm: { action: ModerationAction; adminNotes: string } = {
+    action: 'MARK_REVIEWING',
+    adminNotes: '',
+  };
+
+  // Community Posts State
+  lostReports = signal<LostPetReport[]>([]);
+  isLoadingPosts = signal(false);
+  postSearch = signal('');
+  selectedPostTypeFilter = signal('');
+  selectedPostStatusFilter = signal('');
+
+  // Allies State
+  allies = signal<Ally[]>([]);
+  colonias = signal<Colonia[]>([]);
+  isLoadingAllies = signal(false);
+  allySearch = signal('');
+  selectedAllyCategoryFilter = signal('');
+  isAllyModalOpen = signal(false);
+  editingAllyId = signal<string | null>(null);
+  isSavingAlly = signal(false);
+  allyAttempted = signal(false);
+  allyForm: {
+    businessName: string;
+    category: AllyCategory;
+    phone: string;
+    whatsappPhone: string;
+    coloniaId: string;
+    address: string;
+    description: string;
+    hasPromotionForAdopters: boolean;
+    promotionDescription: string;
+  } = {
+    businessName: '',
+    category: 'VETERINARIA',
+    phone: '',
+    whatsappPhone: '',
+    coloniaId: '',
+    address: '',
+    description: '',
+    hasPromotionForAdopters: false,
+    promotionDescription: '',
+  };
 
   // Privacy Policy Editor State (Admin Exclusive)
   isPrivacyEditorOpen = signal(false);
   isSavingPrivacyPolicy = signal(false);
+  privacyAttempted = signal(false);
   privacyEditorForm = {
     version: '2026-v1.0',
     title: DEFAULT_PRIVACY_POLICY_CONFIG.title,
@@ -917,18 +1961,55 @@ export class AdminComponent implements OnInit {
   isAdmin = computed(() => this.authService.isAdmin());
   currentPrivacyVersion = computed(() => this.authService.privacyPolicy().version || '2026-v1.0');
 
+  pendingReportsCount = computed(
+    () => this.reports().filter((r) => r.status === 'PENDIENTE').length,
+  );
+
+  roleCompositionBars = computed(() => {
+    const byRole = this.stats()?.users?.byRole;
+    const countsByValue: Record<string, number> = {
+      [UserRole.USUARIO_GENERAL]: byRole?.usuarioGeneral ?? 0,
+      [UserRole.ADOPTANTE_VERIFICADO]: byRole?.adoptanteVerificado ?? 0,
+      [UserRole.RESCATISTA_VERIFICADO]: byRole?.rescatistaVerificado ?? 0,
+      [UserRole.ALBERGUE]: byRole?.albergue ?? 0,
+      [UserRole.CLINICA_ALIADA]: byRole?.clinicaAliada ?? 0,
+      [UserRole.ADMIN]: byRole?.admin ?? 0,
+      [UserRole.PET_OWNER]: byRole?.petOwner ?? 0,
+      [UserRole.VETERINARIAN]: byRole?.veterinarian ?? 0,
+    };
+
+    return ALL_ROLE_OPTIONS.filter((opt) => !opt.isLegacy || (countsByValue[opt.value] || 0) > 0).map(
+      (opt) => ({
+        key: opt.value,
+        label: opt.label,
+        count: countsByValue[opt.value] || 0,
+        barClass: opt.barClass,
+        textClass: opt.textClass,
+      }),
+    );
+  });
+
   filteredUsers = computed(() => {
     let result = this.users();
-    if (this.selectedRoleFilter) {
-      result = result.filter((u) => u.role === this.selectedRoleFilter);
+    const roleFilter = this.selectedRoleFilter();
+    const statusFilter = this.selectedUserStatusFilter();
+    const query = normalizeSearchText(this.userSearch());
+
+    if (roleFilter) {
+      result = result.filter((u) => u.role === roleFilter);
     }
-    if (this.userSearch.trim()) {
-      const q = this.userSearch.toLowerCase();
+    if (statusFilter === 'ACTIVE') {
+      result = result.filter((u) => u.isActive);
+    } else if (statusFilter === 'SUSPENDED') {
+      result = result.filter((u) => !u.isActive);
+    }
+    if (query) {
       result = result.filter(
         (u) =>
-          u.fullName.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          (u.phone && u.phone.includes(q)),
+          normalizeSearchText(u.fullName).includes(query) ||
+          normalizeSearchText(u.email).includes(query) ||
+          normalizeSearchText(u.phone).includes(query) ||
+          normalizeSearchText(u.colonia?.name).includes(query),
       );
     }
     return result;
@@ -936,14 +2017,102 @@ export class AdminComponent implements OnInit {
 
   filteredPets = computed(() => {
     let result = this.pets();
-    if (this.petSearch.trim()) {
-      const q = this.petSearch.toLowerCase();
+    const speciesFilter = this.selectedPetSpeciesFilter();
+    const statusFilter = this.selectedPetStatusFilter();
+    const query = normalizeSearchText(this.petSearch());
+
+    if (speciesFilter) {
+      result = result.filter((p) => {
+        const sp = normalizeSearchText(p.species);
+        if (speciesFilter === 'perro') return sp === 'perro' || sp === 'canino';
+        if (speciesFilter === 'gato') return sp === 'gato' || sp === 'felino';
+        return sp !== 'perro' && sp !== 'canino' && sp !== 'gato' && sp !== 'felino';
+      });
+    }
+    if (statusFilter) {
+      result = result.filter((p) => p.status === statusFilter);
+    }
+    if (query) {
       result = result.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.species.toLowerCase().includes(q) ||
-          (p.microchipNumber && p.microchipNumber.toLowerCase().includes(q)) ||
-          (p.owner && p.owner.fullName.toLowerCase().includes(q)),
+          normalizeSearchText(p.name).includes(query) ||
+          normalizeSearchText(p.species).includes(query) ||
+          normalizeSearchText(p.breed).includes(query) ||
+          normalizeSearchText(p.microchipNumber).includes(query) ||
+          normalizeSearchText(p.owner?.fullName).includes(query) ||
+          normalizeSearchText(p.owner?.email).includes(query),
+      );
+    }
+    return result;
+  });
+
+  filteredReports = computed(() => {
+    let result = this.reports();
+    const status = this.selectedModerationStatus();
+    const query = normalizeSearchText(this.moderationSearch());
+
+    if (status) {
+      result = result.filter((r) => r.status === status);
+    }
+    if (query) {
+      result = result.filter(
+        (r) =>
+          normalizeSearchText(r.description).includes(query) ||
+          normalizeSearchText(r.reason).includes(query) ||
+          normalizeSearchText(r.targetId).includes(query) ||
+          normalizeSearchText(r.targetSummary?.title).includes(query) ||
+          normalizeSearchText(r.targetSummary?.author?.fullName).includes(query) ||
+          normalizeSearchText(r.targetSummary?.author?.email).includes(query) ||
+          normalizeSearchText(r.reporterUser?.fullName).includes(query) ||
+          normalizeSearchText(r.reporterUser?.email).includes(query),
+      );
+    }
+    return result;
+  });
+
+  filteredLostReports = computed(() => {
+    let result = this.lostReports();
+    const typeFilter = this.selectedPostTypeFilter();
+    const statusFilter = this.selectedPostStatusFilter();
+    const query = normalizeSearchText(this.postSearch());
+
+    if (typeFilter) {
+      result = result.filter((r) => r.type === typeFilter);
+    }
+    if (statusFilter) {
+      result = result.filter((r) => r.status === statusFilter);
+    }
+    if (query) {
+      result = result.filter(
+        (r) =>
+          normalizeSearchText(r.petName).includes(query) ||
+          normalizeSearchText(r.species).includes(query) ||
+          normalizeSearchText(r.distinctiveFeatures).includes(query) ||
+          normalizeSearchText(r.lastSeenLocation).includes(query) ||
+          normalizeSearchText(r.colonia?.name).includes(query) ||
+          normalizeSearchText(r.reporter?.fullName).includes(query) ||
+          normalizeSearchText(r.contactPhone).includes(query),
+      );
+    }
+    return result;
+  });
+
+  filteredAllies = computed(() => {
+    let result = this.allies();
+    const categoryFilter = this.selectedAllyCategoryFilter();
+    const query = normalizeSearchText(this.allySearch());
+
+    if (categoryFilter) {
+      result = result.filter((a) => a.category === categoryFilter);
+    }
+    if (query) {
+      result = result.filter(
+        (a) =>
+          normalizeSearchText(a.businessName).includes(query) ||
+          normalizeSearchText(a.address).includes(query) ||
+          normalizeSearchText(a.colonia?.name).includes(query) ||
+          normalizeSearchText(a.phone).includes(query) ||
+          normalizeSearchText(a.promotionDescription).includes(query),
       );
     }
     return result;
@@ -954,14 +2123,70 @@ export class AdminComponent implements OnInit {
     this.loadUsers();
     this.loadPets();
     this.loadAuditLogs(1);
+    this.loadModerationReports();
+    this.loadLostReports();
+    this.loadAllies();
+    this.coloniaService.getAll().subscribe({
+      next: (data) => this.colonias.set(data),
+      error: () => {},
+    });
   }
 
-  switchTab(tab: 'monitoring' | 'audit' | 'users' | 'pets'): void {
+  ngOnDestroy(): void {
+    this.scrollLock.unlock('admin-modal');
+    if (this.logSearchTimer) {
+      clearTimeout(this.logSearchTimer);
+      this.logSearchTimer = null;
+    }
+  }
+
+  switchTab(
+    tab: 'monitoring' | 'audit' | 'users' | 'pets' | 'moderation' | 'posts' | 'allies',
+  ): void {
     this.activeTab.set(tab);
     if (tab === 'monitoring') this.loadStats();
     if (tab === 'audit') this.loadAuditLogs(this.logsPage());
     if (tab === 'users') this.loadUsers();
     if (tab === 'pets') this.loadPets();
+    if (tab === 'moderation') this.loadModerationReports();
+    if (tab === 'posts') this.loadLostReports();
+    if (tab === 'allies') this.loadAllies();
+  }
+
+  onLogSearchChange(value: string): void {
+    this.logSearch.set(value);
+    if (this.logSearchTimer) {
+      clearTimeout(this.logSearchTimer);
+    }
+    this.logSearchTimer = setTimeout(() => {
+      this.loadAuditLogs(1);
+    }, 300);
+  }
+
+  clearUserFilters(): void {
+    this.userSearch.set('');
+    this.selectedRoleFilter.set('');
+    this.selectedUserStatusFilter.set('');
+  }
+
+  exportUsersCsv(): void {
+    const rows = this.filteredUsers().map((u) => [
+      u.fullName,
+      u.email,
+      u.phone || '',
+      getRoleMeta(u.role)?.label || u.role,
+      `Nivel ${u.verificationLevel ?? 0}`,
+      u.colonia?.name || '',
+      u.isActive ? 'Activo' : 'Suspendido',
+      u.acceptedPrivacyVersion || 'Pendiente',
+      u.createdAt,
+    ]);
+    downloadCsv(
+      `huellitas-usuarios-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Nombre', 'Correo', 'Teléfono', 'Rol', 'Verificación', 'Colonia', 'Estado', 'Términos', 'Registro'],
+      rows,
+    );
+    this.notification.success('CSV exportado', `Se descargaron ${rows.length} usuarios filtrados.`);
   }
 
   loadStats(): void {
@@ -978,7 +2203,7 @@ export class AdminComponent implements OnInit {
   loadAuditLogs(page = 1): void {
     this.isLoadingLogs.set(true);
     this.auditService
-      .getLogs(page, 20, this.selectedActionFilter(), this.logSearch())
+      .getLogs(page, 20, this.selectedActionFilter(), this.logSearch().trim())
       .subscribe({
         next: (data) => {
           this.auditLogs.set(data.data);
@@ -1013,6 +2238,100 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  loadModerationReports(): void {
+    this.isLoadingReports.set(true);
+    this.moderationService.getReports().subscribe({
+      next: (data) => {
+        this.reports.set(data);
+        this.isLoadingReports.set(false);
+      },
+      error: () => this.isLoadingReports.set(false),
+    });
+  }
+
+  loadLostReports(): void {
+    this.isLoadingPosts.set(true);
+    this.lostPetService.getAll().subscribe({
+      next: (data) => {
+        this.lostReports.set(data);
+        this.isLoadingPosts.set(false);
+      },
+      error: () => this.isLoadingPosts.set(false),
+    });
+  }
+
+  loadAllies(): void {
+    this.isLoadingAllies.set(true);
+    this.allyService.getAllAdmin().subscribe({
+      next: (data) => {
+        this.allies.set(data);
+        this.isLoadingAllies.set(false);
+      },
+      error: () => this.isLoadingAllies.set(false),
+    });
+  }
+
+  getRoleSelectClass(role: UserRole): string {
+    return getRoleMeta(role)?.selectClass || 'text-slate-700 dark:text-slate-300';
+  }
+
+  getAdoptionStatusBadge(status?: string) {
+    return (
+      ADOPTION_STATUS_META[status || 'NO_EN_ADOPCION'] ||
+      ADOPTION_STATUS_META['NO_EN_ADOPCION']
+    );
+  }
+
+  getReportStatusMeta(status: ContentReportStatus) {
+    return REPORT_STATUS_META[status] || REPORT_STATUS_META['PENDIENTE'];
+  }
+
+  getReportReasonLabel(reason: ContentReport['reason']) {
+    return REPORT_REASON_LABELS[reason] || reason;
+  }
+
+  getReportTargetLabel(target: ContentReport['targetType']) {
+    return REPORT_TARGET_LABELS[target] || target;
+  }
+
+  getPostTypeMeta(type: LostPetType | string) {
+    return (
+      LOST_PET_TYPE_LABELS[type] || {
+        label: type,
+        badgeClass: 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+      }
+    );
+  }
+
+  getAllyCategoryLabel(category: AllyCategory) {
+    const match = ALLY_CATEGORY_OPTIONS.find((c) => c.value === category);
+    return match ? match.label : category;
+  }
+
+  getModerationActionMeta(action?: ModerationAction | null): ModerationActionMeta | undefined {
+    return action ? MODERATION_ACTION_META_MAP.get(action) : undefined;
+  }
+
+  availableModerationActions(report: ContentReport): ModerationActionMeta[] {
+    if (report.targetType === 'USER_ACCOUNT') {
+      return MODERATION_ACTION_OPTIONS.filter((opt) => opt.value !== 'DELETE_CONTENT');
+    }
+    return MODERATION_ACTION_OPTIONS;
+  }
+
+  isModerationActionDisabled(report: ContentReport, action: ModerationAction): boolean {
+    if (action !== 'SUSPEND_USER' && action !== 'DELETE_AND_SUSPEND') {
+      return false;
+    }
+    const author = report.targetSummary?.author;
+    if (!author) return false;
+    return author.role === UserRole.ADMIN || author.id === this.currentAdminId();
+  }
+
+  selectModerationNotePreset(preset: string): void {
+    this.reportResolutionForm.adminNotes = preset;
+  }
+
   calcPercentage(value: number, total: number): number {
     if (!total || total === 0) return 0;
     return Math.min(100, Math.round((value / total) * 100));
@@ -1029,7 +2348,15 @@ export class AdminComponent implements OnInit {
       case 'USER_REGISTERED':
         return 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30';
       case 'SYSTEM_ERROR':
+      case 'MODERATION_DELETE_AND_SUSPEND':
+      case 'MODERATION_SUSPEND_USER':
         return 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/40 font-black';
+      case 'MODERATION_DELETE_CONTENT':
+      case 'MODERATION_WARN_AUTHOR':
+        return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40';
+      case 'MODERATION_DISMISS':
+      case 'MODERATION_MARK_REVIEWING':
+        return 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30';
       case 'THROTTLE_BLOCKED':
         return 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/40';
       case 'LOGOUT':
@@ -1039,15 +2366,47 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  onUpdateUserRole(user: User, newRole: UserRole): void {
+  async onUpdateUserRole(user: User, newRole: UserRole): Promise<void> {
     if (user.role === newRole) return;
 
+    if (newRole === UserRole.ADMIN) {
+      const confirmed = await this.confirmService.confirm({
+        title: 'Asignar rol de Administrador',
+        message: `¿Confirmas otorgar permisos totales de Administrador a ${user.fullName}?`,
+        submessage: 'Tendrá acceso completo al centro de mando, usuarios y registros.',
+        confirmText: 'Sí, otorgar Admin',
+        cancelText: 'Cancelar',
+        type: 'danger',
+        icon: 'shield',
+      });
+      if (!confirmed) {
+        this.loadUsers();
+        return;
+      }
+    }
+
+    const roleLabel = getRoleMeta(newRole)?.label || newRole;
     this.userService.update(user.id, { role: newRole }).subscribe({
       next: () => {
-        this.notification.success('Rol actualizado', `Se asignó el rol ${newRole} a ${user.fullName}`);
+        this.notification.success('Rol actualizado', `Se asignó "${roleLabel}" a ${user.fullName}`);
         this.loadUsers();
         this.loadStats();
       },
+      error: () => this.loadUsers(),
+    });
+  }
+
+  onUpdateUserVerificationLevel(user: User, level: number): void {
+    if ((user.verificationLevel ?? 0) === level) return;
+    this.userService.update(user.id, { verificationLevel: level }).subscribe({
+      next: () => {
+        this.notification.success(
+          'Verificación actualizada',
+          `${user.fullName} ahora tiene Nivel ${level}.`,
+        );
+        this.loadUsers();
+      },
+      error: () => this.loadUsers(),
     });
   }
 
@@ -1065,6 +2424,198 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  openResolveReportModal(report: ContentReport): void {
+    this.resolvingReport.set(report);
+    const defaultAction: ModerationAction =
+      report.actionTaken ||
+      (report.status === 'DESESTIMADO'
+        ? 'DISMISS'
+        : report.status === 'SANCIONADO'
+          ? 'WARN_AUTHOR'
+          : 'MARK_REVIEWING');
+    this.reportResolutionForm = {
+      action: defaultAction,
+      adminNotes: report.adminResolutionNotes || '',
+    };
+  }
+
+  async submitReportResolution(): Promise<void> {
+    const report = this.resolvingReport();
+    if (!report) return;
+
+    const actionMeta = this.getModerationActionMeta(this.reportResolutionForm.action);
+    if (actionMeta?.destructive) {
+      const confirmed = await this.confirmService.confirm({
+        title: `Confirmar: ${actionMeta.label}`,
+        message: `¿Ejecutar "${actionMeta.label}" sobre "${report.targetSummary?.title || report.targetId}"?`,
+        submessage: actionMeta.description,
+        confirmText: 'Sí, ejecutar sanción',
+        cancelText: 'Cancelar',
+        type: 'danger',
+        icon: 'shield',
+      });
+      if (!confirmed) return;
+    }
+
+    this.isSavingReport.set(true);
+    this.moderationService
+      .resolveReport(report.id, {
+        action: this.reportResolutionForm.action,
+        adminNotes: this.reportResolutionForm.adminNotes.trim() || undefined,
+      })
+      .subscribe({
+        next: (saved) => {
+          this.isSavingReport.set(false);
+          this.resolvingReport.set(null);
+          const extraCascaded =
+            saved.cascadedReportsCount && saved.cascadedReportsCount > 0
+              ? ` (${saved.cascadedReportsCount} reporte(s) duplicados cerrados)`
+              : '';
+          this.notification.success(
+            'Moderación aplicada',
+            `${actionMeta?.label || 'Dictamen'} ejecutado correctamente.${extraCascaded}`,
+          );
+          this.loadModerationReports();
+          this.loadStats();
+          this.loadUsers();
+          this.loadPets();
+          this.loadLostReports();
+        },
+        error: (err) => {
+          this.isSavingReport.set(false);
+          this.notification.error(
+            'Error al dictaminar',
+            err?.error?.message || 'No se pudo aplicar la medida de moderación.',
+          );
+        },
+      });
+  }
+
+  onUpdatePostStatus(post: LostPetReport, status: LostPetStatus): void {
+    if (post.status === status) return;
+    this.lostPetService.updateStatus(post.id, status).subscribe({
+      next: () => {
+        const label = LOST_PET_STATUS_META[status]?.label || status;
+        this.notification.success('Estado actualizado', `La publicación ahora está "${label}".`);
+        this.loadLostReports();
+        this.loadStats();
+      },
+      error: () => this.loadLostReports(),
+    });
+  }
+
+  async onDeleteLostReport(post: LostPetReport): Promise<void> {
+    const confirmed = await this.confirmService.confirm({
+      title: 'Eliminar publicación del muro',
+      message: `¿Archivar la publicación "${post.petName || 'Sin nombre'}"?`,
+      submessage: 'Dejará de aparecer en el muro comunitario público.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: 'megaphone',
+    });
+    if (!confirmed) return;
+
+    this.lostPetService.delete(post.id).subscribe({
+      next: () => {
+        this.notification.success('Publicación archivada', 'El reporte fue retirado del muro.');
+        this.loadLostReports();
+        this.loadStats();
+      },
+    });
+  }
+
+  openAllyModal(ally?: Ally): void {
+    if (ally) {
+      this.editingAllyId.set(ally.id);
+      this.allyForm = {
+        businessName: ally.businessName,
+        category: ally.category,
+        phone: ally.phone,
+        whatsappPhone: ally.whatsappPhone || '',
+        coloniaId: ally.coloniaId || '',
+        address: ally.address,
+        description: ally.description || '',
+        hasPromotionForAdopters: ally.hasPromotionForAdopters,
+        promotionDescription: ally.promotionDescription || '',
+      };
+    } else {
+      this.editingAllyId.set(null);
+      this.allyForm = {
+        businessName: '',
+        category: 'VETERINARIA',
+        phone: '',
+        whatsappPhone: '',
+        coloniaId: '',
+        address: '',
+        description: '',
+        hasPromotionForAdopters: false,
+        promotionDescription: '',
+      };
+    }
+    this.allyAttempted.set(false);
+    this.isAllyModalOpen.set(true);
+  }
+
+  saveAllyModal(): void {
+    this.allyAttempted.set(true);
+    if (!this.allyForm.businessName.trim() || !this.allyForm.phone.trim() || !this.allyForm.address.trim()) {
+      this.notification.warning('Campos obligatorios', 'Indica nombre, teléfono y dirección del aliado.');
+      return;
+    }
+
+    const payload: Partial<Ally> = {
+      businessName: this.allyForm.businessName.trim(),
+      category: this.allyForm.category,
+      phone: this.allyForm.phone.trim(),
+      whatsappPhone: this.allyForm.whatsappPhone.trim() || undefined,
+      coloniaId: this.allyForm.coloniaId || undefined,
+      address: this.allyForm.address.trim(),
+      description: this.allyForm.description.trim() || undefined,
+      hasPromotionForAdopters: this.allyForm.hasPromotionForAdopters,
+      promotionDescription: this.allyForm.hasPromotionForAdopters
+        ? this.allyForm.promotionDescription.trim() || undefined
+        : undefined,
+    };
+
+    this.isSavingAlly.set(true);
+    const editId = this.editingAllyId();
+    const request$ = editId
+      ? this.allyService.update(editId, payload)
+      : this.allyService.create(payload);
+
+    request$.subscribe({
+      next: () => {
+        this.isSavingAlly.set(false);
+        this.isAllyModalOpen.set(false);
+        this.notification.success(
+          editId ? 'Aliado actualizado' : 'Aliado registrado',
+          `${payload.businessName} guardado correctamente.`,
+        );
+        this.loadAllies();
+        this.loadStats();
+      },
+      error: () => {
+        this.isSavingAlly.set(false);
+        this.notification.error('Error', 'No se pudo guardar la información del aliado.');
+      },
+    });
+  }
+
+  toggleAllyActive(ally: Ally): void {
+    const nextState = !ally.isActive;
+    this.allyService.update(ally.id, { isActive: nextState }).subscribe({
+      next: () => {
+        this.notification.info(
+          'Estado de aliado actualizado',
+          `${ally.businessName} ahora está ${nextState ? 'Visible en el directorio' : 'Oculto'}.`,
+        );
+        this.loadAllies();
+        this.loadStats();
+      },
+    });
+  }
+
   async onDeleteUser(user: User): Promise<void> {
     const confirmed = await this.confirmService.confirm({
       title: 'Eliminar usuario',
@@ -1073,7 +2624,7 @@ export class AdminComponent implements OnInit {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '👤',
+      icon: 'user',
     });
     if (!confirmed) return;
 
@@ -1095,7 +2646,7 @@ export class AdminComponent implements OnInit {
       confirmText: 'Sí, dar de baja',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: 'trash',
     });
     if (!confirmed) return;
 
@@ -1122,6 +2673,7 @@ export class AdminComponent implements OnInit {
       content: active.content || DEFAULT_PRIVACY_POLICY_CONFIG.content,
       invalidateUsers: true,
     };
+    this.privacyAttempted.set(false);
     this.isPrivacyEditorOpen.set(true);
 
     this.userService.getPrivacyPolicy().subscribe({
@@ -1152,6 +2704,7 @@ export class AdminComponent implements OnInit {
 
   savePrivacyPolicyChanges(): void {
     if (!this.isAdmin()) return;
+    this.privacyAttempted.set(true);
     if (!this.privacyEditorForm.version.trim() || !this.privacyEditorForm.content.trim()) {
       this.notification.warning('Campos obligatorios', 'Indica la versión legal y el contenido del Aviso de Privacidad.');
       return;

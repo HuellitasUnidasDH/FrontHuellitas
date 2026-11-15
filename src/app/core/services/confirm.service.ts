@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { ScrollLockService } from './scroll-lock.service';
 
 export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
 
@@ -28,6 +29,8 @@ export interface ConfirmModalState {
   providedIn: 'root',
 })
 export class ConfirmService {
+  private readonly scrollLock = inject(ScrollLockService);
+
   private stateSignal = signal<ConfirmModalState>({
     isOpen: false,
     options: { message: '' },
@@ -43,7 +46,14 @@ export class ConfirmService {
   confirm(options: ConfirmModalOptions): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
       const type = options.type || 'warning';
-      const defaultIcon = type === 'danger' ? '🗑️' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+      const defaultIcon =
+        type === 'danger'
+          ? 'trash'
+          : type === 'warning'
+            ? 'alert'
+            : type === 'success'
+              ? 'check'
+              : 'info';
 
       this.stateSignal.set({
         isOpen: true,
@@ -70,7 +80,7 @@ export class ConfirmService {
   prompt(options: ConfirmModalOptions): Promise<string | null> {
     return new Promise<string | null>((resolvePrompt) => {
       const type = options.type || 'info';
-      const defaultIcon = options.icon || '✏️';
+      const defaultIcon = options.icon || 'edit';
 
       this.stateSignal.set({
         isOpen: true,
@@ -127,14 +137,10 @@ export class ConfirmService {
   }
 
   private applyModalEffects(open: boolean): void {
-    if (typeof document !== 'undefined') {
-      if (open) {
-        document.body.classList.add('modal-open');
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-      }
+    if (open) {
+      this.scrollLock.lock('confirm-modal');
+    } else {
+      this.scrollLock.unlock('confirm-modal');
     }
   }
 }

@@ -17,6 +17,12 @@ import {
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import {
+  escapeHtml,
+  formatPetGenderLabel,
+  formatPetSizeLabel,
+  sanitizeBase64RasterDataUrl,
+} from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-adoption-agreement-document',
@@ -30,8 +36,14 @@ import { NotificationService } from '../../../core/services/notification.service
           <span class="text-[10px] font-black uppercase tracking-widest text-emerald-100 block">
             {{ brand.fullName }} • {{ brand.fullLocation }}
           </span>
-          <h2 class="text-xl sm:text-2xl font-black tracking-tight mt-0.5">
-            📜 Convenio de Adopción Responsable
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            <span>Convenio de Adopción Responsable</span>
           </h2>
           <p class="text-xs text-emerald-50/90 mt-1">
             Formato oficial para la entrega formal de <strong>{{ request().pet?.name }}</strong>
@@ -44,11 +56,19 @@ import { NotificationService } from '../../../core/services/notification.service
             (click)="printConvenio()"
             class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
           >
-            <span>🖨️</span> Imprimir / Guardar PDF
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect width="12" height="8" x="6" y="14" />
+            </svg>
+            <span>Imprimir / Guardar PDF</span>
           </button>
           @if (request().agreementSignedAt) {
-            <span class="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-300/40 text-emerald-100 font-black text-[11px]">
-              ✓ Firmado el {{ request().agreementSignedAt | date:'dd/MM/yyyy HH:mm' }}
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-300/40 text-emerald-100 font-black text-[11px] inline-flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Firmado el {{ request().agreementSignedAt | date:'dd/MM/yyyy HH:mm' }}</span>
             </span>
           }
         </div>
@@ -73,7 +93,7 @@ import { NotificationService } from '../../../core/services/notification.service
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Especie / Raza</span>
-              <span class="font-bold">{{ request().pet?.species }} • {{ request().pet?.breed || 'Mestizo' }}</span>
+              <span class="font-bold">{{ request().pet?.species }} • {{ request().pet?.breed || 'No especificada' }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Edad Aproximada</span>
@@ -81,7 +101,7 @@ import { NotificationService } from '../../../core/services/notification.service
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Sexo / Tamaño</span>
-              <span class="font-bold">{{ genderLabel(request().pet?.gender) }} • {{ request().pet?.size || 'Mediano' }}</span>
+              <span class="font-bold">{{ genderLabel(request().pet?.gender) }} • {{ sizeLabel(request().pet?.size) }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Color y Señas</span>
@@ -154,7 +174,12 @@ import { NotificationService } from '../../../core/services/notification.service
 
             <!-- Aviso Privacidad INE -->
             <div class="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-xs text-sky-900 dark:text-sky-200 flex items-start gap-2.5">
-              <span class="text-lg flex-shrink-0">🔐</span>
+              <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
               <div>
                 <strong>Privacidad Protegida (Sin foto de INE):</strong> Por seguridad legal, <strong>no subas foto de tu INE</strong>. Solo preséntala físicamente al rescatista al momento de recibir a {{ request().pet?.name }}. El comprobante de domicilio es totalmente opcional.
               </div>
@@ -166,34 +191,54 @@ import { NotificationService } from '../../../core/services/notification.service
                 <input
                   type="text"
                   [(ngModel)]="form.adopterFullName"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  (blur)="markTouched('adopterFullName')"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterFullName') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterFullName')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa tu nombre completo tal como aparece en tu identificación.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Teléfono / WhatsApp de contacto *</label>
                 <input
                   type="tel"
                   [(ngModel)]="form.adopterPhone"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  (blur)="markTouched('adopterPhone')"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterPhone') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterPhone')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa un teléfono de contacto válido.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Redes Sociales (Facebook / Instagram) *</label>
                 <input
                   type="text"
                   [(ngModel)]="form.adopterSocialMedia"
+                  (blur)="markTouched('adopterSocialMedia')"
                   placeholder="https://facebook.com/tu.perfil o @usuario"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterSocialMedia') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterSocialMedia')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Indica tu perfil o usuario de red social.</p>
+                }
               </div>
               <div>
                 <label class="font-bold block mb-1">Domicilio completo donde vivirá la mascota *</label>
                 <input
                   type="text"
                   [(ngModel)]="form.adopterAddress"
+                  (blur)="markTouched('adopterAddress')"
                   placeholder="Calle, número, colonia y referencia"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border outline-none focus:ring-2 focus:ring-emerald-500"
+                  [ngClass]="agreementFieldInvalid('adopterAddress') ? 'border-rose-500 bg-rose-500/5' : 'border-slate-200 dark:border-slate-700'"
                 />
+                @if (agreementFieldInvalid('adopterAddress')) {
+                  <p class="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">Ingresa calle, colonia y referencia de tu domicilio.</p>
+                }
               </div>
             </div>
 
@@ -206,9 +251,9 @@ import { NotificationService } from '../../../core/services/notification.service
                 </div>
                 <label class="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                   @if (isUploadingProof()) {
-                    ⏳ Subiendo...
+                    Subiendo archivo...
                   } @else {
-                    📎 Adjuntar Comprobante (Opcional)
+                    Adjuntar Comprobante (Opcional)
                   }
                   <input
                     type="file"
@@ -222,7 +267,12 @@ import { NotificationService } from '../../../core/services/notification.service
               @if (form.addressProofUrl) {
                 <div class="flex items-center gap-3 pt-1">
                   <img [src]="form.addressProofUrl" alt="Comprobante de domicilio" class="w-16 h-16 rounded-xl object-cover border border-emerald-500/40" />
-                  <span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓ Comprobante adjuntado correctamente</span>
+                  <span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Comprobante adjuntado correctamente</span>
+                  </span>
                   <button
                     type="button"
                     (click)="form.addressProofUrl = ''"
@@ -236,7 +286,10 @@ import { NotificationService } from '../../../core/services/notification.service
 
             <!-- Checkboxes de conformidad -->
             <div class="space-y-2.5 text-xs">
-              <label class="flex items-start gap-2.5 cursor-pointer">
+              <label
+                class="flex items-start gap-2.5 cursor-pointer p-2.5 rounded-xl border transition-colors"
+                [ngClass]="attemptedSubmit() && !form.agreementAccepted ? 'bg-rose-500/8 border-rose-500/40' : 'border-transparent'"
+              >
                 <input
                   type="checkbox"
                   [(ngModel)]="form.agreementAccepted"
@@ -248,7 +301,10 @@ import { NotificationService } from '../../../core/services/notification.service
               </label>
 
               @if (!request().pet?.isSterilized) {
-                <label class="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <label
+                  class="flex items-start gap-2.5 cursor-pointer p-3 rounded-xl border transition-colors"
+                  [ngClass]="attemptedSubmit() && !form.sterilizationCommitmentAccepted ? 'bg-rose-500/10 border-rose-500/50' : 'bg-amber-500/10 border-amber-500/30'"
+                >
                   <input
                     type="checkbox"
                     [(ngModel)]="form.sterilizationCommitmentAccepted"
@@ -265,18 +321,21 @@ import { NotificationService } from '../../../core/services/notification.service
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-black text-slate-800 dark:text-white">
-                  ✍️ Firma Digital del Adoptante * (Dibuja tu firma con dedo o ratón)
+                  Firma Digital del Adoptante * (Dibuja tu firma con dedo o ratón)
                 </label>
                 <button
                   type="button"
                   (click)="clearSignature()"
                   class="px-3 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[11px] cursor-pointer hover:bg-slate-300"
                 >
-                  🧹 Limpiar firma
+                  Limpiar firma
                 </button>
               </div>
 
-              <div class="rounded-2xl border-2 border-dashed border-emerald-500/50 bg-white overflow-hidden relative">
+              <div
+                class="rounded-2xl border-2 border-dashed bg-white overflow-hidden relative transition-colors"
+                [ngClass]="attemptedSubmit() && !hasDrawnSignature() ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-emerald-500/50'"
+              >
                 <canvas
                   #signatureCanvas
                   width="640"
@@ -294,7 +353,23 @@ import { NotificationService } from '../../../core/services/notification.service
                   </span>
                 }
               </div>
+              @if (attemptedSubmit() && !hasDrawnSignature()) {
+                <p class="text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  Dibuja tu firma dentro del recuadro para validar el convenio.
+                </p>
+              }
             </div>
+
+            @if (attemptedSubmit() && agreementMissingItems().length > 0) {
+              <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-700 dark:text-rose-300 space-y-1">
+                <p class="font-bold">Revisa lo siguiente antes de firmar el convenio:</p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                  @for (item of agreementMissingItems(); track item) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              </div>
+            }
 
             <div class="flex justify-end pt-2">
               <button
@@ -304,9 +379,9 @@ import { NotificationService } from '../../../core/services/notification.service
                 class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-105 text-slate-950 font-black text-sm shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-50 transition-all"
               >
                 @if (isSubmitting()) {
-                  ⏳ Guardando Convenio...
+                  Guardando Convenio...
                 } @else {
-                  ✍️ Firmar Convenio y Notificar al Rescatista
+                  Firmar Convenio y Notificar al Evaluador
                 }
               </button>
             </div>
@@ -338,13 +413,13 @@ import { NotificationService } from '../../../core/services/notification.service
               <div>
                 <span class="text-[10px] font-bold uppercase text-slate-400 block">Cotejo Físico de INE</span>
                 <span class="font-black" [ngClass]="request().ineVerifiedInPerson ? 'text-emerald-600' : 'text-amber-600'">
-                  {{ request().ineVerifiedInPerson ? '✓ Verificada físicamente en entrega' : '⏳ Pendiente de cotejo presencial' }}
+                  {{ request().ineVerifiedInPerson ? 'Verificada físicamente en entrega' : 'Pendiente de cotejo presencial' }}
                 </span>
               </div>
               <div>
                 <span class="text-[10px] font-bold uppercase text-slate-400 block">Compromiso Esterilización</span>
-                <span class="font-bold">
-                  {{ request().pet?.isSterilized ? 'Ya esterilizada' : request().sterilizationCommitmentAccepted ? '✓ Compromiso firmado (5-6 meses)' : 'Pendiente' }}
+                <span class="font-bold inline-flex items-center gap-1">
+                  {{ request().pet?.isSterilized ? 'Ya esterilizada' : request().sterilizationCommitmentAccepted ? 'Compromiso firmado (5-6 meses)' : 'Pendiente' }}
                 </span>
               </div>
             </div>
@@ -363,7 +438,7 @@ import { NotificationService } from '../../../core/services/notification.service
               @if (request().addressProofUrl) {
                 <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-1">
                   <span class="text-[10px] font-black uppercase text-slate-400 block">Comprobante de Domicilio</span>
-                  <a [href]="request().addressProofUrl" target="_blank" class="block">
+                  <a [href]="request().addressProofUrl" target="_blank" rel="noopener noreferrer" class="block">
                     <img
                       [src]="request().addressProofUrl"
                       alt="Comprobante de domicilio"
@@ -375,7 +450,7 @@ import { NotificationService } from '../../../core/services/notification.service
               @if (request().handoverPhotoUrl) {
                 <div class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-1">
                   <span class="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 block">Foto Oficial de Entrega</span>
-                  <a [href]="request().handoverPhotoUrl" target="_blank" class="block">
+                  <a [href]="request().handoverPhotoUrl" target="_blank" rel="noopener noreferrer" class="block">
                     <img
                       [src]="request().handoverPhotoUrl"
                       alt="Entrega oficial"
@@ -405,6 +480,8 @@ export class AdoptionAgreementDocumentComponent {
 
   isUploadingProof = signal(false);
   hasDrawnSignature = signal(false);
+  attemptedSubmit = signal(false);
+  touchedFields = signal<Record<string, boolean>>({});
   private drawing = false;
 
   form = {
@@ -433,10 +510,12 @@ export class AdoptionAgreementDocumentComponent {
     });
   }
 
-  genderLabel(g?: string): string {
-    if (g === 'MALE') return 'Macho';
-    if (g === 'FEMALE') return 'Hembra';
-    return 'No especificado';
+  genderLabel(g?: string | null): string {
+    return formatPetGenderLabel(g, 'No especificado');
+  }
+
+  sizeLabel(s?: string | null): string {
+    return formatPetSizeLabel(s, 'No especificado');
   }
 
   private getCanvasPoint(ev: PointerEvent, canvas: HTMLCanvasElement) {
@@ -511,32 +590,35 @@ export class AdoptionAgreementDocumentComponent {
     });
   }
 
-  submitAgreement(): void {
-    if (
-      !this.form.adopterFullName.trim() ||
-      !this.form.adopterPhone.trim() ||
-      !this.form.adopterSocialMedia.trim() ||
-      !this.form.adopterAddress.trim()
-    ) {
-      this.notify.warning('Campos incompletos', 'Completa nombre, teléfono, redes sociales y domicilio.');
-      return;
-    }
+  markTouched(field: string): void {
+    this.touchedFields.update((prev) => ({ ...prev, [field]: true }));
+  }
 
-    if (!this.form.agreementAccepted) {
-      this.notify.warning('Confirmación requerida', 'Debes aceptar las cláusulas del Convenio de Adopción.');
-      return;
-    }
+  agreementFieldInvalid(
+    field: 'adopterFullName' | 'adopterPhone' | 'adopterSocialMedia' | 'adopterAddress',
+  ): boolean {
+    return (this.touchedFields()[field] || this.attemptedSubmit()) && !this.form[field].trim();
+  }
 
+  agreementMissingItems(): string[] {
+    const items: string[] = [];
+    if (!this.form.adopterFullName.trim()) items.push('Nombre completo conforme a identificación');
+    if (!this.form.adopterPhone.trim()) items.push('Teléfono o WhatsApp de contacto');
+    if (!this.form.adopterSocialMedia.trim()) items.push('Perfil o usuario de red social');
+    if (!this.form.adopterAddress.trim()) items.push('Domicilio completo donde vivirá la mascota');
+    if (!this.form.agreementAccepted) items.push('Casilla de aceptación del Convenio y seguimiento');
     if (!this.request().pet?.isSterilized && !this.form.sterilizationCommitmentAccepted) {
-      this.notify.warning(
-        'Compromiso de esterilización requerido',
-        'Por política del protocolo debes confirmar la esterilización a los 5-6 meses.',
-      );
-      return;
+      items.push('Casilla de compromiso obligatorio de esterilización');
     }
-
     if (!this.hasDrawnSignature() || !this.signatureCanvas?.nativeElement) {
-      this.notify.warning('Firma requerida', 'Por favor dibuja tu firma digital en el recuadro.');
+      items.push('Firma digital dibujada dentro del recuadro');
+    }
+    return items;
+  }
+
+  submitAgreement(): void {
+    this.attemptedSubmit.set(true);
+    if (this.agreementMissingItems().length > 0 || !this.signatureCanvas?.nativeElement) {
       return;
     }
 
@@ -570,9 +652,11 @@ export class AdoptionAgreementDocumentComponent {
       this.notify.warning('Ventana bloqueada', 'Permite ventanas emergentes para imprimir o guardar el PDF.');
       return;
     }
+    printWin.opener = null;
 
-    const sigImg = req.adopterSignatureData
-      ? `<img src="${req.adopterSignatureData}" style="max-height:90px; display:block; margin:0 auto;" />`
+    const safeSigUrl = sanitizeBase64RasterDataUrl(req.adopterSignatureData);
+    const sigImg = safeSigUrl
+      ? `<img src="${escapeHtml(safeSigUrl)}" style="max-height:90px; display:block; margin:0 auto;" />`
       : '<div style="height:60px; border-bottom:1px solid #1e293b; width:260px; margin:20px auto 4px;"></div>';
 
     const html = `<!doctype html>
@@ -600,8 +684,8 @@ export class AdoptionAgreementDocumentComponent {
 
   <h2>Descripción de la Mascota</h2>
   <table>
-    <tr><th>Nombre</th><td>${this.escapeHtml(pet?.name)}</td><th>Especie / Raza</th><td>${this.escapeHtml(pet?.species)} • ${this.escapeHtml(pet?.breed || 'Mestizo')}</td></tr>
-    <tr><th>Edad Aprox.</th><td>${this.escapeHtml(pet?.approximateAge || 'N/D')}</td><th>Sexo / Tamaño</th><td>${this.genderLabel(pet?.gender)} • ${this.escapeHtml(pet?.size || 'Mediano')}</td></tr>
+    <tr><th>Nombre</th><td>${this.escapeHtml(pet?.name)}</td><th>Especie / Raza</th><td>${this.escapeHtml(pet?.species)} • ${this.escapeHtml(pet?.breed || 'No especificada')}</td></tr>
+    <tr><th>Edad Aprox.</th><td>${this.escapeHtml(pet?.approximateAge || 'N/D')}</td><th>Sexo / Tamaño</th><td>${this.genderLabel(pet?.gender)} • ${this.escapeHtml(this.sizeLabel(pet?.size))}</td></tr>
     <tr><th>Color / Señas</th><td>${this.escapeHtml(pet?.color || 'N/D')} ${this.escapeHtml(pet?.specialMarks || '')}</td><th>Esterilizado</th><td>${pet?.isSterilized ? 'Sí' : 'No (Compromiso 5-6 meses)'}</td></tr>
   </table>
 
@@ -640,8 +724,14 @@ export class AdoptionAgreementDocumentComponent {
     printWin.document.open();
     printWin.document.write(html);
     printWin.document.close();
-    printWin.focus();
-    setTimeout(() => printWin.print(), 300);
+    setTimeout(() => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        // Ignore if popup closed before print.
+      }
+    }, 300);
   }
 }
 

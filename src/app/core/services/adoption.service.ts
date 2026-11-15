@@ -133,6 +133,14 @@ export class AdoptionService {
       .pipe(map((r) => r.data));
   }
 
+  withdrawRequest(requestId: string, reason?: string): Observable<AdoptionRequest> {
+    return this.http
+      .patch<ApiResponse<AdoptionRequest>>(`${this.URL}/requests/${requestId}/withdraw`, {
+        ...(reason?.trim() ? { reason: reason.trim() } : {}),
+      })
+      .pipe(map((r) => r.data));
+  }
+
   // 3. Seguimientos post-adopción (14 días / 1 mes / 6 meses / 1 año)
   getFollowups(): Observable<AdoptionFollowup[]> {
     return this.http

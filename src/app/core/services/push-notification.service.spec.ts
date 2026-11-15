@@ -33,7 +33,7 @@ describe('PushNotificationService', () => {
   });
 
   it('should not invite push notifications if unauthenticated', () => {
-    expect(service.canInvite()).toBe(false);
+    expect(service.shouldShowWallModal()).toBe(false);
   });
 
   it('should handle enable failure gracefully without throwing', async () => {

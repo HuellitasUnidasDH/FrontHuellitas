@@ -1,12 +1,11 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-confirm-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
     @if (confirmService.state().isOpen) {
       <div
@@ -29,7 +28,35 @@ import { ConfirmService } from '../../../core/services/confirm.service';
               class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border shadow-inner"
               [ngClass]="iconContainerClasses"
             >
-              {{ confirmService.state().options.icon }}
+              @switch (confirmService.state().options.icon) {
+                @case ('shield') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+                }
+                @case ('trash') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                }
+                @case ('user') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                }
+                @case ('megaphone') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+                }
+                @case ('alert') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                }
+                @case ('check') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                }
+                @case ('edit') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                }
+                @case ('info') {
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                }
+                @default {
+                  {{ confirmService.state().options.icon }}
+                }
+              }
             </div>
             <div class="flex-1 min-w-0 pt-0.5">
               <h3 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-snug">
@@ -53,7 +80,7 @@ import { ConfirmService } from '../../../core/services/confirm.service';
                 class="p-3.5 rounded-2xl text-xs flex items-start gap-2.5 border font-medium"
                 [ngClass]="submessageClasses"
               >
-                <span class="text-base leading-none mt-0.5">📌</span>
+                <svg class="w-4 h-4 shrink-0 mt-0.5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
                 <span class="whitespace-pre-line leading-relaxed">
                   {{ confirmService.state().options.submessage }}
                 </span>
@@ -71,8 +98,8 @@ import { ConfirmService } from '../../../core/services/confirm.service';
                 <input
                   type="text"
                   [placeholder]="confirmService.state().options.inputPlaceholder || 'Escribe aquí...'"
-                  [ngModel]="confirmService.state().currentInputValue"
-                  (ngModelChange)="confirmService.updateInputValue($event)"
+                  [value]="confirmService.state().currentInputValue || ''"
+                  (input)="confirmService.updateInputValue($any($event.target).value)"
                   (keydown.enter)="confirmService.handleConfirm()"
                   class="w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm transition-all shadow-inner"
                   autofocus

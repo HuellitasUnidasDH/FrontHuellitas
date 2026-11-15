@@ -10,16 +10,21 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, PrivacyNoticeModalComponent],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative">
-      <div class="w-full max-w-lg liquid-glass rounded-3xl p-6 sm:p-9 shadow-2xl relative overflow-hidden transition-all">
+    <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
+      <div class="w-full max-w-lg liquid-glass rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
         
         <!-- Header -->
         <div class="text-center mb-6">
-          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-400 to-teal-500 text-slate-950 font-bold text-xl shadow-lg shadow-emerald-500/25 mb-3">
-            🐾
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2" />
+              <circle cx="18" cy="8" r="2" />
+              <circle cx="20" cy="16" r="2" />
+              <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Crear Cuenta</h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">Completa los datos para registrar a tus mascotas de forma segura</p>
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Crear cuenta</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Regístrate para publicar reportes, adoptar responsablemente y gestionar expedientes</p>
         </div>
 
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="space-y-4">
@@ -51,10 +56,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (fullNameField?.invalid && fullNameField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>El nombre completo debe tener al menos 3 letras.</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (fullNameField?.hasError('required')) {
+                  El nombre completo es obligatorio (mínimo 3 caracteres).
+                } @else {
+                  Te faltan {{ 3 - (fullNameField?.value || '').trim().length }} caracteres para el mínimo de 3.
+                }
+              </p>
             }
           </div>
 
@@ -85,10 +93,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (emailField?.invalid && emailField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (emailField?.hasError('required')) {
+                  El correo electrónico es obligatorio.
+                } @else {
+                  Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).
+                }
+              </p>
             }
           </div>
 
@@ -126,10 +137,13 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
             </div>
 
             @if (phoneField?.invalid && phoneField?.touched) {
-              <div class="mt-1.5 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400">
-                <span>⚠️</span>
-                <span>El número debe tener exactamente 10 dígitos numéricos sin espacios ni guiones.</span>
-              </div>
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (phoneLength() === 0) {
+                  El teléfono celular de 10 dígitos es obligatorio.
+                } @else {
+                  Faltan {{ 10 - phoneLength() }} dígitos para completar los 10 números requeridos.
+                }
+              </p>
             }
           </div>
 
@@ -250,6 +264,16 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
                 <span>Al menos un número (0-9) o símbolo especial</span>
               </div>
             </div>
+
+            @if (passwordField?.invalid && passwordField?.touched) {
+              <p class="mt-1.5 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                @if (passwordField?.hasError('required')) {
+                  La contraseña de acceso es obligatoria.
+                } @else {
+                  Completa los requisitos marcados arriba antes de continuar.
+                }
+              </p>
+            }
           </div>
 
           <!-- Aceptación Obligatoria del Aviso de Privacidad -->
@@ -281,17 +305,16 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               </label>
             </div>
             @if (acceptPrivacyField?.invalid && acceptPrivacyField?.touched) {
-              <div class="mt-2 flex items-center gap-1 text-xs text-rose-500 dark:text-rose-400 font-medium">
-                <span>⚠️</span>
-                <span>Debes aceptar el Aviso de Privacidad para poder crear tu cuenta.</span>
-              </div>
+              <p class="mt-2 text-xs text-rose-500 dark:text-rose-400 font-medium">
+                Debes marcar la casilla del Aviso de Privacidad para poder crear tu cuenta.
+              </p>
             }
           </div>
 
           <!-- Botón de Registro -->
           <button
             type="submit"
-            [disabled]="registerForm.invalid || isLoading()"
+            [disabled]="isLoading()"
             class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
           >
             @if (isLoading()) {
@@ -476,7 +499,7 @@ export class RegisterComponent {
         next: () => {
           localStorage.setItem('vet_privacy_accepted', new Date().toISOString());
           this.isLoading.set(false);
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/']);
         },
         error: () => {
           this.isLoading.set(false);

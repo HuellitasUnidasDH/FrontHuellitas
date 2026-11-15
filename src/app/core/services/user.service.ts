@@ -13,6 +13,7 @@ export interface UpdateUserPayload {
   phone?: string;
   role?: UserRole;
   isActive?: boolean;
+  verificationLevel?: number;
 }
 
 export interface UpdateProfilePayload {

@@ -1,28 +1,24 @@
 <div
-  class="bg-slate-100 dark:bg-[#070c18] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 relative overflow-x-hidden transition-colors duration-500"
+  class="bg-[#f6faf8] dark:bg-[#080d17] text-slate-800 dark:text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-slate-950 isolate relative overflow-x-hidden transition-colors duration-300"
   [class.min-h-screen]="!isMessagesRoute()"
   [class.h-\[100dvh\]]="isMessagesRoute()"
   [class.overflow-hidden]="isMessagesRoute()"
 >
   
-  <!-- High-Performance Liquid Ambient Mesh (Zero Continuous GPU Thrashing) -->
-  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-70 dark:opacity-50">
-    <div class="absolute -top-32 -left-32 w-[34rem] h-[34rem] rounded-full bg-gradient-to-tr from-emerald-500/30 via-teal-400/20 to-cyan-400/20 blur-3xl"></div>
-    <div class="absolute top-20 -right-32 w-[32rem] h-[32rem] rounded-full bg-gradient-to-bl from-cyan-400/20 via-indigo-500/20 to-emerald-500/15 blur-3xl"></div>
-    <div class="absolute -bottom-32 left-1/3 w-[36rem] h-[36rem] rounded-full bg-gradient-to-t from-teal-500/25 via-emerald-600/15 to-transparent blur-3xl"></div>
-    <div class="absolute inset-0 bg-radial from-transparent via-transparent to-slate-200/40 dark:to-[#04070e]/80"></div>
+  <!-- Subtle Atmospheric Emerald & Teal Light (Restrained Editorial Backdrop) -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10 opacity-45 dark:opacity-30">
+    <div class="absolute -top-40 -left-32 w-[30rem] h-[30rem] rounded-full bg-gradient-to-tr from-emerald-500/20 via-teal-400/12 to-transparent blur-3xl"></div>
+    <div class="absolute bottom-0 right-0 w-[28rem] h-[28rem] rounded-full bg-gradient-to-tl from-teal-500/15 via-emerald-500/10 to-transparent blur-3xl"></div>
   </div>
 
   <!-- Floating Dynamic Island Navbar -->
-  <div class="relative z-40">
-    <app-navbar />
-  </div>
+  <app-navbar />
 
-  <!-- Main Content Routed with breathing space below floating navbar and above mobile dock -->
+  <!-- Main Content Routed without stacking trap so fixed modals cleanly sit over navbar & footer -->
   <main
-    class="flex-1 relative z-10 pt-20 sm:pt-24"
-    [class.pb-24]="!isMessagesRoute()"
-    [class.md:pb-12]="!isMessagesRoute()"
+    class="flex-1 pt-20 sm:pt-24"
+    [class.pb-6]="!isMessagesRoute()"
+    [class.md:pb-10]="!isMessagesRoute()"
     [class.pb-20]="isMessagesRoute()"
     [class.md:pb-3]="isMessagesRoute()"
     [class.min-h-0]="isMessagesRoute()"
@@ -31,36 +27,59 @@
     <router-outlet />
   </main>
 
-  <!-- Footer (oculto en vista de chat a pantalla fija para evitar doble scroll de fondo) -->
+  <!-- Footer (oculto en vista de chat a pantalla fija y cuando hay modales activos) -->
   @if (!isMessagesRoute()) {
-    <footer class="relative z-10 py-6 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/50 dark:bg-[#070c18]/60 backdrop-blur-xl text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
-      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-        <p>© 2026 {{ brand.fullName }} • {{ brand.city }}. Todos los derechos reservados.</p>
-        <button
-          type="button"
-          (click)="isManualPrivacyOpen = true"
-          class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-        >
-          📜 Aviso de Privacidad y Términos Legales
-        </button>
+    <footer class="app-site-footer relative z-0 pt-6 pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] md:py-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#090e1a]/85 backdrop-blur-xl text-xs text-slate-500 dark:text-slate-400 transition-colors">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="text-center md:text-left space-y-1">
+          <p class="font-semibold text-slate-800 dark:text-slate-200 inline-flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>© 2026 {{ brand.fullName }} · {{ brand.city }}</span>
+          </p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            Red ciudadana de adopciones responsables, alertas y seguimiento veterinario.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-semibold">
+          <a routerLink="/" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Muro</a>
+          <a routerLink="/adopciones" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Adopciones</a>
+          <a routerLink="/perdidas" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Perdidos</a>
+          <a routerLink="/aliados" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Aliados</a>
+          <a routerLink="/nosotros" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Nosotros</a>
+          <span class="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+          <button
+            type="button"
+            (click)="isManualPrivacyOpen.set(true)"
+            class="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+          >
+            Aviso de Privacidad y Términos
+          </button>
+        </div>
       </div>
     </footer>
   }
 
   <!-- Modal Global Obligatorio o Informativo del Aviso de Privacidad -->
-  <app-privacy-modal
-    [isOpen]="authService.needsPrivacyAcceptance() || isManualPrivacyOpen"
-    [isMandatory]="authService.needsPrivacyAcceptance()"
-    (accepted)="onAcceptUpdatedPrivacy()"
-    (closed)="isManualPrivacyOpen = false"
-  />
+  @defer (when authService.needsPrivacyAcceptance() || isManualPrivacyOpen()) {
+    <app-privacy-modal
+      [isOpen]="authService.needsPrivacyAcceptance() || isManualPrivacyOpen()"
+      [isMandatory]="authService.needsPrivacyAcceptance()"
+      (accepted)="onAcceptUpdatedPrivacy()"
+      (closed)="isManualPrivacyOpen.set(false)"
+    />
+  }
 
   <!-- Toasts -->
   <app-toast-container />
 
   <!-- Banner y Modal de Instalación PWA -->
-  <app-pwa-install />
+  @defer (on idle) {
+    <app-pwa-install />
+  }
 
   <!-- Modal Global de Confirmación y Alertas Liquid Glass -->
-  <app-confirm-modal />
+  @defer (when confirmService.state().isOpen) {
+    <app-confirm-modal />
+  }
 </div>

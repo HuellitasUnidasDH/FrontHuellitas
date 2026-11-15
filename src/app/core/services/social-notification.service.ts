@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map, tap, catchError, of } from 'rxjs';
+import { Observable, map, tap, catchError, finalize, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import {
@@ -35,6 +35,7 @@ export class SocialNotificationService {
   );
 
   private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  private isRefreshingUnread = false;
 
   constructor() {
     effect(() => {
@@ -113,12 +114,16 @@ export class SocialNotificationService {
   }
 
   refreshUnreadCount(): void {
-    if (!this.authService.isAuthenticated()) return;
+    if (!this.authService.isAuthenticated() || this.isRefreshingUnread) return;
+    this.isRefreshingUnread = true;
     this.http
       .get<ApiResponse<{ unreadCount: number }>>(`${this.URL}/unread-count`)
       .pipe(
         map((res) => res.data.unreadCount),
         catchError(() => of(this.unreadCountSignal())),
+        finalize(() => {
+          this.isRefreshingUnread = false;
+        }),
       )
       .subscribe((count) => {
         const previous = this.unreadCountSignal();
@@ -181,6 +186,12 @@ export class SocialNotificationService {
   private startPolling(): void {
     this.stopPolling();
     this.pollingInterval = setInterval(() => {
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState !== 'visible'
+      ) {
+        return;
+      }
       this.refreshUnreadCount();
     }, 10000);
 

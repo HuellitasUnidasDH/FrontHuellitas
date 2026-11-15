@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, map, tap, shareReplay } from 'rxjs';
+import { Observable, of, map, tap, shareReplay, catchError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Colonia } from '../models/colonia.model';
 import { ApiResponse } from '../models/api-response.model';
@@ -15,6 +15,7 @@ export class ColoniaService {
   private readonly URL = `${environment.apiUrl}/colonias`;
   private cachedAll$?: Observable<Colonia[]>;
   private memoryCache: Colonia[] | null = null;
+  private streetSearchCache = new Map<string, string[]>();
 
   /**
    * Obtiene el catálogo de colonias de Dolores Hidalgo / Guanajuato consumiendo la red UNA SOLA VEZ.
@@ -102,6 +103,37 @@ export class ColoniaService {
           }
         }
       }),
+    );
+  }
+
+  /**
+   * Busca sugerencias reales de calles / vialidades de Dolores Hidalgo (catálogo OSM + respaldo en backend).
+   */
+  searchStreets(query?: string, coloniaId?: string): Observable<string[]> {
+    const cleanQ = (query || '').trim();
+    const cacheKey = `${cleanQ.toLowerCase()}::${coloniaId || ''}`;
+    const cached = this.streetSearchCache.get(cacheKey);
+    if (cached) {
+      return of(cached);
+    }
+
+    let params = new HttpParams();
+    if (cleanQ) {
+      params = params.set('q', cleanQ);
+    }
+    if (coloniaId) {
+      params = params.set('coloniaId', coloniaId);
+    }
+
+    return this.http.get<ApiResponse<string[]>>(`${this.URL}/calles`, { params }).pipe(
+      map((r) => (Array.isArray(r.data) ? r.data : [])),
+      tap((list) => {
+        if (this.streetSearchCache.size > 80) {
+          this.streetSearchCache.clear();
+        }
+        this.streetSearchCache.set(cacheKey, list);
+      }),
+      catchError(() => of([])),
     );
   }
 

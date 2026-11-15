@@ -38,7 +38,7 @@ export interface LostPetReport {
   reporter?: User;
   type: LostPetType;
   species: string;
-  petName: string;
+  petName?: string;
   gender?: string;
   photos?: string[];
   coloniaId?: string;
@@ -46,12 +46,14 @@ export interface LostPetReport {
   lastSeenLocation: string;
   incidentDate: string;
   distinctiveFeatures: string;
-  contactPhone: string;
+  contactPhone?: string;
   status: LostPetStatus;
   rewardOffered: boolean;
   rewardDetails?: string;
   isInjured?: boolean;
   temperamentTags?: string[];
+  goodWithKids?: boolean | null;
+  goodWithOtherPets?: boolean | null;
   isDeleted?: boolean;
   reportsCount?: number;
   lastReportedAt?: string;
@@ -72,14 +74,14 @@ export interface CreateLostPetPayload {
   lastSeenLocation: string;
   incidentDate: string;
   distinctiveFeatures: string;
-  contactPhone: string;
+  contactPhone?: string;
   rewardOffered?: boolean;
   rewardDetails?: string;
   isInjured?: boolean;
   parentReportId?: string;
   temperamentTags?: string[];
-  goodWithKids?: boolean;
-  goodWithOtherPets?: boolean;
+  goodWithKids?: boolean | null;
+  goodWithOtherPets?: boolean | null;
 }
 
 export interface CreateSightingPayload {

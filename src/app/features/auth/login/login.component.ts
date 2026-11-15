@@ -1,30 +1,36 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-modal/privacy-modal.component';
+import { sanitizeInternalPath } from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, PrivacyNoticeModalComponent],
   template: `
-    <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 relative">
-      <div class="w-full max-w-md liquid-glass rounded-3xl p-8 shadow-2xl relative overflow-hidden transition-all">
-        <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-2xl shadow-lg shadow-emerald-500/25 mb-3">
-            🐾
+    <div class="min-h-[calc(100dvh-11rem)] flex items-center justify-center p-4 py-6 relative">
+      <div class="w-full max-w-md liquid-glass rounded-2xl sm:rounded-3xl p-7 sm:p-8 shadow-xl relative overflow-hidden transition-all border border-slate-200/80 dark:border-slate-800">
+        <div class="text-center mb-7">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm mb-3.5">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="4" r="2" />
+              <circle cx="18" cy="8" r="2" />
+              <circle cx="20" cy="16" r="2" />
+              <path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z" />
+            </svg>
           </div>
-          <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Acceso Seguro</h2>
-          <p class="text-xs text-slate-600 dark:text-slate-400 mt-1">Ingresa tus credenciales para administrar tus mascotas</p>
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Iniciar sesión</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Accede a tu cuenta para publicar y dar seguimiento a tus mascotas</p>
         </div>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-4">
           <!-- Correo -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Correo Electrónico
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Correo electrónico
             </label>
             <input
               type="email"
@@ -36,13 +42,19 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               }"
             />
             @if (emailField?.invalid && emailField?.touched) {
-              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">Ingresa un correo electrónico válido</p>
+              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
+                @if (emailField?.hasError('required')) {
+                  El correo electrónico es obligatorio.
+                } @else {
+                  Ingresa un correo electrónico válido (ejemplo&#64;dominio.com).
+                }
+              </p>
             }
           </div>
 
           <!-- Contraseña con Ojito -->
           <div>
-            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Contraseña
             </label>
             <div class="relative flex items-center">
@@ -74,7 +86,7 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
               </button>
             </div>
             @if (passwordField?.invalid && passwordField?.touched) {
-              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">La contraseña es requerida</p>
+              <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">Ingresa tu contraseña para continuar.</p>
             }
 
             <!-- Fila Recuérdame + Olvidaste tu contraseña -->
@@ -105,8 +117,8 @@ import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-
           <!-- Botón de Envío -->
           <button
             type="submit"
-            [disabled]="loginForm.invalid || isLoading()"
-            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/25 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all hover:scale-101 active:scale-99 flex items-center justify-center gap-2 mt-6"
+            [disabled]="isLoading()"
+            class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-bold text-sm shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center justify-center gap-2 mt-6"
           >
             @if (isLoading()) {
               <span class="inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
@@ -151,6 +163,7 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   isLoading = signal(false);
   showPassword = signal(false);
@@ -192,7 +205,11 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.router.navigate(['/dashboard']);
+          const returnUrl = sanitizeInternalPath(
+            this.route.snapshot.queryParamMap.get('returnUrl'),
+            '/',
+          );
+          this.router.navigateByUrl(returnUrl);
         },
         error: () => {
           this.isLoading.set(false);
