@@ -90,7 +90,7 @@ import { NavigationHistoryService } from '../../core/services/navigation-history
             </h2>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400">
-            Diseñado y construido en Dolores Hidalgo, Guanajuato 🇲🇽
+            Diseñado y construido en Dolores Hidalgo, Guanajuato, México
           </p>
         </div>
 
@@ -128,8 +128,11 @@ import { NavigationHistoryService } from '../../core/services/navigation-history
 
               <div class="text-center sm:text-left space-y-2 flex-1">
                 <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-sm">
-                    ⭐ Creador y Líder de Proyecto
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950 shadow-sm">
+                    <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2.5l2.92 5.91 6.53.95-4.72 4.6 1.11 6.5L12 17.39l-5.84 3.07 1.11-6.5-4.72-4.6 6.53-.95L12 2.5z" />
+                    </svg>
+                    <span>Creador y Líder de Proyecto</span>
                   </span>
                 </div>
                 <h3 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">

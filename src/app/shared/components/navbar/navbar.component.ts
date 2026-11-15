@@ -345,17 +345,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                     >
                       <span class="flex items-center gap-2.5">
-                        @if (themeService.isDarkMode()) {
-                          <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="4" />
-                            <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-                          </svg>
-                        } @else {
-                          <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                          </svg>
-                        }
-                        <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+                        <svg
+                          class="w-4 h-4 shrink-0 transition-colors"
+                          [ngClass]="themeService.isDarkMode() ? 'text-emerald-400' : 'text-slate-600 dark:text-slate-300'"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                        </svg>
+                        <span>Modo Oscuro</span>
+                      </span>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold transition-colors"
+                        [ngClass]="
+                          themeService.isDarkMode()
+                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        "
+                      >
+                        {{ themeService.isDarkMode() ? 'Activo' : 'Inactivo' }}
                       </span>
                     </button>
                   }
@@ -757,7 +769,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                       <circle cx="12" cy="7" r="4" />
                     </svg>
-                    <span>Mi Perfil y Datos</span>
+                    <span>Mi Perfil</span>
                   </a>
 
                   <!-- Option: Mis Mensajes Directos -->
@@ -799,44 +811,37 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     }
                   </a>
 
-                  <!-- Option: Mis Publicaciones -->
-                  <a
-                    routerLink="/perfil"
-                    [queryParams]="{ tab: 'publications' }"
-                    (click)="closeAllDropdowns()"
-                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors"
-                  >
-                    <svg class="w-4 h-4 text-slate-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
-                      <path d="M18 14h-8" />
-                      <path d="M15 18h-5" />
-                      <path d="M10 6h8v4h-8V6Z" />
-                    </svg>
-                    <span>Mis Publicaciones</span>
-                  </a>
-
                   <div class="border-t border-slate-200/60 dark:border-slate-800/60"></div>
 
-                  <!-- Option: Dark / Light Mode Switch -->
+                  <!-- Option: Dark Mode Toggle -->
                   <button
                     type="button"
                     (click)="themeService.toggleTheme()"
                     class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
                   >
                     <span class="flex items-center gap-3">
-                      @if (themeService.isDarkMode()) {
-                        <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="12" cy="12" r="4" />
-                          <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-                        </svg>
-                      } @else {
-                        <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                        </svg>
-                      }
-                      <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+                      <svg
+                        class="w-4 h-4 shrink-0 transition-colors"
+                        [ngClass]="themeService.isDarkMode() ? 'text-emerald-400' : 'text-slate-600 dark:text-slate-300'"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                      </svg>
+                      <span>Modo Oscuro</span>
                     </span>
-                    <span class="text-[10px] uppercase font-bold text-slate-400">
+                    <span
+                      class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold transition-colors"
+                      [ngClass]="
+                        themeService.isDarkMode()
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                          : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      "
+                    >
                       {{ themeService.isDarkMode() ? 'Activo' : 'Inactivo' }}
                     </span>
                   </button>
@@ -1107,7 +1112,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
-                  <span>Mi Perfil y Publicaciones</span>
+                  <span>Mi Perfil</span>
                 </a>
 
                 <a
@@ -1238,20 +1243,29 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors cursor-pointer"
               >
                 <span class="flex items-center gap-3">
-                  @if (themeService.isDarkMode()) {
-                    <svg class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="4" />
-                      <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-                    </svg>
-                  } @else {
-                    <svg class="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                    </svg>
-                  }
-                  <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+                  <svg
+                    class="w-4 h-4 shrink-0 transition-colors"
+                    [ngClass]="themeService.isDarkMode() ? 'text-emerald-400' : 'text-slate-600 dark:text-slate-300'"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                  </svg>
+                  <span>Modo Oscuro</span>
                 </span>
-                <span class="text-xs uppercase font-bold text-emerald-600 dark:text-emerald-400">
-                  Cambiar
+                <span
+                  class="px-2.5 py-0.5 rounded-full text-[11px] uppercase font-bold transition-colors"
+                  [ngClass]="
+                    themeService.isDarkMode()
+                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                      : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  "
+                >
+                  {{ themeService.isDarkMode() ? 'Activo' : 'Inactivo' }}
                 </span>
               </button>
             </div>
