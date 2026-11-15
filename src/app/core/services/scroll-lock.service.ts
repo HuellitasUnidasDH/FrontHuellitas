@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-export type ScrollLockChannel = 'modal' | 'privacy' | 'drawer';
+export type ScrollLockChannel = 'modal' | 'privacy' | 'drawer' | 'viewport';
 
 /**
  * Servicio centralizado y con conteo de referencias para bloquear el scroll
@@ -14,6 +14,7 @@ export class ScrollLockService {
   private readonly modalKeys = new Set<string>();
   private readonly privacyKeys = new Set<string>();
   private readonly drawerKeys = new Set<string>();
+  private readonly viewportKeys = new Set<string>();
 
   lock(key: string, channel: ScrollLockChannel = 'modal'): void {
     this.getSet(channel).add(key);
@@ -34,7 +35,9 @@ export class ScrollLockService {
   }
 
   unlockPrefix(prefix: string, channel?: ScrollLockChannel): void {
-    const channels: ScrollLockChannel[] = channel ? [channel] : ['modal', 'privacy', 'drawer'];
+    const channels: ScrollLockChannel[] = channel
+      ? [channel]
+      : ['modal', 'privacy', 'drawer', 'viewport'];
     for (const ch of channels) {
       const set = this.getSet(ch);
       for (const item of Array.from(set)) {
@@ -49,6 +52,7 @@ export class ScrollLockService {
   private getSet(channel: ScrollLockChannel): Set<string> {
     if (channel === 'privacy') return this.privacyKeys;
     if (channel === 'drawer') return this.drawerKeys;
+    if (channel === 'viewport') return this.viewportKeys;
     return this.modalKeys;
   }
 
@@ -58,7 +62,8 @@ export class ScrollLockService {
     const hasModal = this.modalKeys.size > 0;
     const hasPrivacy = this.privacyKeys.size > 0;
     const hasDrawer = this.drawerKeys.size > 0;
-    const anyLocked = hasModal || hasPrivacy || hasDrawer;
+    const hasViewport = this.viewportKeys.size > 0;
+    const anyLocked = hasModal || hasPrivacy || hasDrawer || hasViewport;
 
     document.body.classList.toggle('modal-open', hasModal);
     document.body.classList.toggle('privacy-modal-active', hasPrivacy);

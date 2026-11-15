@@ -1,13 +1,12 @@
 import { Component, EventEmitter, Input, Output, OnChanges, OnDestroy, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 
 @Component({
   selector: 'app-privacy-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
     @if (isOpen) {
       <div
@@ -98,7 +97,7 @@ import { ScrollLockService } from '../../../core/services/scroll-lock.service';
             }
 
             <div class="space-y-3">
-              @for (block of formattedBlocks(); track $index) {
+              @for (block of formattedBlocks(); track block.heading + '-' + $index) {
                 <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60">
                   @if (block.heading) {
                     <h4 class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white mb-1.5">
@@ -118,7 +117,8 @@ import { ScrollLockService } from '../../../core/services/scroll-lock.service';
                 <input
                   type="checkbox"
                   id="modalCheckAccept"
-                  [(ngModel)]="isTermsCheckboxChecked"
+                  [checked]="isTermsCheckboxChecked"
+                  (change)="isTermsCheckboxChecked = $any($event.target).checked"
                   class="mt-0.5 sm:mt-0 w-4 h-4 rounded text-emerald-600 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 cursor-pointer"
                 />
                 <span>He leído y acepto las cláusulas legales y el tratamiento de datos.</span>

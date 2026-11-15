@@ -23,6 +23,7 @@ import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import { NavigationHistoryService } from '../../core/services/navigation-history.service';
 import { User, UserRole } from '../../core/models/user.model';
 import { Colonia } from '../../core/models/colonia.model';
+import { formatExactDateTime as formatSharedExactDateTime } from '../../core/utils/app-helpers.util';
 import { LostPetReport, LostPetStatus } from '../../core/models/lost-pet.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 import { getStageMeta } from '../adoptions/shared/adoption-helpers.util';
@@ -1362,20 +1363,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   formatExactDateTime(dateStr?: string): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    const datePart = date.toLocaleDateString('es-MX', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    const timePart = date.toLocaleTimeString('es-MX', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-    return `${datePart} • ${timePart}`;
+    return formatSharedExactDateTime(dateStr);
   }
 
   formatDate(dateStr?: string): string {

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, catchError, of } from 'rxjs';
+import { Observable, tap, catchError, finalize, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
@@ -49,6 +49,7 @@ export class DirectMessageService {
   );
 
   private globalPollingHandle: any = null;
+  private isPollingConversations = false;
 
   /**
    * Abre el Centro de Mensajes (/mensajes) vinculando automáticamente la tarjeta
@@ -410,11 +411,15 @@ export class DirectMessageService {
     }
     this.globalPollingHandle = setInterval(() => {
       if (
+        !this.isPollingConversations &&
         this.authService.isAuthenticated() &&
         typeof document !== 'undefined' &&
         document.visibilityState === 'visible'
       ) {
-        this.loadConversations(true).subscribe();
+        this.isPollingConversations = true;
+        this.loadConversations(true)
+          .pipe(finalize(() => (this.isPollingConversations = false)))
+          .subscribe();
       }
     }, intervalMs);
   }

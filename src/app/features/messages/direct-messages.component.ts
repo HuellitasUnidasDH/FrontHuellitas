@@ -24,6 +24,10 @@ import {
   StartConversationPayload,
 } from '../../core/models/direct-message.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import {
+  buildWhatsAppUrl,
+  formatActorRoleLabel,
+} from '../../core/utils/app-helpers.util';
 
 type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
 
@@ -1186,10 +1190,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    }
+    this.scrollLock.lock('dm-page', 'viewport');
     const draft = this.dmService.pendingContextDraft();
 
     this.dmService.loadConversations().subscribe({
@@ -1242,10 +1243,7 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopChatCameraStream();
     this.scrollLock.unlock('dm-modal');
-    if (typeof document !== 'undefined') {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
+    this.scrollLock.unlock('dm-page', 'viewport');
     if (this.activeChatPollingHandle) {
       clearInterval(this.activeChatPollingHandle);
       this.activeChatPollingHandle = null;
@@ -1587,32 +1585,15 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
   getActiveConversationWhatsAppUrl(): string {
     const conv = this.activeConversation();
     const rawPhone = this.getActiveConversationWhatsAppPhone() || '';
-    const clean = rawPhone.replace(/\D/g, '');
-    const fullPhone = clean.length === 10 ? `52${clean}` : clean;
     const topic = conv?.contextTitle
       ? ` sobre «${conv.contextTitle}»`
       : '';
     const msg = `Hola ${conv?.otherParticipant.fullName || ''}, te escribo desde Huellitas Unidas Dolores Hidalgo${topic}`;
-    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
+    return buildWhatsAppUrl(rawPhone, msg);
   }
 
   getRoleLabel(role?: string): string {
-    switch (role) {
-      case 'ADMIN':
-        return 'Administrador';
-      case 'RESCATISTA_VERIFICADO':
-        return 'Rescatista Verificado';
-      case 'ALBERGUE':
-        return 'Albergue';
-      case 'VETERINARIAN':
-        return 'Veterinario';
-      case 'CLINICA_ALIADA':
-        return 'Clínica Aliada';
-      case 'ADOPTANTE_VERIFICADO':
-        return 'Adoptante Verificado';
-      default:
-        return 'Comunidad DH';
-    }
+    return formatActorRoleLabel(role, 'Comunidad DH');
   }
 
   getTimeAgo(dateStr?: string): string {

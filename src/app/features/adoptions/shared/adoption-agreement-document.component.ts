@@ -17,6 +17,10 @@ import {
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import {
+  escapeHtml,
+  sanitizeBase64RasterDataUrl,
+} from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-adoption-agreement-document',
@@ -408,7 +412,7 @@ import { NotificationService } from '../../../core/services/notification.service
               @if (request().addressProofUrl) {
                 <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center space-y-1">
                   <span class="text-[10px] font-black uppercase text-slate-400 block">Comprobante de Domicilio</span>
-                  <a [href]="request().addressProofUrl" target="_blank" class="block">
+                  <a [href]="request().addressProofUrl" target="_blank" rel="noopener noreferrer" class="block">
                     <img
                       [src]="request().addressProofUrl"
                       alt="Comprobante de domicilio"
@@ -420,7 +424,7 @@ import { NotificationService } from '../../../core/services/notification.service
               @if (request().handoverPhotoUrl) {
                 <div class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-1">
                   <span class="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 block">Foto Oficial de Entrega</span>
-                  <a [href]="request().handoverPhotoUrl" target="_blank" class="block">
+                  <a [href]="request().handoverPhotoUrl" target="_blank" rel="noopener noreferrer" class="block">
                     <img
                       [src]="request().handoverPhotoUrl"
                       alt="Entrega oficial"
@@ -620,9 +624,11 @@ export class AdoptionAgreementDocumentComponent {
       this.notify.warning('Ventana bloqueada', 'Permite ventanas emergentes para imprimir o guardar el PDF.');
       return;
     }
+    printWin.opener = null;
 
-    const sigImg = req.adopterSignatureData
-      ? `<img src="${req.adopterSignatureData}" style="max-height:90px; display:block; margin:0 auto;" />`
+    const safeSigUrl = sanitizeBase64RasterDataUrl(req.adopterSignatureData);
+    const sigImg = safeSigUrl
+      ? `<img src="${escapeHtml(safeSigUrl)}" style="max-height:90px; display:block; margin:0 auto;" />`
       : '<div style="height:60px; border-bottom:1px solid #1e293b; width:260px; margin:20px auto 4px;"></div>';
 
     const html = `<!doctype html>
@@ -690,8 +696,14 @@ export class AdoptionAgreementDocumentComponent {
     printWin.document.open();
     printWin.document.write(html);
     printWin.document.close();
-    printWin.focus();
-    setTimeout(() => printWin.print(), 300);
+    setTimeout(() => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        // Ignore if popup closed before print.
+      }
+    }, 300);
   }
 }
 

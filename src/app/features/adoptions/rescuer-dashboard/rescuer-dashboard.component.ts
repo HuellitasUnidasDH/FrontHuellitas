@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { AdoptionService } from '../../../core/services/adoption.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -27,6 +28,7 @@ import {
   getStageMeta,
   groupFollowupsByPet,
 } from '../shared/adoption-helpers.util';
+import { buildWhatsAppUrl } from '../../../core/utils/app-helpers.util';
 
 interface PetRequestGroup {
   pet: Pet;
@@ -396,7 +398,7 @@ interface PetRequestGroup {
                             <a
                               [href]="getAdopterWhatsAppUrl(req)"
                               target="_blank"
-                              rel="noopener"
+                              rel="noopener noreferrer"
                               class="py-2.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs"
                               title="WhatsApp del Postulante"
                             >
@@ -752,7 +754,7 @@ interface PetRequestGroup {
                         <a
                           [href]="firstFol.prefilledWhatsappUrl || getFollowupWhatsAppUrl(firstFol)"
                           target="_blank"
-                          rel="noopener"
+                          rel="noopener noreferrer"
                           class="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5"
                         >
                           WhatsApp
@@ -822,7 +824,7 @@ interface PetRequestGroup {
 
                         @if (fol.proofPhotoUrl) {
                           <div class="space-y-1.5">
-                            <a [href]="fol.proofPhotoUrl" target="_blank" class="block">
+                            <a [href]="fol.proofPhotoUrl" target="_blank" rel="noopener noreferrer" class="block">
                               <img
                                 [src]="fol.proofPhotoUrl"
                                 [alt]="'Evidencia ' + mLabel.label"
@@ -987,6 +989,7 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   }
 
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private isSilentRefreshing = false;
 
   ngOnInit(): void {
     const tabParam = this.route.snapshot.queryParamMap.get('tab');
@@ -1008,7 +1011,12 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
 
   startAutoRefresh(): void {
     this.stopAutoRefresh();
-    this.pollTimer = setInterval(() => this.silentRefresh(), 20000);
+    this.pollTimer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+      this.silentRefresh();
+    }, 20000);
   }
 
   stopAutoRefresh(): void {
@@ -1028,22 +1036,29 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   }
 
   silentRefresh(): void {
-    this.adoptionService.getPublisherInbox().subscribe({
-      next: (newReqs) => {
-        this.requests.set(newReqs || []);
-        this.lastUpdated.set(new Date());
-      },
-    });
-    this.adoptionService.getMyPublishedProgress().subscribe({
-      next: (pub) => this.publishedPets.set(pub || []),
-      error: () => {},
-    });
-    if (this.isRescuerOrAdmin()) {
-      this.adoptionService.getVerificationsForReview().subscribe({
-        next: (vers) => this.verifications.set(vers || []),
-        error: () => {},
+    if (this.isSilentRefreshing) return;
+    this.isSilentRefreshing = true;
+
+    forkJoin({
+      requests: this.adoptionService.getPublisherInbox().pipe(catchError(() => of(null))),
+      published: this.adoptionService.getMyPublishedProgress().pipe(catchError(() => of(null))),
+      verifications: this.isRescuerOrAdmin()
+        ? this.adoptionService.getVerificationsForReview().pipe(catchError(() => of(null)))
+        : of(null),
+    })
+      .pipe(finalize(() => (this.isSilentRefreshing = false)))
+      .subscribe(({ requests, published, verifications }) => {
+        if (requests) {
+          this.requests.set(requests);
+          this.lastUpdated.set(new Date());
+        }
+        if (published) {
+          this.publishedPets.set(published);
+        }
+        if (verifications) {
+          this.verifications.set(verifications);
+        }
       });
-    }
   }
 
   refreshData(): void {
@@ -1313,11 +1328,8 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   }
 
   getAdopterWhatsAppUrl(req: AdoptionRequest): string {
-    const phone = req.adopter?.phone || '';
-    const text = encodeURIComponent(
-      `¡Hola ${req.adopter?.fullName}! Te escribo de ${this.brand.name} respecto a tu solicitud para adoptar a ${req.pet?.name}.`,
-    );
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    const text = `¡Hola ${req.adopter?.fullName || ''}! Te escribo de ${this.brand.name} respecto a tu solicitud para adoptar a ${req.pet?.name || ''}.`;
+    return buildWhatsAppUrl(req.adopter?.phone, text);
   }
 
   contactAdopterInApp(req: AdoptionRequest): void {
@@ -1354,11 +1366,8 @@ export class RescuerDashboardComponent implements OnInit, OnDestroy {
   }
 
   getFollowupWhatsAppUrl(fol: AdoptionFollowup): string {
-    const phone = fol.adopter?.phone || '';
     const m = this.milestoneLabel(fol.dayMilestone);
-    const text = encodeURIComponent(
-      `¡Hola! Te escribimos de ${this.brand.name} por el seguimiento de ${m.label} de ${fol.pet?.name || 'tu peludito'}. ¿Nos podrías compartir una fotito reciente para su carnet de bienestar?`,
-    );
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    const text = `¡Hola! Te escribimos de ${this.brand.name} por el seguimiento de ${m.label} de ${fol.pet?.name || 'tu peludito'}. ¿Nos podrías compartir una fotito reciente para su carnet de bienestar?`;
+    return buildWhatsAppUrl(fol.adopter?.phone, text);
   }
 }

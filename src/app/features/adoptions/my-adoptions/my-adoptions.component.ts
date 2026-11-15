@@ -330,7 +330,7 @@ import {
                         </div>
 
                         @if (fol.proofPhotoUrl) {
-                          <a [href]="fol.proofPhotoUrl" target="_blank" class="block">
+                          <a [href]="fol.proofPhotoUrl" target="_blank" rel="noopener noreferrer" class="block">
                             <img [src]="fol.proofPhotoUrl" [alt]="'Seguimiento ' + mLabel.label" class="w-full h-36 rounded-xl object-cover border border-emerald-500/30" />
                           </a>
                           @if (fol.proofNotes) {

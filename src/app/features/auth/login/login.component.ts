@@ -1,9 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { PrivacyNoticeModalComponent } from '../../../shared/components/privacy-modal/privacy-modal.component';
+import { sanitizeInternalPath } from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-login',
@@ -162,6 +163,7 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   isLoading = signal(false);
   showPassword = signal(false);
@@ -203,7 +205,11 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.router.navigate(['/']);
+          const returnUrl = sanitizeInternalPath(
+            this.route.snapshot.queryParamMap.get('returnUrl'),
+            '/',
+          );
+          this.router.navigateByUrl(returnUrl);
         },
         error: () => {
           this.isLoading.set(false);

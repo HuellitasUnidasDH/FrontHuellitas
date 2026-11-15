@@ -1,5 +1,6 @@
 import { UserRole } from '../../core/models/user.model';
 import { AllyCategory } from '../../core/models/ally.model';
+import { sanitizeCsvCell } from '../../core/utils/app-helpers.util';
 import {
   ContentReportReason,
   ContentReportStatus,
@@ -225,11 +226,10 @@ export function normalizeSearchText(value?: string | null): string {
 }
 
 export function downloadCsv(filename: string, headers: string[], rows: (string | number | boolean | null | undefined)[][]): void {
-  const escapeCell = (cell: string | number | boolean | null | undefined) => {
-    const str = cell === null || cell === undefined ? '' : String(cell);
-    return `"${str.replace(/"/g, '""')}"`;
-  };
-  const csv = [headers.map(escapeCell).join(','), ...rows.map((r) => r.map(escapeCell).join(','))].join('\r\n');
+  const csv = [
+    headers.map(sanitizeCsvCell).join(','),
+    ...rows.map((r) => r.map(sanitizeCsvCell).join(',')),
+  ].join('\r\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

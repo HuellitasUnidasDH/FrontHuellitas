@@ -102,6 +102,7 @@ export class StorageService {
           localStorage.removeItem(this.PREFIX + k);
           sessionStorage.removeItem(this.PREFIX + k);
         }
+        sessionStorage.removeItem('huellitas_feed_light_cache_v1');
       }
     } catch (e) {
       console.error('Error clearing storage', e);

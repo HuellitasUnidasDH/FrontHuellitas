@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject, signal, computed, effect, HostLis
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { PetService } from '../../core/services/pet.service';
 import { LostPetService } from '../../core/services/lost-pet.service';
 import { ColoniaService } from '../../core/services/colonia.service';
@@ -19,6 +20,12 @@ import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../core/models
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
 import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import {
+  buildFacebookShareUrl,
+  buildWhatsAppUrl,
+  formatExactDateTime as formatSharedExactDateTime,
+  openExternalSafe,
+} from '../../core/utils/app-helpers.util';
 import { AdoptionRequestFormComponent } from '../adoptions/shared/adoption-request-form.component';
 import { getStageMeta } from '../adoptions/shared/adoption-helpers.util';
 import { ReportContentModalComponent } from '../../shared/components/report-content-modal/report-content-modal.component';
@@ -1223,7 +1230,7 @@ interface FeedPost {
                     <a
                       [href]="getAdoptionWhatsAppUrl()"
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       (click)="closeAdoptionModal()"
                       class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
                     >
@@ -1624,6 +1631,7 @@ interface FeedPost {
                 <a
                   [href]="getLostBroadcastWhatsAppUrl(reportLostSuccess()!)"
                   target="_blank"
+                  rel="noopener noreferrer"
                   (click)="closeReportLostModal()"
                   class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer transition-all"
                 >
@@ -3805,109 +3813,105 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     );
   }
 
+  private isSilentFeedPolling = false;
+
   loadFeed(): void {
     this.isLoading.set(true);
+    let petsFailed = false;
+    let reportsFailed = false;
 
-    this.petService.getAdoptionCatalog().subscribe({
-      next: (pets) => {
-        this.lostPetService.getAll().subscribe({
-          next: (reports) => {
-            const combined = this.buildFeedPosts(pets || [], reports || []).filter(
-              (p) => !this.deletedPostIds.has(p.id),
-            );
-            this.registerKnownPosts(combined);
-            this.allPosts.set(combined);
-            this.pendingNewPostsCount.set(0);
-            this.bufferedFreshPosts = null;
-            this.isLoading.set(false);
+    forkJoin({
+      pets: this.petService.getAdoptionCatalog().pipe(
+        catchError(() => {
+          petsFailed = true;
+          return of([]);
+        }),
+      ),
+      reports: this.lostPetService.getAll().pipe(
+        catchError(() => {
+          reportsFailed = true;
+          return of([]);
+        }),
+      ),
+    })
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe(({ pets, reports }) => {
+        if (petsFailed && reportsFailed) {
+          return;
+        }
 
-            const targetPostId =
-              this.route.snapshot.paramMap.get('id') ||
-              this.route.snapshot.queryParamMap.get('postId') ||
-              this.singlePostModeId();
-            if (targetPostId) {
-              this.focusTargetPost(targetPostId);
-            }
-          },
-          error: () => {
-            const onlyPets = this.buildFeedPosts(pets || [], []).filter(
-              (p) => !this.deletedPostIds.has(p.id),
-            );
-            this.registerKnownPosts(onlyPets);
-            this.allPosts.set(onlyPets);
-            this.isLoading.set(false);
-          },
-        });
-      },
-      error: () => {
-        this.lostPetService.getAll().subscribe({
-          next: (reports) => {
-            const onlyReports = this.buildFeedPosts([], reports || []).filter(
-              (p) => !this.deletedPostIds.has(p.id),
-            );
-            this.registerKnownPosts(onlyReports);
-            this.allPosts.set(onlyReports);
-            this.isLoading.set(false);
-          },
-          error: () => {
-            this.isLoading.set(false);
-          },
-        });
-      },
-    });
+        const combined = this.buildFeedPosts(pets || [], reports || []).filter(
+          (p) => !this.deletedPostIds.has(p.id),
+        );
+        this.registerKnownPosts(combined);
+        this.allPosts.set(combined);
+
+        if (!petsFailed && !reportsFailed) {
+          this.pendingNewPostsCount.set(0);
+          this.bufferedFreshPosts = null;
+
+          const targetPostId =
+            this.route.snapshot.paramMap.get('id') ||
+            this.route.snapshot.queryParamMap.get('postId') ||
+            this.singlePostModeId();
+          if (targetPostId) {
+            this.focusTargetPost(targetPostId);
+          }
+        }
+      });
   }
 
   private checkForNewPostsSilently(): void {
-    if (this.isLoading() || this.isRefreshingFeed()) return;
+    if (this.isLoading() || this.isRefreshingFeed() || this.isSilentFeedPolling) return;
+    this.isSilentFeedPolling = true;
 
-    this.petService.getAdoptionCatalog().subscribe({
-      next: (pets) => {
-        this.lostPetService.getAll().subscribe({
-          next: (reports) => {
-            const fresh = this.buildFeedPosts(pets || [], reports || []).filter(
-              (p) => !this.deletedPostIds.has(p.id),
-            );
+    forkJoin({
+      pets: this.petService.getAdoptionCatalog().pipe(catchError(() => of(null))),
+      reports: this.lostPetService.getAll().pipe(catchError(() => of(null))),
+    })
+      .pipe(finalize(() => (this.isSilentFeedPolling = false)))
+      .subscribe(({ pets, reports }) => {
+        if (!pets || !reports) return;
 
-            // Si el muro aún estaba vacío, poblar directamente sin mostrar la píldora
-            if (this.allPosts().length === 0 || this.knownPostIds.size === 0) {
-              this.registerKnownPosts(fresh);
-              this.allPosts.set(fresh);
-              this.bufferedFreshPosts = null;
-              this.pendingNewPostsCount.set(0);
-              return;
-            }
+        const fresh = this.buildFeedPosts(pets, reports).filter(
+          (p) => !this.deletedPostIds.has(p.id),
+        );
 
-            const unseenPosts = fresh.filter((p) => !this.knownPostIds.has(p.id));
-            // Solo son publicaciones realmente nuevas aquellas cuya fecha de creación sea posterior a la carga inicial
-            const trulyNewPosts = unseenPosts.filter((p) => {
-              const createdTs = new Date(p.createdAt).getTime();
-              return !isNaN(createdTs) && createdTs > this.latestSeenTimestamp;
-            });
+        // Si el muro aún estaba vacío, poblar directamente sin mostrar la píldora
+        if (this.allPosts().length === 0 || this.knownPostIds.size === 0) {
+          this.registerKnownPosts(fresh);
+          this.allPosts.set(fresh);
+          this.bufferedFreshPosts = null;
+          this.pendingNewPostsCount.set(0);
+          return;
+        }
 
-            // Cualquier publicación anterior que no estuviera registrada se marca como conocida sin disparar la píldora
-            for (const p of unseenPosts) {
-              const createdTs = new Date(p.createdAt).getTime();
-              if (isNaN(createdTs) || createdTs <= this.latestSeenTimestamp) {
-                this.knownPostIds.add(p.id);
-              }
-            }
-
-            if (trulyNewPosts.length > 0) {
-              this.bufferedFreshPosts = fresh;
-              this.pendingNewPostsCount.set(trulyNewPosts.length);
-            } else {
-              this.bufferedFreshPosts = null;
-              this.pendingNewPostsCount.set(0);
-              this.registerKnownPosts(fresh);
-              // Actualiza contadores de cascada/avistamientos sin alterar scroll ni cerrar comentarios
-              this.allPosts.set(fresh);
-            }
-          },
-          error: () => {},
+        const unseenPosts = fresh.filter((p) => !this.knownPostIds.has(p.id));
+        // Solo son publicaciones realmente nuevas aquellas cuya fecha de creación sea posterior a la carga inicial
+        const trulyNewPosts = unseenPosts.filter((p) => {
+          const createdTs = new Date(p.createdAt).getTime();
+          return !isNaN(createdTs) && createdTs > this.latestSeenTimestamp;
         });
-      },
-      error: () => {},
-    });
+
+        // Cualquier publicación anterior que no estuviera registrada se marca como conocida sin disparar la píldora
+        for (const p of unseenPosts) {
+          const createdTs = new Date(p.createdAt).getTime();
+          if (isNaN(createdTs) || createdTs <= this.latestSeenTimestamp) {
+            this.knownPostIds.add(p.id);
+          }
+        }
+
+        if (trulyNewPosts.length > 0) {
+          this.bufferedFreshPosts = fresh;
+          this.pendingNewPostsCount.set(trulyNewPosts.length);
+        } else {
+          this.bufferedFreshPosts = null;
+          this.pendingNewPostsCount.set(0);
+          this.registerKnownPosts(fresh);
+          // Actualiza contadores de cascada/avistamientos sin alterar scroll ni cerrar comentarios
+          this.allPosts.set(fresh);
+        }
+      });
   }
 
   applyPendingFeedRefresh(): void {
@@ -4942,7 +4946,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     const isLost = report.type === 'EXTRAVIADA';
     const prefix = isLost ? '🚨 ¡URGENTE! SE BUSCA A ESTA MASCOTA' : '📍 PELUDITO ENCONTRADO EN CALLE';
     const msg = `${prefix}\n🐾 Nombre: ${report.petName || 'Sin identificar'}\n📍 Lugar: ${report.lastSeenLocation} (Dolores Hidalgo)\n🔍 Señas: ${report.distinctiveFeatures}\n📲 Contacto: ${report.contactPhone}\n\nAyúdanos a compartir en grupos de Dolores Hidalgo a través de ${this.brand.name}.`;
-    return `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    return buildWhatsAppUrl(undefined, msg);
   }
 
   // ==========================================
@@ -5023,17 +5027,12 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
     const cleanDigits = pet.owner.phone.replace(/\D/g, '');
     if (cleanDigits.length < 10) return '';
-    const text = encodeURIComponent(
-      `¡Hola! Vi en ${this.brand.name} a ${pet.name} (${pet.species}) en adopción en Dolores Hidalgo. Me encantaría postularme para adoptarlo(a). ¿Podemos platicar sobre los requisitos?`,
-    );
-
-    return `https://wa.me/52${cleanDigits}?text=${text}`;
+    const text = `¡Hola! Vi en ${this.brand.name} a ${pet.name} (${pet.species}) en adopción en Dolores Hidalgo. Me encantaría postularme para adoptarlo(a). ¿Podemos platicar sobre los requisitos?`;
+    return buildWhatsAppUrl(pet.owner.phone, text);
   }
 
   getDirectWhatsAppUrl(phone: string, message: string): string {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const cleanNumber = cleanPhone.length === 10 ? `52${cleanPhone}` : cleanPhone;
-    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+    return buildWhatsAppUrl(phone, message);
   }
 
   canMessagePostAuthor(post: FeedPost): boolean {
@@ -5395,9 +5394,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       'La tarjeta del enlace cargará automáticamente la foto, título y datos de la mascota. Si gustas, también puedes presionar Ctrl+V arriba.',
     );
 
-    const url = encodeURIComponent(postUrl);
-    const quote = encodeURIComponent(shareSummary);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, '_blank');
+    openExternalSafe(buildFacebookShareUrl(postUrl, shareSummary));
   }
 
   copyPostLink(post: FeedPost): void {
@@ -5407,20 +5404,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   }
 
   formatExactDateTime(dateStr: string): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    const datePart = date.toLocaleDateString('es-MX', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-    const timePart = date.toLocaleTimeString('es-MX', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-    return `${datePart} • ${timePart}`;
+    return formatSharedExactDateTime(dateStr);
   }
 
   formatRelativeTime(dateStr: string): string {
@@ -5429,6 +5413,20 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopCameraStream();
+    this.revokeObjectUrls(this.reportLostPhotosList());
+    const sightingPreview = this.sightingPhotoPreview();
+    if (
+      sightingPreview &&
+      sightingPreview.startsWith('blob:') &&
+      typeof URL !== 'undefined' &&
+      URL.revokeObjectURL
+    ) {
+      try {
+        URL.revokeObjectURL(sightingPreview);
+      } catch {
+        // ignore
+      }
+    }
     if (this.commentsPollingTimer) {
       clearInterval(this.commentsPollingTimer);
       this.commentsPollingTimer = null;

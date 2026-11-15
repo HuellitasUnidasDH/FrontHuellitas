@@ -1,6 +1,7 @@
 import { AdoptionFollowup, AdoptionRequest, AdoptionRequestStatus, ADOPTION_STAGE_META, FOLLOWUP_MILESTONE_LABELS } from '../../../core/models/adoption.model';
 import { Pet } from '../../../core/models/pet.model';
 import { User } from '../../../core/models/user.model';
+export { formatActorRoleLabel } from '../../../core/utils/app-helpers.util';
 
 export interface PetFollowupGroup {
   petId: string;
@@ -161,21 +162,5 @@ export function extractQuestionnairePills(req: AdoptionRequest): QuestionnaireCo
     pills.push({ label: 'Plan mudanza', value: q.relocationPlan, tone: 'slate' });
   }
   return pills;
-}
-
-export function formatActorRoleLabel(role?: string | null): string {
-  switch (role) {
-    case 'ADMIN':
-      return 'Administrador';
-    case 'RESCATISTA_VERIFICADO':
-      return 'Rescatista Verificado';
-    case 'ALBERGUE':
-      return 'Albergue';
-    case 'VETERINARIAN':
-    case 'CLINICA_ALIADA':
-      return 'Clínica Aliada';
-    default:
-      return 'Responsable / Ciudadano';
-  }
 }
 

@@ -23,6 +23,7 @@ import {
   getStageMeta,
 } from '../shared/adoption-helpers.util';
 import { AdoptionAgreementDocumentComponent } from '../shared/adoption-agreement-document.component';
+import { buildWhatsAppUrl } from '../../../core/utils/app-helpers.util';
 
 interface SectionDef {
   index: number;
@@ -121,6 +122,7 @@ interface SectionDef {
                 <a
                   [href]="getWhatsAppUrl(req)"
                   target="_blank"
+                  rel="noopener noreferrer"
                   class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-500/15 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-bold text-xs flex items-center gap-1.5 transition-colors"
                 >
                   <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -360,10 +362,11 @@ interface SectionDef {
                         Fotografías de hogar / patio enviadas por el postulante ({{ ver.homeYardPhotos.length }}):
                       </span>
                       <div class="flex flex-wrap gap-2.5">
-                        @for (photoUrl of ver.homeYardPhotos; track $index) {
+                        @for (photoUrl of ver.homeYardPhotos; track photoUrl + '-' + $index) {
                           <a
                             [href]="photoUrl"
                             target="_blank"
+                            rel="noopener noreferrer"
                             class="w-24 h-20 rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 hover:border-emerald-500 transition-colors block shadow-sm"
                           >
                             <img [src]="photoUrl" alt="Foto de espacio del hogar" class="w-full h-full object-cover" />
@@ -722,7 +725,7 @@ interface SectionDef {
 
                 <div class="flex items-center gap-3 shrink-0">
                   @if (stageForm.handoverPhotoUrl) {
-                    <a [href]="stageForm.handoverPhotoUrl" target="_blank" class="block">
+                    <a [href]="stageForm.handoverPhotoUrl" target="_blank" rel="noopener noreferrer" class="block">
                       <img
                         [src]="stageForm.handoverPhotoUrl"
                         alt="Entrega de mascota"
@@ -1327,10 +1330,7 @@ export class AdoptionEvaluationDetailComponent implements OnInit {
   }
 
   getWhatsAppUrl(req: AdoptionRequest): string {
-    const cleanPhone = (req.adopter?.phone || '').replace(/\D/g, '');
-    const text = encodeURIComponent(
-      `Hola ${req.adopter?.fullName || ''}, te contacto de ${this.brand.name} sobre tu solicitud para adoptar a ${req.pet?.name || ''}.`,
-    );
-    return `https://wa.me/52${cleanPhone}?text=${text}`;
+    const text = `Hola ${req.adopter?.fullName || ''}, te contacto de ${this.brand.name} sobre tu solicitud para adoptar a ${req.pet?.name || ''}.`;
+    return buildWhatsAppUrl(req.adopter?.phone, text);
   }
 }

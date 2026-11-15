@@ -50,7 +50,7 @@
           <span class="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
           <button
             type="button"
-            (click)="isManualPrivacyOpen = true"
+            (click)="isManualPrivacyOpen.set(true)"
             class="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
           >
             Aviso de Privacidad y Términos
@@ -61,19 +61,25 @@
   }
 
   <!-- Modal Global Obligatorio o Informativo del Aviso de Privacidad -->
-  <app-privacy-modal
-    [isOpen]="authService.needsPrivacyAcceptance() || isManualPrivacyOpen"
-    [isMandatory]="authService.needsPrivacyAcceptance()"
-    (accepted)="onAcceptUpdatedPrivacy()"
-    (closed)="isManualPrivacyOpen = false"
-  />
+  @defer (when authService.needsPrivacyAcceptance() || isManualPrivacyOpen()) {
+    <app-privacy-modal
+      [isOpen]="authService.needsPrivacyAcceptance() || isManualPrivacyOpen()"
+      [isMandatory]="authService.needsPrivacyAcceptance()"
+      (accepted)="onAcceptUpdatedPrivacy()"
+      (closed)="isManualPrivacyOpen.set(false)"
+    />
+  }
 
   <!-- Toasts -->
   <app-toast-container />
 
   <!-- Banner y Modal de Instalación PWA -->
-  <app-pwa-install />
+  @defer (on idle) {
+    <app-pwa-install />
+  }
 
   <!-- Modal Global de Confirmación y Alertas Liquid Glass -->
-  <app-confirm-modal />
+  @defer (when confirmService.state().isOpen) {
+    <app-confirm-modal />
+  }
 </div>

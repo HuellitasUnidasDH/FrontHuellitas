@@ -3,6 +3,8 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError, retry, timer } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
+import { environment } from '../../../environments/environment';
+import { isApiRequestUrl } from '../utils/app-helpers.util';
 
 let lastConnectionErrorToastTs = 0;
 
@@ -11,17 +13,19 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const notification = inject(NotificationService);
 
   return next(req).pipe(
-    // Reintento automático transparente (auto-healing): si el celular estaba dormido y la antena
-    // apenas está levantando el socket, o si Render tiene un retardo de arranque en frío (502/503/504),
-    // reintentar automáticamente 2 veces antes de dar por fallida la llamada.
+    // Reintento automático transparente (auto-healing) solo en lecturas idempotentes (GET/HEAD/OPTIONS):
+    // evita duplicar mutaciones POST/PATCH/DELETE ante cortes de antena o arranque en frío (502/503/504).
     retry({
       count: 2,
       delay: (error: HttpErrorResponse, retryCount: number) => {
+        const isIdempotentMethod =
+          req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
         const isTransientNetworkOrColdStart =
-          error.status === 0 ||
-          error.status === 502 ||
-          error.status === 503 ||
-          error.status === 504;
+          isIdempotentMethod &&
+          (error.status === 0 ||
+            error.status === 502 ||
+            error.status === 503 ||
+            error.status === 504);
 
         if (isTransientNetworkOrColdStart) {
           return timer(retryCount * 1200);
@@ -40,7 +44,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
       }
 
-      if (error.status === 401) {
+      if (error.status === 401 && isApiRequestUrl(req.url, environment.apiUrl)) {
         const isAuthEndpoint =
           req.url.includes('/auth/login') ||
           req.url.includes('/auth/register') ||

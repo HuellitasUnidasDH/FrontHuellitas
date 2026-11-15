@@ -11,9 +11,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import * as QRCode from 'qrcode';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ScrollLockService } from '../../../core/services/scroll-lock.service';
+import {
+  escapeHtml,
+  sanitizeBase64RasterDataUrl,
+  sanitizeImageSrc,
+} from '../../../core/utils/app-helpers.util';
 
 export type PosterQrCategory =
   | 'SE_BUSCA'
@@ -478,7 +482,15 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
   private async generateQr(url: string): Promise<void> {
     if (!url) return;
     try {
-      const dataUrl = await QRCode.toDataURL(url, {
+      const qrcodeModule = (await import('qrcode')) as unknown as {
+        default?: typeof import('qrcode');
+        toDataURL?: typeof import('qrcode').toDataURL;
+      };
+      const toDataURL = qrcodeModule.default?.toDataURL ?? qrcodeModule.toDataURL;
+      if (!toDataURL) {
+        throw new Error('QR generator unavailable');
+      }
+      const dataUrl = await toDataURL(url, {
         width: 340,
         margin: 1,
         errorCorrectionLevel: 'M',
@@ -712,14 +724,19 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
       this.notify.warning('Tu navegador bloqueó la ventana de impresión. Descarga el cartel en PNG.');
       return;
     }
+    printWin.opener = null;
 
-    const esc = (val: string) =>
-      val
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    const esc = escapeHtml;
+    const safeAccentHex = /^#[0-9a-fA-F]{6}$/.test(theme.accentHex)
+      ? theme.accentHex
+      : '#059669';
+    const safePhotoUrl = sanitizeImageSrc(d.photoUrl);
+    const safeQrUrl = sanitizeBase64RasterDataUrl(qrUrl);
+    if (!safeQrUrl) {
+      printWin.close();
+      this.notify.error('No se pudo validar la imagen QR generada.');
+      return;
+    }
 
     const contactHtml =
       this.includePhone() && this.formattedPhone()
@@ -735,8 +752,8 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
       ? `<p class="custom-note">${esc(this.customNote().trim())}</p>`
       : '';
 
-    const photoHtml = d.photoUrl
-      ? `<img src="${esc(d.photoUrl)}" alt="${esc(d.petName)}" class="hero-img" />`
+    const photoHtml = safePhotoUrl
+      ? `<img src="${esc(safePhotoUrl)}" alt="${esc(d.petName)}" class="hero-img" />`
       : `<div class="hero-empty">Sin fotografía adjunta</div>`;
 
     const html = `<!doctype html>
@@ -748,8 +765,8 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
     @page { size: letter portrait; margin: 12mm; }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     body { margin: 0; color: #0f172a; background: #fff; }
-    .sheet { border: 3px solid ${theme.accentHex}; border-radius: 16px; overflow: hidden; max-width: 720px; margin: 0 auto; }
-    .banner { background: ${theme.accentHex}; color: #fff; text-align: center; padding: 18px 20px; }
+    .sheet { border: 3px solid ${safeAccentHex}; border-radius: 16px; overflow: hidden; max-width: 720px; margin: 0 auto; }
+    .banner { background: ${safeAccentHex}; color: #fff; text-align: center; padding: 18px 20px; }
     .banner h1 { margin: 0; font-size: 38px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
     .banner p { margin: 4px 0 0; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; opacity: 0.95; }
     .location { background: #0f172a; color: #fff; padding: 12px 20px; font-size: 15px; font-weight: 800; }
@@ -792,7 +809,7 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
       <p class="desc">${esc(d.description || '')}</p>
       ${noteHtml}
       <div class="footer">
-        <img src="${qrUrl}" alt="QR" class="qr" />
+        <img src="${esc(safeQrUrl)}" alt="QR" class="qr" />
         <div class="footer-info">
           <h3>Escanea con tu cámara</h3>
           <p>Consulta la publicación en vivo, reporta avistamientos o envía mensajes desde tu teléfono.</p>
@@ -802,13 +819,20 @@ export class PosterQrModalComponent implements OnInit, OnDestroy {
       </div>
     </div>
   </div>
-  <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };</script>
 </body>
 </html>`;
 
     printWin.document.open();
     printWin.document.write(html);
     printWin.document.close();
+    setTimeout(() => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch {
+        // Ignore if popup was closed before print triggered.
+      }
+    }, 300);
   }
 
   private async loadImageForCanvas(src: string): Promise<HTMLImageElement | null> {

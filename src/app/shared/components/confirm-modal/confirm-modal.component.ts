@@ -1,12 +1,11 @@
 import { Component, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-confirm-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
     @if (confirmService.state().isOpen) {
       <div
@@ -71,8 +70,8 @@ import { ConfirmService } from '../../../core/services/confirm.service';
                 <input
                   type="text"
                   [placeholder]="confirmService.state().options.inputPlaceholder || 'Escribe aquí...'"
-                  [ngModel]="confirmService.state().currentInputValue"
-                  (ngModelChange)="confirmService.updateInputValue($event)"
+                  [value]="confirmService.state().currentInputValue || ''"
+                  (input)="confirmService.updateInputValue($any($event.target).value)"
                   (keydown.enter)="confirmService.handleConfirm()"
                   class="w-full px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm transition-all shadow-inner"
                   autofocus

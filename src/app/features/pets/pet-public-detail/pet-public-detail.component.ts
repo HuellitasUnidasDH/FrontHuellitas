@@ -20,6 +20,11 @@ import {
   PosterQrPayload,
 } from '../../../shared/components/poster-qr-modal/poster-qr-modal.component';
 import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
+import {
+  buildFacebookShareUrl,
+  buildWhatsAppUrl,
+  openExternalSafe,
+} from '../../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-pet-public-detail',
@@ -407,6 +412,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                   <a
                     [href]="waUrl"
                     target="_blank"
+                    rel="noopener noreferrer"
                     class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 shadow-sm"
                     title="WhatsApp habilitado tras avanzar a entrevista"
                   >
@@ -770,23 +776,19 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
     if (!rawPhone) return null;
     const clean = rawPhone.replace(/\D/g, '');
     if (clean.length < 10) return null;
-    const text = encodeURIComponent(
-      `Hola, doy seguimiento a mi solicitud formal para adoptar a ${p.name} en ${this.brand.name}.`,
-    );
-    return `https://wa.me/52${clean}?text=${text}`;
+    const text = `Hola, doy seguimiento a mi solicitud formal para adoptar a ${p.name} en ${this.brand.name}.`;
+    return buildWhatsAppUrl(rawPhone, text);
   }
 
   shareToWhatsApp(): void {
     const p = this.pet();
     if (!p) return;
-    const text = encodeURIComponent(
-      `🐾 ¡Adopta a *${p.name}* en Dolores Hidalgo! Conoce su historia en ${this.brand.name}: ${window.location.href}`,
-    );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+    const text = `🐾 ¡Adopta a *${p.name}* en Dolores Hidalgo! Conoce su historia en ${this.brand.name}: ${window.location.href}`;
+    openExternalSafe(buildWhatsAppUrl(undefined, text));
   }
 
   shareToFacebook(): void {
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+    openExternalSafe(buildFacebookShareUrl(window.location.href));
   }
 
   canMessageOwner(): boolean {

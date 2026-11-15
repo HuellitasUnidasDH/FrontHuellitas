@@ -87,7 +87,7 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
                 <input
                   [type]="showPassword() ? 'text' : 'password'"
                   formControlName="newPassword"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres (mayús., minús. y número/símbolo)"
                   class="w-full pl-4 pr-11 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                   [ngClass]="{
                     '!border-rose-500 !ring-2 !ring-rose-500/20': newPasswordField?.invalid && newPasswordField?.touched
@@ -114,9 +114,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               @if (newPasswordField?.invalid && newPasswordField?.touched) {
                 <p class="text-rose-500 dark:text-rose-400 text-xs mt-1">
                   @if (newPasswordField?.hasError('required')) {
-                    Ingresa una nueva contraseña (mínimo 6 caracteres).
+                    Ingresa una nueva contraseña (mínimo 8 caracteres).
+                  } @else if (newPasswordField?.hasError('minlength')) {
+                    Tu contraseña es muy corta ({{ (newPasswordField?.value || '').length }}/8): agrega {{ 8 - (newPasswordField?.value || '').length }} más.
                   } @else {
-                    Tu contraseña es muy corta ({{ (newPasswordField?.value || '').length }}/6): agrega {{ 6 - (newPasswordField?.value || '').length }} más.
+                    Debe incluir al menos 1 mayúscula, 1 minúscula y 1 número o símbolo.
                   }
                 </p>
               }
@@ -188,7 +190,14 @@ export class ResetPasswordComponent implements OnInit {
   showPassword = signal<boolean>(false);
 
   resetForm = this.fb.nonNullable.group({
-    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    newPassword: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(8),
+        Validators.pattern(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/),
+      ],
+    ],
     confirmPassword: ['', [Validators.required]],
   });
 

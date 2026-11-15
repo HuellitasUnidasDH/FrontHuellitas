@@ -1,17 +1,15 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { AllyService } from '../../core/services/ally.service';
-import { ColoniaService } from '../../core/services/colonia.service';
 import { NavigationHistoryService } from '../../core/services/navigation-history.service';
 import { Ally, AllyCategory } from '../../core/models/ally.model';
-import { Colonia } from '../../core/models/colonia.model';
 import { BRAND_CONFIG } from '../../core/constants/brand.constants';
+import { buildWhatsAppUrl } from '../../core/utils/app-helpers.util';
 
 @Component({
   selector: 'app-allies-directory',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   template: `
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
@@ -142,6 +140,7 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
                     <a
                       [href]="getWhatsAppUrl(ally.whatsappPhone, ally.businessName)"
                       target="_blank"
+                      rel="noopener noreferrer"
                       class="flex-1 py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs text-center flex items-center justify-center gap-1 shadow-md transition-colors"
                     >
                       <span>💬</span> WhatsApp
@@ -213,7 +212,7 @@ export class AlliesDirectoryComponent implements OnInit {
   }
 
   getWhatsAppUrl(phone: string, name: string): string {
-    const text = encodeURIComponent(`Hola ${name}, vi su negocio en el directorio de ${this.brand.name} Dolores Hidalgo. Me gustaría pedir informes sobre sus servicios.`);
-    return `https://wa.me/52${phone.replace(/\D/g, '')}?text=${text}`;
+    const text = `Hola ${name}, vi su negocio en el directorio de ${this.brand.name} Dolores Hidalgo. Me gustaría pedir informes sobre sus servicios.`;
+    return buildWhatsAppUrl(phone, text);
   }
 }

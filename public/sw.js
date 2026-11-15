@@ -126,7 +126,16 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  const rawUrl = (event.notification.data && event.notification.data.url) || '/';
+  let targetUrl = '/';
+  try {
+    const parsed = new URL(String(rawUrl), self.location.origin);
+    if (parsed.origin === self.location.origin) {
+      targetUrl = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    targetUrl = '/';
+  }
 
   event.waitUntil(
     self.clients
