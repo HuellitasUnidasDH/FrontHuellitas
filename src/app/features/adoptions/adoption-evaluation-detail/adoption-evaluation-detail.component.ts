@@ -1248,7 +1248,7 @@ export class AdoptionEvaluationDetailComponent implements OnInit {
       confirmText: 'Confirmar formalización',
       cancelText: 'Volver',
       type: 'success',
-      icon: '✓',
+      icon: 'check',
     });
     if (!confirmed) return;
 

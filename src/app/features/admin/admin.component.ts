@@ -12,8 +12,10 @@ import { ScrollLockService } from '../../core/services/scroll-lock.service';
 import {
   ContentReport,
   ContentReportStatus,
+  ModerationAction,
   ModerationService,
 } from '../../core/services/moderation.service';
+import { formatPetGenderLabel } from '../../core/utils/app-helpers.util';
 import { LostPetService } from '../../core/services/lost-pet.service';
 import { AllyService } from '../../core/services/ally.service';
 import { ColoniaService } from '../../core/services/colonia.service';
@@ -31,6 +33,10 @@ import {
   LEGACY_ROLE_OPTIONS,
   LOST_PET_STATUS_META,
   LOST_PET_TYPE_LABELS,
+  MODERATION_ACTION_META_MAP,
+  MODERATION_ACTION_OPTIONS,
+  ModerationActionMeta,
+  QUICK_MODERATION_NOTES,
   REPORT_REASON_LABELS,
   REPORT_STATUS_META,
   REPORT_TARGET_LABELS,
@@ -55,8 +61,9 @@ import {
             </span>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">DevSecOps & Control Total</span>
           </div>
-          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1.5">
-            Centro de Mando y Auditoría 🛡️
+          <h1 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-1.5 flex items-center gap-2.5">
+            <span>Centro de Mando y Auditoría</span>
+            <svg class="w-6 h-6 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
           </h1>
           <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Supervisa el estado del servidor en tiempo real, rastrea intentos de acceso y ciberataques, gestiona usuarios y administra registros médicos zoológicos.
@@ -77,7 +84,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'monitoring'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>📊</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
             <span>Monitoreo</span>
           </button>
 
@@ -93,7 +100,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'audit'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>🛡️</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
             <span>Logs y Auditoría</span>
           </button>
 
@@ -109,7 +116,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'users'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>👥</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>Personas ({{ users().length }})</span>
           </button>
 
@@ -125,7 +132,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'pets'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>🐾</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
             <span>Mascotas ({{ pets().length }})</span>
           </button>
 
@@ -141,7 +148,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'moderation'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>⚖️</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
             <span>Moderación</span>
             @if (pendingReportsCount() > 0) {
               <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
@@ -162,7 +169,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'posts'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>📣</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
             <span>Muro ({{ lostReports().length }})</span>
           </button>
 
@@ -178,7 +185,7 @@ import {
             [class.dark:text-slate-400]="activeTab() !== 'allies'"
             class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 whitespace-nowrap"
           >
-            <span>🏪</span>
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
             <span>Aliados ({{ allies().length }})</span>
           </button>
         </div>
@@ -221,10 +228,10 @@ import {
               </div>
               <button
                 (click)="loadStats()"
-                class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                class="p-2 rounded-xl bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
                 title="Actualizar métricas"
               >
-                🔄
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
               </button>
             </div>
           </div>
@@ -236,7 +243,7 @@ import {
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Usuarios</span>
-                <span class="text-xl">👥</span>
+                <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div class="mt-2 text-3xl font-black text-slate-900 dark:text-white">
                 {{ stats()?.users?.total || users().length }}
@@ -252,7 +259,7 @@ import {
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mascotas & Adopción</span>
-                <span class="text-xl">🐾</span>
+                <svg class="w-5 h-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
               </div>
               <div class="mt-2 text-3xl font-black text-emerald-600 dark:text-emerald-400">
                 {{ stats()?.pets?.total ?? pets().length }}
@@ -272,7 +279,7 @@ import {
             >
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Comunidad & Reportes</span>
-                <span class="text-xl">⚖️</span>
+                <svg class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
               </div>
               <div class="mt-2 flex items-baseline gap-2">
                 <span class="text-3xl font-black" [ngClass]="(stats()?.community?.pendingModerationReports || 0) > 0 ? 'text-rose-500' : 'text-cyan-600 dark:text-cyan-400'">
@@ -289,7 +296,7 @@ import {
             <div class="liquid-glass-card p-5 rounded-3xl shadow-lg relative overflow-hidden">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Seguridad & Accesos Hoy</span>
-                <span class="text-xl">🛡️</span>
+                <svg class="w-5 h-5 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
               </div>
               <div class="mt-2 flex items-baseline gap-2">
                 <span class="text-3xl font-black text-cyan-600 dark:text-cyan-400">
@@ -310,7 +317,7 @@ import {
             <!-- Desglose de Usuarios por Rol (Todos los roles Huellitas) -->
             <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>👤</span>
+                <svg class="w-4 h-4 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Composición de Usuarios por Rol</span>
               </h3>
               
@@ -336,7 +343,7 @@ import {
             <!-- Desglose de Mascotas por Especie -->
             <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🐾</span>
+                <svg class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
                 <span>Distribución por Especies Animales</span>
               </h3>
 
@@ -368,7 +375,7 @@ import {
           <div class="liquid-glass p-6 rounded-3xl shadow-xl space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <span>⚡</span>
+                <svg class="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 <span>Últimos Eventos de Seguridad del Sistema</span>
               </h3>
               <button
@@ -436,7 +443,7 @@ import {
                   placeholder="Buscar por IP, correo, detalle, usuario o recurso..."
                   class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
                 />
-                <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 @if (logSearch()) {
                   <button
                     type="button"
@@ -444,7 +451,7 @@ import {
                     class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
                     title="Limpiar búsqueda"
                   >
-                    ✕
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                   </button>
                 }
               </div>
@@ -479,7 +486,7 @@ import {
                 (click)="loadAuditLogs(1)"
                 class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
               >
-                <span>🔄</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
                 <span>Actualizar</span>
               </button>
             </div>
@@ -492,7 +499,7 @@ import {
             </div>
           } @else if (auditLogs().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl">
-              <span class="text-4xl">📜</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300 mt-2">No se encontraron registros de auditoría</p>
             </div>
           } @else {
@@ -582,7 +589,7 @@ import {
                 placeholder="Buscar usuario por nombre, correo, teléfono o colonia..."
                 class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               @if (userSearch()) {
                 <button
                   type="button"
@@ -590,7 +597,7 @@ import {
                   class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
                   title="Limpiar búsqueda"
                 >
-                  ✕
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               }
             </div>
@@ -629,7 +636,7 @@ import {
                 class="px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
                 title="Descargar listado filtrado en CSV"
               >
-                <span>📥</span>
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                 <span>CSV ({{ filteredUsers().length }})</span>
               </button>
 
@@ -640,7 +647,7 @@ import {
                   class="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                   title="Editar el contenido del Aviso de Privacidad y actualizar la versión legal requerida"
                 >
-                  <span>📜</span>
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                   <span>Versión Legal</span>
                 </button>
               }
@@ -654,7 +661,7 @@ import {
             </div>
           } @else if (filteredUsers().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
-              <span class="text-4xl block">👥</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron usuarios con esos filtros</p>
               @if (userSearch() || selectedRoleFilter() || selectedUserStatusFilter()) {
                 <button
@@ -687,7 +694,10 @@ import {
                           <div class="font-bold text-slate-900 dark:text-white text-sm">{{ user.fullName }}</div>
                           <div class="text-xs text-slate-500 dark:text-slate-400 font-mono">{{ user.email }}</div>
                           @if (user.colonia?.name) {
-                            <div class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">📍 Col. {{ user.colonia.name }}</div>
+                            <div class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                              <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                              <span>Col. {{ user.colonia.name }}</span>
+                            </div>
                           }
                         </td>
                         <td class="py-4 px-4">
@@ -735,12 +745,12 @@ import {
                         <td class="py-4 px-4">
                           @if (user.acceptedPrivacyVersion && user.acceptedPrivacyVersion !== 'OUTDATED' && user.acceptedPrivacyVersion === currentPrivacyVersion()) {
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                              <span>✓</span>
+                              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                               <span>{{ user.acceptedPrivacyVersion }}</span>
                             </span>
                           } @else {
                             <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                              <span>⚠️</span>
+                              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                               <span>{{ user.acceptedPrivacyVersion || 'Pendiente' }}</span>
                             </span>
                           }
@@ -790,7 +800,7 @@ import {
                 placeholder="Buscar mascota por nombre, raza, especie, chip o dueño..."
                 class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               @if (petSearch()) {
                 <button
                   type="button"
@@ -798,7 +808,7 @@ import {
                   class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
                   title="Limpiar búsqueda"
                 >
-                  ✕
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               }
             </div>
@@ -845,7 +855,7 @@ import {
             </div>
           } @else if (filteredPets().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
-              <span class="text-4xl block">🐾</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="20" cy="16" r="2"/><path d="M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron mascotas con esos filtros</p>
               @if (petSearch() || selectedPetSpeciesFilter() || selectedPetStatusFilter()) {
                 <button
@@ -876,15 +886,15 @@ import {
                       <tr class="hover:bg-white/40 dark:hover:bg-slate-800/30 transition-colors">
                         <td class="py-4 px-4 sm:px-6">
                           <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-lg">
-                              {{ pet.species.toLowerCase() === 'perro' || pet.species.toLowerCase() === 'canino' ? '🐶' : pet.species.toLowerCase() === 'gato' || pet.species.toLowerCase() === 'felino' ? '🐱' : '🐾' }}
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase">
+                              {{ (pet.species || 'M').slice(0, 2) }}
                             </div>
                             <div>
                               <a [routerLink]="['/pets', pet.id]" class="font-bold text-slate-900 dark:text-white hover:text-emerald-500 transition-colors">
                                 {{ pet.name }}
                               </a>
                               <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                                {{ pet.gender === 'MALE' ? 'Macho' : 'Hembra' }} · {{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin peso' }}
+                                {{ formatPetGenderLabel(pet.gender) }} · {{ pet.weightKg ? pet.weightKg + ' kg' : 'Sin peso' }}
                               </div>
                             </div>
                           </div>
@@ -951,37 +961,45 @@ import {
                 placeholder="Buscar denuncia por motivo, descripción, denunciante o ID..."
                 class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               @if (moderationSearch()) {
                 <button
                   type="button"
                   (click)="moderationSearch.set('')"
                   class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
                 >
-                  ✕
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               }
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
-              <select
-                [ngModel]="selectedModerationStatus()"
-                (ngModelChange)="selectedModerationStatus.set($event)"
-                class="px-3 py-2 rounded-xl liquid-glass-input text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
-              >
-                <option value="">Todos los Estados</option>
-                <option value="PENDIENTE">Pendientes</option>
-                <option value="EN_REVISION">En Revisión</option>
-                <option value="SANCIONADO">Sancionados</option>
-                <option value="DESESTIMADO">Desestimados</option>
-              </select>
+            <div class="flex flex-wrap items-center gap-1.5">
+              @for (st of [
+                { value: '', label: 'Todos' },
+                { value: 'PENDIENTE', label: 'Pendientes' },
+                { value: 'EN_REVISION', label: 'En Revisión' },
+                { value: 'SANCIONADO', label: 'Sancionados' },
+                { value: 'DESESTIMADO', label: 'Desestimados' }
+              ]; track st.value) {
+                <button
+                  type="button"
+                  (click)="selectedModerationStatus.set(st.value)"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border"
+                  [ngClass]="selectedModerationStatus() === st.value
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-500 shadow-sm'
+                    : 'bg-white/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500/40'"
+                >
+                  {{ st.label }}
+                </button>
+              }
 
               <button
                 type="button"
                 (click)="loadModerationReports()"
-                class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                class="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
               >
-                <span>🔄</span>
+                <svg class="w-3.5 h-3.5" [class.animate-spin]="isLoadingReports()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
                 <span>Actualizar</span>
               </button>
             </div>
@@ -993,14 +1011,14 @@ import {
             </div>
           } @else if (filteredReports().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
-              <span class="text-4xl block">⚖️</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No hay denuncias que coincidan con el filtro</p>
             </div>
           } @else {
             <div class="grid grid-cols-1 gap-4">
               @for (report of filteredReports(); track report.id) {
-                <div class="liquid-glass p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div class="space-y-2 flex-1">
+                <div class="liquid-glass p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                  <div class="space-y-3 flex-1 min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
                       <span
                         class="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
@@ -1014,10 +1032,72 @@ import {
                       <span class="text-xs font-bold text-rose-600 dark:text-rose-400">
                         {{ getReportReasonLabel(report.reason) }}
                       </span>
+                      @if (report.actionTaken && getModerationActionMeta(report.actionTaken); as actionMeta) {
+                        <span
+                          class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider"
+                          [ngClass]="actionMeta.badgeClass"
+                        >
+                          {{ actionMeta.shortLabel }}
+                        </span>
+                      }
                       <span class="text-[11px] text-slate-400 font-mono">
                         {{ report.createdAt | date:'dd/MM/yyyy HH:mm' }}
                       </span>
                     </div>
+
+                    @if (report.targetSummary; as summary) {
+                      <div class="p-3 rounded-2xl bg-slate-100/80 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-3">
+                        @if (summary.photoUrl) {
+                          <img
+                            [src]="summary.photoUrl"
+                            [alt]="summary.title"
+                            class="w-12 h-12 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                        }
+                        <div class="flex-1 min-w-0 space-y-0.5">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-black text-slate-900 dark:text-white truncate">
+                              {{ summary.title }}
+                            </span>
+                            <span
+                              class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                              [ngClass]="summary.isDeleted
+                                ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
+                                : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'"
+                            >
+                              {{ summary.statusLabel }}
+                            </span>
+                          </div>
+                          @if (summary.subtitle) {
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {{ summary.subtitle }}
+                            </div>
+                          }
+                          @if (summary.previewText) {
+                            <p class="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">
+                              {{ summary.previewText }}
+                            </p>
+                          }
+                          @if (summary.author; as author) {
+                            <div class="pt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                              <span>
+                                Autor: <strong class="text-slate-700 dark:text-slate-200">{{ author.fullName }}</strong>
+                              </span>
+                              @if (author.isBanned || !author.isActive) {
+                                <span class="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold text-[10px]">
+                                  Cuenta suspendida
+                                </span>
+                              }
+                              @if (author.priorSanctionsCount > 0) {
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                  {{ author.priorSanctionsCount }} sanción(es) previas
+                                </span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
 
                     <p class="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
                       {{ report.description }}
@@ -1040,29 +1120,22 @@ import {
                     }
                   </div>
 
-                  <div class="flex flex-wrap lg:flex-col items-stretch gap-2 shrink-0">
-                    @if (report.targetType === 'PET_POST') {
+                  <div class="flex flex-wrap lg:flex-col items-stretch gap-2 shrink-0 lg:w-44">
+                    @if (report.targetSummary?.routePath; as routePath) {
                       <a
-                        [routerLink]="['/adopciones', report.targetId]"
-                        class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold text-center"
+                        [routerLink]="routePath"
+                        class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold text-center transition-colors"
                       >
-                        Ver Ficha
-                      </a>
-                    } @else if (report.targetType === 'LOST_REPORT') {
-                      <a
-                        [routerLink]="['/publicacion', report.targetId]"
-                        class="px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-700 dark:text-sky-300 border border-sky-500/30 text-xs font-bold text-center"
-                      >
-                        Ver Publicación
+                        {{ report.targetType === 'PET_POST' ? 'Ver Ficha' : 'Ver Publicación' }}
                       </a>
                     }
 
                     <button
                       type="button"
                       (click)="openResolveReportModal(report)"
-                      class="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold cursor-pointer"
+                      class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer transition-colors shadow-sm"
                     >
-                      Resolver / Dictaminar
+                      Dictaminar / Sancionar
                     </button>
                   </div>
                 </div>
@@ -1086,14 +1159,15 @@ import {
                 placeholder="Buscar publicación por nombre, descripción, colonia, dirección o autor..."
                 class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               @if (postSearch()) {
                 <button
                   type="button"
                   (click)="postSearch.set('')"
                   class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
                 >
-                  ✕
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               }
             </div>
@@ -1127,9 +1201,10 @@ import {
               <button
                 type="button"
                 (click)="loadLostReports()"
-                class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer"
+                class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
               >
-                🔄 Actualizar
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                <span>Actualizar</span>
               </button>
             </div>
           </div>
@@ -1140,7 +1215,7 @@ import {
             </div>
           } @else if (filteredLostReports().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
-              <span class="text-4xl block">📣</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron publicaciones en el muro</p>
             </div>
           } @else {
@@ -1231,14 +1306,15 @@ import {
                 placeholder="Buscar aliado por nombre, dirección, colonia, teléfono o promoción..."
                 class="w-full pl-10 pr-9 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500"
               />
-              <span class="absolute left-3.5 top-2 text-slate-400 text-sm">🔍</span>
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               @if (allySearch()) {
                 <button
                   type="button"
                   (click)="allySearch.set('')"
                   class="absolute right-2.5 top-1.5 w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-white text-xs flex items-center justify-center cursor-pointer"
+                  title="Limpiar búsqueda"
                 >
-                  ✕
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
               }
             </div>
@@ -1251,7 +1327,7 @@ import {
               >
                 <option value="">Todas las Categorías</option>
                 @for (cat of allyCategoryOptions; track cat.value) {
-                  <option [value]="cat.value">{{ cat.icon }} {{ cat.label }}</option>
+                  <option [value]="cat.value">{{ cat.label }}</option>
                 }
               </select>
 
@@ -1271,7 +1347,7 @@ import {
             </div>
           } @else if (filteredAllies().length === 0) {
             <div class="text-center py-16 liquid-glass rounded-3xl space-y-2">
-              <span class="text-4xl block">🏪</span>
+              <svg class="w-10 h-10 mx-auto text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>
               <p class="text-sm font-bold text-slate-700 dark:text-slate-300">No se encontraron aliados con esos filtros</p>
             </div>
           } @else {
@@ -1296,16 +1372,18 @@ import {
                       </div>
                     </div>
 
-                    <p class="text-xs text-slate-600 dark:text-slate-300">
-                      📍 {{ ally.address }} @if (ally.colonia?.name) { · Col. {{ ally.colonia?.name }} }
+                    <p class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{{ ally.address }} @if (ally.colonia?.name) { · Col. {{ ally.colonia?.name }} }</span>
                     </p>
-                    <p class="text-xs font-mono text-slate-500 dark:text-slate-400">
-                      📞 {{ ally.phone }} @if (ally.whatsappPhone) { · 💬 WA {{ ally.whatsappPhone }} }
+                    <p class="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                      <span>{{ ally.phone }} @if (ally.whatsappPhone) { · WA {{ ally.whatsappPhone }} }</span>
                     </p>
 
                     @if (ally.hasPromotionForAdopters && ally.promotionDescription) {
                       <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
-                        🎁 <strong>Convenio:</strong> {{ ally.promotionDescription }}
+                        <strong>Convenio:</strong> {{ ally.promotionDescription }}
                       </div>
                     }
                   </div>
@@ -1337,45 +1415,108 @@ import {
       <!-- ========================================================= -->
       <!-- MODAL DE RESOLUCIÓN DE DENUNCIA                           -->
       <!-- ========================================================= -->
-      @if (resolvingReport()) {
+      @if (resolvingReport(); as activeReport) {
         <div class="fixed inset-0 z-[999] flex items-start sm:items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-xl overflow-y-auto overscroll-contain">
-          <div class="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
-            <div class="flex items-center justify-between">
-              <h3 class="text-base font-black text-slate-900 dark:text-white">Dictaminar Denuncia</h3>
+          <div class="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 class="text-base font-black text-slate-900 dark:text-white">Dictaminar Denuncia y Ejecutar Sanción</h3>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                  {{ getReportTargetLabel(activeReport.targetType) }} · {{ getReportReasonLabel(activeReport.reason) }}
+                </p>
+              </div>
               <button
                 type="button"
                 (click)="resolvingReport.set(null)"
-                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
+                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
+                title="Cerrar"
               >
-                ✕
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
-            <div class="space-y-3 text-xs">
-              <div>
-                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Nuevo Estado</label>
-                <select
-                  [(ngModel)]="reportResolutionForm.status"
-                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white font-semibold"
-                >
-                  <option value="PENDIENTE">Pendiente</option>
-                  <option value="EN_REVISION">En Revisión</option>
-                  <option value="SANCIONADO">Sancionado (Infracción confirmada)</option>
-                  <option value="DESESTIMADO">Desestimado (Sin infracción)</option>
-                </select>
+            @if (activeReport.targetSummary; as summary) {
+              <div class="p-3.5 rounded-2xl bg-slate-100/90 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-xs font-black text-slate-900 dark:text-white">{{ summary.title }}</span>
+                  <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {{ summary.statusLabel }}
+                  </span>
+                </div>
+                @if (summary.author; as author) {
+                  <p class="text-[11px] text-slate-600 dark:text-slate-400">
+                    Autor: <strong>{{ author.fullName }}</strong>
+                    @if (author.email) { · <span class="font-mono">{{ author.email }}</span> }
+                    @if (author.priorSanctionsCount > 0) { · <strong class="text-amber-600 dark:text-amber-400">{{ author.priorSanctionsCount }} sanción(es) previas</strong> }
+                  </p>
+                }
+                <p class="text-xs text-slate-700 dark:text-slate-300 pt-1 italic">
+                  «{{ activeReport.description }}»
+                </p>
               </div>
-              <div>
-                <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Notas de resolución</label>
-                <textarea
-                  [(ngModel)]="reportResolutionForm.adminNotes"
-                  rows="3"
-                  placeholder="Describe la acción tomada..."
-                  class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
-                ></textarea>
+            }
+
+            <div class="space-y-2 text-xs">
+              <label class="font-bold text-slate-700 dark:text-slate-300 block">Medida de Moderación a Ejecutar *</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                @for (opt of availableModerationActions(activeReport); track opt.value) {
+                  @let disabled = isModerationActionDisabled(activeReport, opt.value);
+                  <button
+                    type="button"
+                    [disabled]="disabled"
+                    (click)="reportResolutionForm.action = opt.value"
+                    class="p-3 rounded-2xl border text-left transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                    [ngClass]="reportResolutionForm.action === opt.value
+                      ? opt.optionClass + ' ring-2 ring-emerald-500/40 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'"
+                  >
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-black text-slate-900 dark:text-white">{{ opt.label }}</span>
+                      @if (opt.destructive) {
+                        <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                          Acción Directa
+                        </span>
+                      }
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                      {{ disabled ? 'No disponible para cuentas administrativas.' : opt.description }}
+                    </p>
+                  </button>
+                }
               </div>
             </div>
 
-            <div class="flex justify-end gap-2 pt-2">
+            @if (getModerationActionMeta(reportResolutionForm.action)?.destructive) {
+              <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-[11px] text-rose-800 dark:text-rose-200 leading-relaxed">
+                <strong>Efecto inmediato:</strong> Las publicaciones retiradas desaparecerán del muro y catálogo (cancelando solicitudes de adopción abiertas), las cuentas suspendidas perderán su sesión activa al instante y los reportes abiertos duplicados se cerrarán automáticamente.
+              </div>
+            }
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between">
+                <label class="font-bold text-slate-700 dark:text-slate-300">Notas de resolución / Justificación</label>
+                <span class="text-[10px] text-slate-400">Visible en bitácora y notificación</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                @for (preset of quickModerationNotes; track preset) {
+                  <button
+                    type="button"
+                    (click)="selectModerationNotePreset(preset)"
+                    class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-medium text-slate-700 dark:text-slate-300 transition-colors cursor-pointer text-left"
+                  >
+                    + {{ preset }}
+                  </button>
+                }
+              </div>
+              <textarea
+                [(ngModel)]="reportResolutionForm.adminNotes"
+                rows="3"
+                placeholder="Describe el fundamento y la medida aplicada..."
+                class="w-full px-3 py-2 rounded-xl liquid-glass-input text-slate-900 dark:text-white"
+              ></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 (click)="resolvingReport.set(null)"
@@ -1387,9 +1528,12 @@ import {
                 type="button"
                 (click)="submitReportResolution()"
                 [disabled]="isSavingReport()"
-                class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer disabled:opacity-50"
+                class="px-5 py-2 rounded-xl text-xs font-black cursor-pointer disabled:opacity-50 transition-colors"
+                [ngClass]="getModerationActionMeta(reportResolutionForm.action)?.destructive
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                  : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'"
               >
-                {{ isSavingReport() ? 'Guardando...' : 'Guardar Dictamen' }}
+                {{ isSavingReport() ? 'Ejecutando...' : (getModerationActionMeta(reportResolutionForm.action)?.destructive ? 'Ejecutar Sanción' : 'Guardar Dictamen') }}
               </button>
             </div>
           </div>
@@ -1409,9 +1553,10 @@ import {
               <button
                 type="button"
                 (click)="isAllyModalOpen.set(false)"
-                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer"
+                class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center cursor-pointer"
+                title="Cerrar"
               >
-                ✕
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
@@ -1545,8 +1690,8 @@ import {
             <!-- Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-200/80 dark:border-slate-800">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-2xl">
-                  📜
+                <div class="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                 </div>
                 <div>
                   <h3 class="text-base sm:text-lg font-black text-slate-900 dark:text-white">
@@ -1563,7 +1708,7 @@ import {
                 class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 title="Cerrar"
               >
-                ✕
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
@@ -1673,7 +1818,7 @@ import {
                 @if (isSavingPrivacyPolicy()) {
                   <span>Guardando...</span>
                 } @else {
-                  <span>💾 Guardar y Publicar Aviso Legal</span>
+                  <span>Guardar y Publicar Aviso Legal</span>
                 }
               </button>
             </div>
@@ -1717,6 +1862,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   activeRoleOptions = ACTIVE_ROLE_OPTIONS;
   legacyRoleOptions = LEGACY_ROLE_OPTIONS;
   allyCategoryOptions = ALLY_CATEGORY_OPTIONS;
+  quickModerationNotes = QUICK_MODERATION_NOTES;
+  formatPetGenderLabel = formatPetGenderLabel;
 
   // Stats State
   stats = signal<SystemStats | null>(null);
@@ -1752,8 +1899,8 @@ export class AdminComponent implements OnInit, OnDestroy {
   selectedModerationStatus = signal('');
   resolvingReport = signal<ContentReport | null>(null);
   isSavingReport = signal(false);
-  reportResolutionForm: { status: ContentReportStatus; adminNotes: string } = {
-    status: 'SANCIONADO',
+  reportResolutionForm: { action: ModerationAction; adminNotes: string } = {
+    action: 'MARK_REVIEWING',
     adminNotes: '',
   };
 
@@ -1913,6 +2060,9 @@ export class AdminComponent implements OnInit, OnDestroy {
           normalizeSearchText(r.description).includes(query) ||
           normalizeSearchText(r.reason).includes(query) ||
           normalizeSearchText(r.targetId).includes(query) ||
+          normalizeSearchText(r.targetSummary?.title).includes(query) ||
+          normalizeSearchText(r.targetSummary?.author?.fullName).includes(query) ||
+          normalizeSearchText(r.targetSummary?.author?.email).includes(query) ||
           normalizeSearchText(r.reporterUser?.fullName).includes(query) ||
           normalizeSearchText(r.reporterUser?.email).includes(query),
       );
@@ -2155,7 +2305,31 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   getAllyCategoryLabel(category: AllyCategory) {
     const match = ALLY_CATEGORY_OPTIONS.find((c) => c.value === category);
-    return match ? `${match.icon} ${match.label}` : category;
+    return match ? match.label : category;
+  }
+
+  getModerationActionMeta(action?: ModerationAction | null): ModerationActionMeta | undefined {
+    return action ? MODERATION_ACTION_META_MAP.get(action) : undefined;
+  }
+
+  availableModerationActions(report: ContentReport): ModerationActionMeta[] {
+    if (report.targetType === 'USER_ACCOUNT') {
+      return MODERATION_ACTION_OPTIONS.filter((opt) => opt.value !== 'DELETE_CONTENT');
+    }
+    return MODERATION_ACTION_OPTIONS;
+  }
+
+  isModerationActionDisabled(report: ContentReport, action: ModerationAction): boolean {
+    if (action !== 'SUSPEND_USER' && action !== 'DELETE_AND_SUSPEND') {
+      return false;
+    }
+    const author = report.targetSummary?.author;
+    if (!author) return false;
+    return author.role === UserRole.ADMIN || author.id === this.currentAdminId();
+  }
+
+  selectModerationNotePreset(preset: string): void {
+    this.reportResolutionForm.adminNotes = preset;
   }
 
   calcPercentage(value: number, total: number): number {
@@ -2174,7 +2348,15 @@ export class AdminComponent implements OnInit, OnDestroy {
       case 'USER_REGISTERED':
         return 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30';
       case 'SYSTEM_ERROR':
+      case 'MODERATION_DELETE_AND_SUSPEND':
+      case 'MODERATION_SUSPEND_USER':
         return 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/40 font-black';
+      case 'MODERATION_DELETE_CONTENT':
+      case 'MODERATION_WARN_AUTHOR':
+        return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40';
+      case 'MODERATION_DISMISS':
+      case 'MODERATION_MARK_REVIEWING':
+        return 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30';
       case 'THROTTLE_BLOCKED':
         return 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/40';
       case 'LOGOUT':
@@ -2195,7 +2377,7 @@ export class AdminComponent implements OnInit, OnDestroy {
         confirmText: 'Sí, otorgar Admin',
         cancelText: 'Cancelar',
         type: 'danger',
-        icon: '🛡️',
+        icon: 'shield',
       });
       if (!confirmed) {
         this.loadUsers();
@@ -2244,32 +2426,67 @@ export class AdminComponent implements OnInit, OnDestroy {
 
   openResolveReportModal(report: ContentReport): void {
     this.resolvingReport.set(report);
+    const defaultAction: ModerationAction =
+      report.actionTaken ||
+      (report.status === 'DESESTIMADO'
+        ? 'DISMISS'
+        : report.status === 'SANCIONADO'
+          ? 'WARN_AUTHOR'
+          : 'MARK_REVIEWING');
     this.reportResolutionForm = {
-      status: report.status === 'PENDIENTE' ? 'SANCIONADO' : report.status,
+      action: defaultAction,
       adminNotes: report.adminResolutionNotes || '',
     };
   }
 
-  submitReportResolution(): void {
+  async submitReportResolution(): Promise<void> {
     const report = this.resolvingReport();
     if (!report) return;
+
+    const actionMeta = this.getModerationActionMeta(this.reportResolutionForm.action);
+    if (actionMeta?.destructive) {
+      const confirmed = await this.confirmService.confirm({
+        title: `Confirmar: ${actionMeta.label}`,
+        message: `¿Ejecutar "${actionMeta.label}" sobre "${report.targetSummary?.title || report.targetId}"?`,
+        submessage: actionMeta.description,
+        confirmText: 'Sí, ejecutar sanción',
+        cancelText: 'Cancelar',
+        type: 'danger',
+        icon: 'shield',
+      });
+      if (!confirmed) return;
+    }
+
     this.isSavingReport.set(true);
     this.moderationService
       .resolveReport(report.id, {
-        status: this.reportResolutionForm.status,
-        adminNotes: this.reportResolutionForm.adminNotes.trim(),
+        action: this.reportResolutionForm.action,
+        adminNotes: this.reportResolutionForm.adminNotes.trim() || undefined,
       })
       .subscribe({
-        next: () => {
+        next: (saved) => {
           this.isSavingReport.set(false);
           this.resolvingReport.set(null);
-          this.notification.success('Dictamen guardado', 'La denuncia fue actualizada correctamente.');
+          const extraCascaded =
+            saved.cascadedReportsCount && saved.cascadedReportsCount > 0
+              ? ` (${saved.cascadedReportsCount} reporte(s) duplicados cerrados)`
+              : '';
+          this.notification.success(
+            'Moderación aplicada',
+            `${actionMeta?.label || 'Dictamen'} ejecutado correctamente.${extraCascaded}`,
+          );
           this.loadModerationReports();
           this.loadStats();
+          this.loadUsers();
+          this.loadPets();
+          this.loadLostReports();
         },
-        error: () => {
+        error: (err) => {
           this.isSavingReport.set(false);
-          this.notification.error('Error', 'No se pudo actualizar la denuncia.');
+          this.notification.error(
+            'Error al dictaminar',
+            err?.error?.message || 'No se pudo aplicar la medida de moderación.',
+          );
         },
       });
   }
@@ -2295,7 +2512,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '📣',
+      icon: 'megaphone',
     });
     if (!confirmed) return;
 
@@ -2407,7 +2624,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '👤',
+      icon: 'user',
     });
     if (!confirmed) return;
 
@@ -2429,7 +2646,7 @@ export class AdminComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, dar de baja',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '🗑️',
+      icon: 'trash',
     });
     if (!confirmed) return;
 

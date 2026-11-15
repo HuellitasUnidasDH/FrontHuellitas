@@ -10,8 +10,10 @@ import { DirectMessageService } from '../../../core/services/direct-message.serv
 import { ScrollLockService } from '../../../core/services/scroll-lock.service';
 import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
 import { Pet } from '../../../core/models/pet.model';
+import { PublicationComment } from '../../../core/models/lost-pet.model';
 import { UserRole } from '../../../core/models/user.model';
 import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../../core/models/adoption.model';
+import { ConfirmService } from '../../../core/services/confirm.service';
 import { getStageMeta } from '../../adoptions/shared/adoption-helpers.util';
 import { AdoptionRequestFormComponent } from '../../adoptions/shared/adoption-request-form.component';
 import { ReportContentModalComponent } from '../../../shared/components/report-content-modal/report-content-modal.component';
@@ -23,6 +25,10 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 import {
   buildFacebookShareUrl,
   buildWhatsAppUrl,
+  formatExactDateTime,
+  formatPetEnergyLabel,
+  formatPetGenderLabel,
+  formatPetSizeLabel,
   openExternalSafe,
 } from '../../../core/utils/app-helpers.util';
 
@@ -138,12 +144,14 @@ import {
                   </svg>
                   En Adopción
                 </span>
-                <span
-                  class="px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md border"
-                  [ngClass]="pet()!.gender === 'FEMALE' ? 'bg-pink-500/90 text-white border-pink-400' : 'bg-sky-500/90 text-white border-sky-400'"
-                >
-                  {{ pet()!.gender === 'FEMALE' ? 'Hembra' : 'Macho' }}
-                </span>
+                @if (formatGender(pet()!.gender); as genderLabel) {
+                  <span
+                    class="px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md border"
+                    [ngClass]="pet()!.gender === 'FEMALE' ? 'bg-pink-500/90 text-white border-pink-400' : pet()!.gender === 'MALE' ? 'bg-sky-500/90 text-white border-sky-400' : 'bg-slate-800/90 text-white border-slate-600'"
+                  >
+                    {{ genderLabel }}
+                  </span>
+                }
               </div>
 
               <!-- Location Tag -->
@@ -175,7 +183,7 @@ import {
           <!-- 2. Pet Title & Quick Identity -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/60 dark:border-slate-800/60">
             <div>
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-3 flex-wrap">
                 <h1 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                   {{ pet()!.name }}
                 </h1>
@@ -183,9 +191,11 @@ import {
                   {{ pet()!.species }}
                 </span>
               </div>
-              <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
-                {{ pet()!.breed || 'Mestizo / Criollo' }} • {{ pet()!.approximateAge || 'Edad no especificada' }} • Talla {{ pet()!.size || 'Mediana' }}
-              </p>
+              @if (getPetIdentitySummary(pet()!); as summaryText) {
+                <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
+                  {{ summaryText }}
+                </p>
+              }
             </div>
 
             <!-- Floating CTA: Quiero Adoptar / Estado -->
@@ -275,15 +285,24 @@ import {
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Peso Actual</span>
                 <span class="text-xs font-black text-slate-800 dark:text-white">
-                  {{ pet()!.weightKg ? pet()!.weightKg + ' kg' : 'Aprox. adecuado' }}
+                  {{ pet()!.weightKg ? pet()!.weightKg + ' kg' : 'No especificado' }}
                 </span>
               </div>
 
               <!-- Microchip -->
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">Identificación</span>
-                <span class="text-xs font-black text-slate-800 dark:text-white">
-                  {{ pet()!.microchipNumber ? '🏷️ Chip activo' : 'Placa Huellitas' }}
+                <span class="text-xs font-black text-slate-800 dark:text-white inline-flex items-center gap-1.5">
+                  @if (pet()!.microchipNumber) {
+                    <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="4" width="16" height="16" rx="2" />
+                      <rect x="9" y="9" width="6" height="6" />
+                      <path d="M15 2v2M15 20v2M9 2v2M9 20v2M2 15h2M2 9h2M20 15h2M20 9h2" />
+                    </svg>
+                    <span>Chip: {{ pet()!.microchipNumber }}</span>
+                  } @else {
+                    <span>No registrado</span>
+                  }
                 </span>
               </div>
             </div>
@@ -291,8 +310,15 @@ import {
             <!-- Listado de Vacunas -->
             @if (pet()!.vaccinesList && pet()!.vaccinesList!.length > 0) {
               <div class="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 text-xs">
-                <span class="font-bold text-emerald-700 dark:text-emerald-400 block mb-2">
-                  💉 Vacunas Registradas:
+                <span class="font-bold text-emerald-700 dark:text-emerald-400 mb-2 inline-flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m18 2 4 4" />
+                    <path d="m17 7 3-3" />
+                    <path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5" />
+                    <path d="m9 11 4 4" />
+                    <path d="m5 19-3 3" />
+                  </svg>
+                  <span>Vacunas Registradas:</span>
                 </span>
                 <div class="flex flex-wrap gap-2">
                   @for (v of pet()!.vaccinesList; track $index) {
@@ -308,52 +334,102 @@ import {
           <!-- 4. Behavioral & Temperament Radar -->
           <div class="space-y-3">
             <h2 class="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-              <span>🧠</span> Temperamento y Convivencia
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+              </svg>
+              <span>Temperamento y Convivencia</span>
             </h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Con Niños</span>
-                  <span
-                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    [ngClass]="pet()!.goodWithKids ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'"
-                  >
-                    {{ pet()!.goodWithKids ? 'Apto' : 'Con reserva' }}
-                  </span>
+                  @if (pet()!.goodWithKids === true) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                      Apto
+                    </span>
+                  } @else if (pet()!.goodWithKids === false) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                      No recomendado
+                    </span>
+                  } @else {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      No especificado
+                    </span>
+                  }
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
-                  {{ pet()!.goodWithKids ? 'Excelente y paciente con niños' : 'Se recomienda para familias con hijos mayores' }}
+                  @if (pet()!.goodWithKids === true) {
+                    El responsable indicó buena convivencia con niños.
+                  } @else if (pet()!.goodWithKids === false) {
+                    El responsable indicó no recomendado para hogares con niños pequeños.
+                  } @else {
+                    Pregunta al responsable sobre su convivencia con niños.
+                  }
                 </p>
               </div>
 
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Con Otras Mascotas</span>
-                  <span
-                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    [ngClass]="pet()!.goodWithOtherPets ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'"
-                  >
-                    {{ pet()!.goodWithOtherPets ? 'Sociable' : 'Gradual' }}
-                  </span>
+                  @if (pet()!.goodWithOtherPets === true) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
+                      Sociable
+                    </span>
+                  } @else if (pet()!.goodWithOtherPets === false) {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                      No sociable
+                    </span>
+                  } @else {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                      No especificado
+                    </span>
+                  }
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
-                  {{ pet()!.goodWithOtherPets ? 'Sociable con perros y gatos' : 'Prefiere ser hijo único o presentación gradual' }}
+                  @if (pet()!.goodWithOtherPets === true) {
+                    El responsable indicó buena convivencia con otras mascotas.
+                  } @else if (pet()!.goodWithOtherPets === false) {
+                    El responsable indicó preferencia por hogar sin otras mascotas.
+                  } @else {
+                    Consulta con el responsable sobre su convivencia con otros animales.
+                  }
                 </p>
               </div>
 
               <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Nivel de Energía</span>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/15 text-sky-700 dark:text-sky-300">
-                    {{ pet()!.energyLevel || 'Medio' }}
+                  <span
+                    class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    [ngClass]="pet()!.energyLevel ? 'bg-sky-500/15 text-sky-700 dark:text-sky-300' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                  >
+                    {{ formatEnergy(pet()!.energyLevel) || 'No especificado' }}
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-500 mt-1">
-                  {{ pet()!.energyLevel === 'ALTO' ? 'Requiere paseos activos y juegos diarios' : 'Adaptable a hogar tranquilo o paseos moderados' }}
+                  @if (pet()!.energyLevel === 'ALTO') {
+                    Requiere paseos activos y juegos diarios.
+                  } @else if (pet()!.energyLevel === 'MEDIO') {
+                    Energía equilibrada para paseos y descanso en casa.
+                  } @else if (pet()!.energyLevel === 'BAJO') {
+                    Rutina tranquila y paseos suaves.
+                  } @else {
+                    Pregunta al responsable sobre su nivel de actividad diaria.
+                  }
                 </p>
               </div>
             </div>
+
+            @if (pet()!.temperamentTags && pet()!.temperamentTags!.length > 0) {
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                @for (tag of pet()!.temperamentTags; track tag) {
+                  <span class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20 text-[11px] font-semibold">
+                    {{ tag }}
+                  </span>
+                }
+              </div>
+            }
           </div>
 
           <!-- 5. Rescue Story & Physical Marks -->
@@ -365,14 +441,35 @@ import {
               Historia de Rescate y Señas Particulares
             </h2>
             <div class="p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line space-y-2">
-              <p>{{ pet()!.rescueStory || 'Este peludito fue rescatado con amor en Dolores Hidalgo y espera una familia responsable que le brinde el hogar que merece.' }}</p>
+              @if (pet()!.rescueStory) {
+                <p>{{ pet()!.rescueStory }}</p>
+              } @else if (!pet()!.color && !pet()!.specialMarks) {
+                <p class="text-slate-500 dark:text-slate-400 italic text-xs">
+                  El responsable aún no ha agregado una historia de rescate o señas adicionales.
+                </p>
+              }
               @if (pet()!.color || pet()!.specialMarks) {
-                <div class="pt-2 border-t border-slate-200/70 dark:border-slate-800 text-xs flex flex-wrap gap-3">
+                <div class="pt-2 border-t border-slate-200/70 dark:border-slate-800 text-xs flex flex-wrap gap-4">
                   @if (pet()!.color) {
-                    <span>🎨 <strong>Color:</strong> {{ pet()!.color }}</span>
+                    <span class="inline-flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                        <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                        <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                        <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+                      </svg>
+                      <strong>Color:</strong> {{ pet()!.color }}
+                    </span>
                   }
                   @if (pet()!.specialMarks) {
-                    <span>🔍 <strong>Señas particulares:</strong> {{ pet()!.specialMarks }}</span>
+                    <span class="inline-flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.3-4.3" />
+                      </svg>
+                      <strong>Señas particulares:</strong> {{ pet()!.specialMarks }}
+                    </span>
                   }
                 </div>
               }
@@ -382,8 +479,11 @@ import {
           <!-- 6. Rescuer Contact & Trust Badge -->
           <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-transparent border border-emerald-500/20 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3 text-center sm:text-left">
-              <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black">
-                🛡️
+              <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
               </div>
               <div>
                 <span class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">
@@ -449,6 +549,100 @@ import {
               }
             </div>
           </div>
+
+          <!-- 7. Preguntas y Comentarios sobre Adopción -->
+          <div class="space-y-4 pt-4 border-t border-slate-200/70 dark:border-slate-800">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+                </svg>
+                <span>Preguntas y Comentarios ({{ comments().length }})</span>
+              </h2>
+            </div>
+
+            @if (isLoadingComments()) {
+              <div class="p-4 text-xs text-slate-500 dark:text-slate-400">
+                Cargando comentarios...
+              </div>
+            } @else {
+              @if (comments().length === 0) {
+                <div class="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                  Aún no hay preguntas públicas sobre {{ pet()!.name }}. Si tienes alguna duda antes de postularte, escríbela aquí.
+                </div>
+              } @else {
+                <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                  @for (c of comments(); track c.id) {
+                    <div class="p-3.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-start justify-between gap-3">
+                      <div class="min-w-0 flex-1 space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-xs font-bold text-slate-900 dark:text-white">
+                            {{ c.author?.fullName || 'Usuario de Huellitas' }}
+                          </span>
+                          <span class="text-[10px] text-slate-400">
+                            {{ formatCommentDate(c.createdAt) }}
+                          </span>
+                        </div>
+                        <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line break-words">
+                          {{ c.content }}
+                        </p>
+                      </div>
+                      @if (canDeleteComment(c)) {
+                        <button
+                          type="button"
+                          (click)="deleteComment(c)"
+                          title="Eliminar comentario"
+                          class="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-600 dark:text-rose-400 hover:text-white border border-rose-500/25 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
+                        >
+                          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          </svg>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+
+            @if (authService.isAuthenticated()) {
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  [ngModel]="newCommentText()"
+                  (ngModelChange)="newCommentText.set($event)"
+                  (keyup.enter)="submitComment()"
+                  [disabled]="isSubmittingComment()"
+                  maxlength="500"
+                  placeholder="Haz una pregunta sobre cuidados, convivencia o entrega..."
+                  class="flex-1 px-4 py-2.5 rounded-xl liquid-glass-input text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  (click)="submitComment()"
+                  [disabled]="isSubmittingComment() || newCommentText().trim().length < 2"
+                  class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-black transition-all cursor-pointer shrink-0"
+                >
+                  {{ isSubmittingComment() ? 'Enviando...' : 'Publicar pregunta' }}
+                </button>
+              </div>
+            } @else {
+              <div class="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-100/80 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-xs">
+                <span class="text-slate-600 dark:text-slate-300">
+                  Inicia sesión para hacer preguntas o dejar comentarios en esta ficha.
+                </span>
+                <a
+                  routerLink="/auth/login"
+                  [queryParams]="{ returnUrl: '/adopciones/' + pet()!.id }"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-500 text-slate-950 font-black whitespace-nowrap"
+                >
+                  Iniciar sesión
+                </a>
+              </div>
+            }
+          </div>
         </div>
       }
 
@@ -464,9 +658,13 @@ import {
           >
             <button
               (click)="closeAdoptionModal()"
-              class="sticky top-0 ml-auto -mt-1 w-8 h-8 rounded-full bg-slate-200/90 dark:bg-slate-800/90 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer text-sm font-bold z-10 shadow-sm"
+              class="sticky top-0 ml-auto -mt-1 w-8 h-8 rounded-full bg-slate-200/90 dark:bg-slate-800/90 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer z-10 shadow-sm"
+              title="Cerrar ventana"
             >
-              ✕
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
             </button>
 
             @if (adoptionSubmitted()) {
@@ -585,11 +783,16 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   private notify = inject(NotificationService);
   private dmService = inject(DirectMessageService);
   private scrollLock = inject(ScrollLockService);
+  private confirmService = inject(ConfirmService);
   navHistory = inject(NavigationHistoryService);
 
   pet = signal<Pet | null>(null);
   activePhoto = signal<string>('');
   isLoading = signal<boolean>(true);
+  comments = signal<PublicationComment[]>([]);
+  isLoadingComments = signal<boolean>(false);
+  newCommentText = signal<string>('');
+  isSubmittingComment = signal<boolean>(false);
 
   // Adoption modal
   showAdoptionModal = signal<boolean>(false);
@@ -616,10 +819,101 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
         this.activePhoto.set(data.photoUrl || (data.photos && data.photos[0]) || '');
         this.isLoading.set(false);
         this.checkExistingApplication(id);
+        this.loadComments(id);
       },
       error: () => {
         this.isLoading.set(false);
         this.notify.error('No se pudo cargar la información de la mascota');
+      },
+    });
+  }
+
+  formatGender(gender?: string | null): string {
+    return formatPetGenderLabel(gender, '');
+  }
+
+  formatSize(size?: string | null): string {
+    return formatPetSizeLabel(size, '');
+  }
+
+  formatEnergy(energy?: string | null): string {
+    return formatPetEnergyLabel(energy, '');
+  }
+
+  getPetIdentitySummary(p: Pet): string {
+    const parts: string[] = [];
+    if (p.breed) parts.push(p.breed);
+    if (p.approximateAge) parts.push(p.approximateAge);
+    const sizeLabel = this.formatSize(p.size);
+    if (sizeLabel) parts.push(`Talla ${sizeLabel}`);
+    return parts.join(' • ');
+  }
+
+  formatCommentDate(dateStr?: string): string {
+    return dateStr ? formatExactDateTime(dateStr) : '';
+  }
+
+  loadComments(petId: string): void {
+    this.isLoadingComments.set(true);
+    this.petService.getComments(petId).subscribe({
+      next: (list) => {
+        this.comments.set(list || []);
+        this.isLoadingComments.set(false);
+      },
+      error: () => {
+        this.isLoadingComments.set(false);
+      },
+    });
+  }
+
+  submitComment(): void {
+    const p = this.pet();
+    const content = this.newCommentText().trim();
+    if (!p || !content || content.length < 2 || this.isSubmittingComment()) return;
+
+    this.isSubmittingComment.set(true);
+    this.petService.addComment(p.id, content).subscribe({
+      next: (created) => {
+        this.isSubmittingComment.set(false);
+        this.newCommentText.set('');
+        this.comments.update((curr) => [...curr, created]);
+      },
+      error: (err) => {
+        this.isSubmittingComment.set(false);
+        this.notify.error(err?.error?.message || 'No se pudo publicar tu comentario');
+      },
+    });
+  }
+
+  canDeleteComment(comment: PublicationComment): boolean {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === UserRole.ADMIN) return true;
+    const authorId = comment.authorId || comment.author?.id;
+    return Boolean(authorId && authorId === user.id);
+  }
+
+  async deleteComment(comment: PublicationComment): Promise<void> {
+    const p = this.pet();
+    if (!p || !comment?.id) return;
+
+    const confirmed = await this.confirmService.confirm({
+      title: '¿Eliminar comentario?',
+      message: 'Este comentario se borrará de la ficha de forma permanente.',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      type: 'danger',
+      icon: 'trash',
+    });
+    if (!confirmed) return;
+
+    this.petService.deleteComment(p.id, comment.id).subscribe({
+      next: () => {
+        this.comments.update((curr) => curr.filter((c) => c.id !== comment.id));
+        this.notify.success('Comentario eliminado');
+      },
+      error: (err) => {
+        this.notify.error(err?.error?.message || 'No se pudo eliminar el comentario');
       },
     });
   }
@@ -727,18 +1021,19 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
     const p = this.pet();
     if (!p) return null;
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const sizeLabel = this.formatSize(p.size);
     return {
       id: p.id,
       category: 'EN_ADOPCION',
       petName: p.name,
       species: p.species,
-      gender: p.gender === 'FEMALE' ? 'Hembra' : 'Macho',
-      approxAge: p.approximateAge,
+      gender: this.formatGender(p.gender) || undefined,
+      approxAge: p.approximateAge || undefined,
       coloniaName: p.colonia?.name || BRAND_CONFIG.city,
       locationDetail: p.colonia?.name || BRAND_CONFIG.city,
       description:
         p.rescueStory ||
-        `Conoce a ${p.name}, un ${p.species.toLowerCase()} de talla ${p.size || 'mediana'} en adopción responsable en ${BRAND_CONFIG.city}.`,
+        `${p.name} (${p.species}${sizeLabel ? ', talla ' + sizeLabel.toLowerCase() : ''}) en adopción responsable en ${BRAND_CONFIG.city}.`,
       photoUrl: p.photoUrl || p.photos?.[0] || '',
       contactPhone: p.owner?.phone,
       rewardOffered: false,
@@ -783,7 +1078,7 @@ export class PetPublicDetailComponent implements OnInit, OnDestroy {
   shareToWhatsApp(): void {
     const p = this.pet();
     if (!p) return;
-    const text = `🐾 ¡Adopta a *${p.name}* en Dolores Hidalgo! Conoce su historia en ${this.brand.name}: ${window.location.href}`;
+    const text = `Adopta a *${p.name}* en ${this.brand.city}. Conoce su ficha en ${this.brand.name}: ${window.location.href}`;
     openExternalSafe(buildWhatsAppUrl(undefined, text));
   }
 

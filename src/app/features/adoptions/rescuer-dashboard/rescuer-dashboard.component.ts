@@ -266,7 +266,7 @@ interface PetRequestGroup {
                         <div class="flex items-center gap-2 flex-wrap">
                           <h2 class="text-lg font-black text-slate-900 dark:text-white">{{ group.pet.name }}</h2>
                           <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
-                            {{ group.pet.species }} • {{ group.pet.breed || 'Mestizo' }}
+                            {{ group.pet.species }}{{ group.pet.breed ? ' • ' + group.pet.breed : '' }}
                           </span>
                           @if (isRescuerOrAdmin()) {
                             @if (group.pet.ownerId === authService.currentUser()?.id) {
@@ -454,7 +454,7 @@ interface PetRequestGroup {
                           <div class="min-w-0">
                             <h2 class="text-lg font-black text-slate-900 dark:text-white truncate">{{ item.pet.name }}</h2>
                             <span class="text-xs text-slate-500 block truncate">
-                              {{ item.pet.species }} • {{ item.pet.breed || 'Mestizo' }}
+                              {{ item.pet.species }}{{ item.pet.breed ? ' • ' + item.pet.breed : '' }}
                             </span>
                             <span class="mt-1 inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border" [ngClass]="publicationStatusBadge(item.pet.status)">
                               {{ publicationStatusLabel(item.pet.status) }}

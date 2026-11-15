@@ -227,3 +227,104 @@ export function formatExactDateTime(dateStr?: string | null): string {
   });
   return `${datePart} • ${timePart}`;
 }
+
+/**
+ * Computes a local YYYY-MM-DD calendar key for grouping chat messages by day.
+ */
+export function getMessageDayKey(dateStr?: string | null): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '';
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Formats a calendar day label (`Hoy`, `Ayer`, `14 de nov` / `14 de nov de 2025`) for chat dividers.
+ */
+export function formatMessageDateDivider(
+  dateStr?: string | null,
+  referenceDate = new Date(),
+): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const targetDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+  );
+  const diffDays = Math.round(
+    (today.getTime() - targetDay.getTime()) / 86_400_000,
+  );
+
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+
+  const includeYear = date.getFullYear() !== referenceDate.getFullYear();
+  return date.toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    ...(includeYear ? { year: 'numeric' } : {}),
+  });
+}
+
+/**
+ * Maps pet gender codes (`MALE`, `FEMALE`, `UNKNOWN`) to localized labels without inventing values.
+ */
+export function formatPetGenderLabel(
+  gender?: string | null,
+  defaultLabel = 'No especificado',
+): string {
+  const normalized = (gender || '').trim().toUpperCase();
+  if (!normalized) return defaultLabel;
+  if (normalized === 'FEMALE' || normalized === 'HEMBRA') return 'Hembra';
+  if (normalized === 'MALE' || normalized === 'MACHO') return 'Macho';
+  if (normalized === 'UNKNOWN' || normalized === 'DESCONOCIDO') {
+    return 'Desconocido';
+  }
+  return (gender || '').trim();
+}
+
+/**
+ * Maps pet size enum codes (`CHICO`..`GIGANTE`) to readable Spanish labels.
+ */
+export function formatPetSizeLabel(
+  size?: string | null,
+  defaultLabel = 'No especificado',
+): string {
+  switch ((size || '').trim().toUpperCase()) {
+    case 'CHICO':
+      return 'Chico';
+    case 'MEDIANO':
+      return 'Mediano';
+    case 'GRANDE':
+      return 'Grande';
+    case 'GIGANTE':
+      return 'Gigante';
+    default:
+      return defaultLabel;
+  }
+}
+
+/**
+ * Maps pet energy level codes (`BAJO`, `MEDIO`, `ALTO`) to readable Spanish labels.
+ */
+export function formatPetEnergyLabel(
+  energy?: string | null,
+  defaultLabel = 'No especificado',
+): string {
+  switch ((energy || '').trim().toUpperCase()) {
+    case 'BAJO':
+      return 'Bajo · Tranquilo';
+    case 'MEDIO':
+      return 'Medio · Adaptable';
+    case 'ALTO':
+      return 'Alto · Activo';
+    default:
+      return defaultLabel;
+  }
+}

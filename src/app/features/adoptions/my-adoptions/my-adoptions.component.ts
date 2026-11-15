@@ -145,7 +145,7 @@ import {
                           </span>
                         </div>
                         <span class="text-xs text-slate-500 block mt-0.5">
-                          {{ req.pet?.species }} • {{ req.pet?.breed || 'Mestizo' }} • Enviada el {{ req.createdAt | date:'dd/MM/yyyy' }}
+                          {{ req.pet?.species }}{{ req.pet?.breed ? ' • ' + req.pet?.breed : '' }} • Enviada el {{ req.createdAt | date:'dd/MM/yyyy' }}
                         </span>
                         @if (req.evaluatedByRescuer) {
                           <span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 block mt-0.5">

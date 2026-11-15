@@ -14,7 +14,7 @@ import { ImageUploadService } from '../../core/services/image-upload.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { PushNotificationService } from '../../core/services/push-notification.service';
 import { ScrollLockService } from '../../core/services/scroll-lock.service';
-import { Pet, AdoptionStatus, PetSize } from '../../core/models/pet.model';
+import { Pet, AdoptionStatus, PetSize, EnergyLevel } from '../../core/models/pet.model';
 import { UserRole } from '../../core/models/user.model';
 import { AdoptionRequest, CreateAdoptionRequestPayload } from '../../core/models/adoption.model';
 import { LostPetReport, LostPetStatus, LostPetType, PetSighting, PublicationComment } from '../../core/models/lost-pet.model';
@@ -24,6 +24,8 @@ import {
   buildFacebookShareUrl,
   buildWhatsAppUrl,
   formatExactDateTime as formatSharedExactDateTime,
+  formatPetGenderLabel,
+  formatPetSizeLabel,
   openExternalSafe,
 } from '../../core/utils/app-helpers.util';
 import { AdoptionRequestFormComponent } from '../adoptions/shared/adoption-request-form.component';
@@ -83,8 +85,8 @@ interface FeedPost {
   // Adoption specifics
   isSterilized?: boolean;
   isVaccinated?: boolean;
-  goodWithKids?: boolean;
-  goodWithOtherPets?: boolean;
+  goodWithKids?: boolean | null;
+  goodWithOtherPets?: boolean | null;
   petData?: Pet;
   // Lost / community post specifics
   lostData?: LostPetReport;
@@ -493,12 +495,15 @@ interface FeedPost {
               <div class="mt-2.5 space-y-1">
                 <h2
                   (click)="openSinglePostView(post)"
-                  title="Ver publicación directa y comentarios"
+                  [title]="post.kind === 'PET_ADOPTION' ? 'Ver ficha oficial de adopción y comentarios' : 'Ver publicación directa y comentarios'"
                   class="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight leading-snug break-words hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline cursor-pointer transition-colors inline-flex items-baseline gap-1.5 group/title"
                 >
                   <span>{{ post.title }}</span>
                   @if (!singlePostModeId()) {
-                    <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 opacity-60 group-hover/title:opacity-100 transition-opacity shrink-0">↗</span>
+                    <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 opacity-65 group-hover/title:opacity-100 transition-opacity shrink-0 self-center" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M7 17 17 7" />
+                      <path d="M7 7h10v10" />
+                    </svg>
                   }
                 </h2>
                 <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">
@@ -784,13 +789,14 @@ interface FeedPost {
 
                     <a
                       [routerLink]="['/adopciones', post.petData.id]"
-                      class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center justify-center"
-                      title="Ver ficha completa"
+                      class="shrink-0 whitespace-nowrap px-2.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                      title="Ver ficha oficial y comentarios"
                     >
                       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
+                      <span class="hidden sm:inline">Ver ficha</span>
                     </a>
                   } @else if (post.kind === 'LOST_PET' && post.lostData) {
                     @if (post.postType === 'CAMPANA_COMUNITARIA') {
@@ -1837,13 +1843,15 @@ interface FeedPost {
                       @if (currentCategoryConfig.showSpeciesAndGender) {
                         <div>
                           <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
-                            Especie y Género
+                            Especie * y Género (opcional)
                           </label>
                           <div class="grid grid-cols-2 gap-2">
                             <select
                               [(ngModel)]="reportLostForm.species"
+                              [class.border-rose-500]="reportLostStep1Attempted() && !reportLostForm.species"
                               class="w-full px-2 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                             >
+                              <option value="" disabled>Selecciona especie...</option>
                               <option value="Perro">Perro</option>
                               <option value="Gato">Gato</option>
                               <option value="Otro">Otro</option>
@@ -1852,11 +1860,17 @@ interface FeedPost {
                               [(ngModel)]="reportLostForm.gender"
                               class="w-full px-2 py-2 text-xs rounded-xl bg-white/70 dark:bg-slate-900/70 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                             >
+                              <option value="">No especificado</option>
                               <option value="Macho">Macho</option>
                               <option value="Hembra">Hembra</option>
                               <option value="Desconocido">Desconocido</option>
                             </select>
                           </div>
+                          @if (reportLostStep1Attempted() && !reportLostForm.species) {
+                            <p class="text-[11px] text-rose-600 dark:text-rose-400 font-semibold mt-1">
+                              Selecciona la especie antes de continuar.
+                            </p>
+                          }
                         </div>
                       }
                     </div>
@@ -2051,6 +2065,7 @@ interface FeedPost {
                               [(ngModel)]="reportLostForm.size"
                               class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
                             >
+                              <option value="">No especificado</option>
                               <option value="CHICO">Chico</option>
                               <option value="MEDIANO">Mediano</option>
                               <option value="GRANDE">Grande</option>
@@ -2116,6 +2131,51 @@ interface FeedPost {
                             />
                             <span>Desparasitación al corriente</span>
                           </label>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                              Nivel de Energía
+                            </label>
+                            <select
+                              [(ngModel)]="reportLostForm.energyLevel"
+                              class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                            >
+                              <option value="">No especificado</option>
+                              <option value="BAJO">Bajo (Tranquilo)</option>
+                              <option value="MEDIO">Medio (Equilibrado)</option>
+                              <option value="ALTO">Alto (Activo / Juguetón)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                              Convivencia con Niños
+                            </label>
+                            <select
+                              [(ngModel)]="reportLostForm.goodWithKids"
+                              class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                            >
+                              <option [ngValue]="null">No especificado</option>
+                              <option [ngValue]="true">Apto (Bueno con niños)</option>
+                              <option [ngValue]="false">No recomendado</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">
+                              Con Otras Mascotas
+                            </label>
+                            <select
+                              [(ngModel)]="reportLostForm.goodWithOtherPets"
+                              class="w-full px-3 py-2 text-xs rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                            >
+                              <option [ngValue]="null">No especificado</option>
+                              <option [ngValue]="true">Sociable</option>
+                              <option [ngValue]="false">No / Prefiere ser único</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     }
@@ -2823,7 +2883,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   private saveLightweightSessionSnapshot(posts: FeedPost[], colonias: Colonia[]): void {
     if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
     try {
-      const stripHeavyUrl = (u?: string) => (u && u.length <= 1500 ? u : '');
+      const stripHeavyUrl = (u?: string | null) => (u && u.length <= 1500 ? u : '');
       const lightPosts = posts.slice(0, 35).map((p) => ({
         ...p,
         photoUrl: stripHeavyUrl(p.photoUrl),
@@ -3117,20 +3177,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   reportLostSelectedFile = signal<File | null>(null);
   reportLostForm = {
     type: 'ANIMAL_HERIDO' as LostPetType,
-    species: 'Perro',
+    species: '',
     petName: '',
-    gender: 'Macho',
+    gender: '',
     coloniaId: '',
     lastSeenLocation: '',
     incidentDate: new Date().toISOString().split('T')[0],
     distinctiveFeatures: '',
     approximateAge: '',
     breed: '',
-    size: 'MEDIANO' as PetSize,
+    size: '' as PetSize | '',
     color: '',
     specialMarks: '',
     isDewormed: false,
     vaccinesText: '',
+    energyLevel: '' as EnergyLevel | '',
+    goodWithKids: null as boolean | null,
+    goodWithOtherPets: null as boolean | null,
     contactPhone: '',
     rewardOffered: false,
     rewardDetails: '',
@@ -3245,7 +3308,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       petName,
       species: post.species,
       gender: post.gender,
-      approxAge: post.approxAge || post.petData?.approximateAge,
+      approxAge: post.approxAge || post.petData?.approximateAge || undefined,
       coloniaName,
       locationDetail,
       description: post.description || '',
@@ -3316,7 +3379,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, dar de baja',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '!',
+      icon: 'trash',
     });
     if (!confirmed) return;
 
@@ -3582,6 +3645,12 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     CommunityFeedComponent.savedGoodWithKids = this.filterGoodWithKids();
     CommunityFeedComponent.savedGoodWithPets = this.filterGoodWithPets();
 
+    // Unificar ficha oficial de adopción y vista directa: las adopciones abren su ficha completa en /adopciones/:id
+    if (post.kind === 'PET_ADOPTION' && post.petData?.id) {
+      this.router.navigate(['/adopciones', post.petData.id]);
+      return;
+    }
+
     this.singlePostModeId.set(post.id);
     this.highlightedPostId.set(post.id);
     this.allPosts.update((list) =>
@@ -3599,6 +3668,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
   private focusTargetPost(rawPostId: string): void {
     const cleanId = rawPostId.trim();
     if (!cleanId) return;
+
+    if (cleanId.startsWith('pet-')) {
+      this.router.navigate(['/adopciones', cleanId.slice(4)], { replaceUrl: true });
+      return;
+    }
 
     this.singlePostModeId.set(cleanId);
 
@@ -3619,6 +3693,11 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         p.lostData?.id === cleanId ||
         p.petData?.id === cleanId,
     );
+
+    if (matched?.kind === 'PET_ADOPTION' && matched.petData?.id) {
+      this.router.navigate(['/adopciones', matched.petData.id], { replaceUrl: true });
+      return;
+    }
 
     if (!matched) {
       // Si el muro ya estaba abierto y aún no había descargado esta publicación nueva,
@@ -3708,7 +3787,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     }
   }
 
-  private normalizePhotosList(primaryUrl?: string, photosArr?: string[]): string[] {
+  private normalizePhotosList(primaryUrl?: string | null, photosArr?: string[]): string[] {
     const set = new Set<string>();
     if (primaryUrl && primaryUrl.trim()) set.add(primaryUrl.trim());
     if (Array.isArray(photosArr)) {
@@ -3743,17 +3822,15 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
         temperamentTags: pet.temperamentTags || [],
         typeBadge: 'En Adopción',
         badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-        description:
-          pet.rescueStory ||
-          `Conoce a ${pet.name}, un hermoso peludito de talla ${pet.size || 'mediana'} que está listo para llenar tu hogar de amor en Dolores Hidalgo.`,
+        description: pet.rescueStory?.trim() || '',
         photoUrl: photos[0] || '',
         photos,
         activePhotoIndex: prev?.activePhotoIndex || 0,
         species: pet.species,
-        breed: pet.breed,
-        approxAge: pet.approximateAge,
-        size: pet.size,
-        gender: pet.gender === 'FEMALE' ? 'Hembra' : 'Macho',
+        breed: pet.breed || undefined,
+        approxAge: pet.approximateAge || undefined,
+        size: pet.size ? formatPetSizeLabel(pet.size, '') || undefined : undefined,
+        gender: pet.gender ? formatPetGenderLabel(pet.gender, '') || undefined : undefined,
         coloniaName: pet.colonia?.name,
         isSterilized: pet.isSterilized,
         isVaccinated: Boolean(pet.vaccinesList && pet.vaccinesList.length > 0),
@@ -4107,13 +4184,21 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
     if (type === 'ANIMAL_HERIDO') {
       this.reportLostForm.isInjured = true;
-      if (prevType === 'CAMPANA_COMUNITARIA' && this.reportLostForm.petName === 'Campaña Comunitaria') {
-        this.reportLostForm.petName = '';
+      if (prevType === 'CAMPANA_COMUNITARIA') {
+        if (this.reportLostForm.petName === 'Campaña Comunitaria') {
+          this.reportLostForm.petName = '';
+        }
+        if (this.reportLostForm.species === 'Otro' || this.reportLostForm.species === 'Comunidad') {
+          this.reportLostForm.species = '';
+        }
+        if (this.reportLostForm.gender === 'Desconocido') {
+          this.reportLostForm.gender = '';
+        }
       }
     } else if (type === 'CAMPANA_COMUNITARIA') {
       this.reportLostForm.isInjured = false;
-      this.reportLostForm.species = 'Otro';
-      this.reportLostForm.gender = 'Desconocido';
+      this.reportLostForm.species = '';
+      this.reportLostForm.gender = '';
       this.reportLostForm.temperamentTags = [];
       this.reportLostForm.rewardOffered = false;
       this.reportLostForm.rewardDetails = '';
@@ -4161,6 +4246,10 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.reportLostStep1Attempted.set(true);
       if (!this.reportLostForm.petName.trim()) {
         this.notify.warning('Indica el nombre o título para continuar al paso 2');
+        return;
+      }
+      if (this.currentCategoryConfig.showSpeciesAndGender && !this.reportLostForm.species) {
+        this.notify.warning('Selecciona la especie antes de continuar al paso 2');
         return;
       }
       if (!this.reportLostForm.lastSeenLocation.trim()) {
@@ -4233,15 +4322,23 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     this.reportLostSelectedFile.set(null);
     this.reportLostPhotosList.set([]);
     this.reportLostForm.petName = '';
+    this.reportLostForm.species = '';
+    this.reportLostForm.gender = '';
+    this.reportLostForm.coloniaId = '';
     this.reportLostForm.lastSeenLocation = '';
     this.reportLostForm.distinctiveFeatures = '';
     this.reportLostForm.approximateAge = '';
     this.reportLostForm.breed = '';
-    this.reportLostForm.size = 'MEDIANO';
+    this.reportLostForm.size = '';
     this.reportLostForm.color = '';
     this.reportLostForm.specialMarks = '';
     this.reportLostForm.isDewormed = false;
     this.reportLostForm.vaccinesText = '';
+    this.reportLostForm.energyLevel = '';
+    this.reportLostForm.goodWithKids = null;
+    this.reportLostForm.goodWithOtherPets = null;
+    this.reportLostForm.rewardOffered = false;
+    this.reportLostForm.rewardDetails = '';
     this.reportLostForm.photoUrl = '';
     this.reportLostForm.temperamentTags = [];
     this.reportLostForm.contactPhone = this.authService.currentUser()?.phone || '';
@@ -4268,11 +4365,14 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.reportLostSuccess.set(null);
       this.reportLostForm.type = rep.type;
       this.reportLostForm.petName = rep.petName || '';
-      this.reportLostForm.species = (rep.species as any) || 'Perro';
-      this.reportLostForm.gender = (rep.gender as any) || 'Desconocido';
+      this.reportLostForm.species = rep.species && rep.species !== 'Comunidad' ? rep.species : '';
+      this.reportLostForm.gender = rep.gender || '';
       this.reportLostForm.coloniaId = rep.coloniaId || '';
       this.reportLostForm.lastSeenLocation = rep.lastSeenLocation || '';
       this.reportLostForm.distinctiveFeatures = rep.distinctiveFeatures || '';
+      this.reportLostForm.energyLevel = '';
+      this.reportLostForm.goodWithKids = rep.goodWithKids ?? null;
+      this.reportLostForm.goodWithOtherPets = rep.goodWithOtherPets ?? null;
       this.reportLostForm.contactPhone = rep.contactPhone || '';
       this.reportLostForm.rewardOffered = !!rep.rewardOffered;
       this.reportLostForm.rewardDetails = rep.rewardDetails || '';
@@ -4300,7 +4400,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, marcar resuelto',
       cancelText: 'Cancelar',
       type: 'success',
-      icon: '✓',
+      icon: 'check',
     });
     if (!confirmed) return;
 
@@ -4670,11 +4770,18 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
 
   submitReportLost(): void {
     this.reportLostAttempted.set(true);
-    if (!this.reportLostForm.petName.trim() || !this.reportLostForm.lastSeenLocation.trim()) {
+    const missingSpecies =
+      this.currentCategoryConfig.showSpeciesAndGender && !this.reportLostForm.species;
+    if (
+      !this.reportLostForm.petName.trim() ||
+      missingSpecies ||
+      !this.reportLostForm.lastSeenLocation.trim()
+    ) {
       this.reportLostStep1Attempted.set(true);
     }
     if (
       !this.reportLostForm.petName.trim() ||
+      missingSpecies ||
       !this.reportLostForm.lastSeenLocation.trim() ||
       !this.reportLostForm.distinctiveFeatures.trim()
     ) {
@@ -4682,7 +4789,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       this.notify.warning(
         isCampana
           ? 'Por favor ingresa el título de la campaña, la sede y la descripción/requisitos.'
-          : 'Por favor indica el nombre/apodo, la ubicación y las señas particulares.',
+          : 'Por favor indica el nombre/apodo, la especie, la ubicación y las señas particulares.',
       );
       return;
     }
@@ -4704,25 +4811,31 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
     const executeCreation = (finalPhotos: string[]) => {
       const editId = this.editingReportId();
       const primaryPhoto = finalPhotos[0] || undefined;
+      const isCampana = this.reportLostForm.type === 'CAMPANA_COMUNITARIA';
+      const resolvedSpecies = isCampana ? 'Comunidad' : this.reportLostForm.species.trim();
       const payload = {
         type: this.reportLostForm.type,
-        species: this.reportLostForm.species,
-        petName: this.reportLostForm.petName.trim() || 'Peludito comunitario',
-        gender: this.reportLostForm.gender,
+        species: resolvedSpecies,
+        petName: this.reportLostForm.petName.trim() || undefined,
+        gender: isCampana ? undefined : this.reportLostForm.gender.trim() || undefined,
         coloniaId: this.reportLostForm.coloniaId || undefined,
         lastSeenLocation: this.reportLostForm.lastSeenLocation.trim(),
         incidentDate: this.reportLostForm.incidentDate || new Date().toISOString().split('T')[0],
         distinctiveFeatures: this.reportLostForm.distinctiveFeatures.trim(),
-        contactPhone: this.reportLostForm.contactPhone.trim() || '4181234567',
+        contactPhone: this.reportLostForm.contactPhone.trim() || undefined,
         rewardOffered: this.reportLostForm.rewardOffered,
         rewardDetails: this.reportLostForm.rewardDetails.trim() || undefined,
         photos: finalPhotos,
         isInjured: this.reportLostForm.isInjured,
         temperamentTags: this.reportLostForm.temperamentTags,
-        goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
+        goodWithKids:
+          this.reportLostForm.goodWithKids !== null
+            ? this.reportLostForm.goodWithKids
+            : undefined,
         goodWithOtherPets:
-          this.reportLostForm.temperamentTags.includes('Sociable con perros') ||
-          this.reportLostForm.temperamentTags.includes('Convive con gatos'),
+          this.reportLostForm.goodWithOtherPets !== null
+            ? this.reportLostForm.goodWithOtherPets
+            : undefined,
       };
 
       // Caso A: Edición de publicación existente
@@ -4776,13 +4889,20 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           .split(',')
           .map((v) => v.trim())
           .filter(Boolean);
+        const mappedGender =
+          this.reportLostForm.gender === 'Hembra'
+            ? 'FEMALE'
+            : this.reportLostForm.gender === 'Macho'
+              ? 'MALE'
+              : undefined;
         const petPayload: any = {
           name: this.reportLostForm.petName.trim(),
           species: this.reportLostForm.species,
           breed: this.reportLostForm.breed.trim() || undefined,
-          approximateAge: this.reportLostForm.approximateAge.trim() || 'No especificada',
-          gender: this.reportLostForm.gender === 'Hembra' ? 'FEMALE' : 'MALE',
-          size: this.reportLostForm.size || 'MEDIANO',
+          approximateAge: this.reportLostForm.approximateAge.trim() || undefined,
+          gender: mappedGender,
+          size: this.reportLostForm.size || undefined,
+          energyLevel: this.reportLostForm.energyLevel || undefined,
           color: this.reportLostForm.color.trim() || undefined,
           specialMarks: this.reportLostForm.specialMarks.trim() || undefined,
           status: 'DISPONIBLE',
@@ -4794,10 +4914,14 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
           isSterilized: this.reportLostForm.temperamentTags.includes('Esterilizado(a)'),
           isDewormed: !!this.reportLostForm.isDewormed,
           vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
-          goodWithKids: this.reportLostForm.temperamentTags.includes('Bueno con niños'),
+          goodWithKids:
+            this.reportLostForm.goodWithKids !== null
+              ? this.reportLostForm.goodWithKids
+              : undefined,
           goodWithOtherPets:
-            this.reportLostForm.temperamentTags.includes('Sociable con perros') ||
-            this.reportLostForm.temperamentTags.includes('Convive con gatos'),
+            this.reportLostForm.goodWithOtherPets !== null
+              ? this.reportLostForm.goodWithOtherPets
+              : undefined,
         };
 
         this.petService.create(petPayload).subscribe({
@@ -4824,10 +4948,10 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
               photos: photosList,
               activePhotoIndex: 0,
               species: createdPet.species,
-              breed: createdPet.breed,
-              approxAge: createdPet.approximateAge,
-              size: createdPet.size,
-              gender: createdPet.gender === 'FEMALE' ? 'Hembra' : 'Macho',
+              breed: createdPet.breed || undefined,
+              approxAge: createdPet.approximateAge || undefined,
+              size: createdPet.size ? formatPetSizeLabel(createdPet.size, '') || undefined : undefined,
+              gender: createdPet.gender ? formatPetGenderLabel(createdPet.gender, '') || undefined : undefined,
               coloniaName,
               isSterilized: createdPet.isSterilized,
               isVaccinated: Boolean(createdPet.vaccinesList && createdPet.vaccinesList.length > 0),
@@ -5266,7 +5390,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '!',
+      icon: 'trash',
     });
     if (!confirmed) return;
 
@@ -5318,7 +5442,7 @@ export class CommunityFeedComponent implements OnInit, OnDestroy {
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
       type: 'danger',
-      icon: '!',
+      icon: 'trash',
     });
     if (!confirmed) return;
 

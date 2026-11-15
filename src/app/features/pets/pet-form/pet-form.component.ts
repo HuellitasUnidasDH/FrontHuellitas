@@ -9,7 +9,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ImageUploadService } from '../../../core/services/image-upload.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NavigationHistoryService } from '../../../core/services/navigation-history.service';
-import { AdoptionStatus, PetGender, PetSize } from '../../../core/models/pet.model';
+import { AdoptionStatus, EnergyLevel, PetGender, PetSize } from '../../../core/models/pet.model';
 import { Colonia } from '../../../core/models/colonia.model';
 import { UserRole } from '../../../core/models/user.model';
 import { PetGroup } from '../../../core/models/group.model';
@@ -72,14 +72,21 @@ import { PetGroup } from '../../../core/models/group.model';
                 </label>
                 <select
                   formControlName="species"
+                  [ngClass]="{ '!border-rose-500 !ring-2 !ring-rose-500/20': petForm.get('species')?.touched && petForm.get('species')?.invalid }"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
+                  <option value="" disabled>Selecciona especie...</option>
                   <option value="Perro">Perro</option>
                   <option value="Gato">Gato</option>
                   <option value="Ave">Ave</option>
                   <option value="Conejo">Conejo</option>
                   <option value="Otro">Otro</option>
                 </select>
+                @if (petForm.get('species')?.touched && petForm.get('species')?.invalid) {
+                  <p class="text-rose-500 dark:text-rose-400 text-xs mt-1 font-medium">
+                    Selecciona la especie de la mascota.
+                  </p>
+                }
               </div>
 
               <div>
@@ -102,8 +109,10 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="gender"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
-                  <option [value]="PetGender.MALE">Macho</option>
-                  <option [value]="PetGender.FEMALE">Hembra</option>
+                  <option [ngValue]="null">No especificado</option>
+                  <option [ngValue]="PetGender.MALE">Macho</option>
+                  <option [ngValue]="PetGender.FEMALE">Hembra</option>
+                  <option [ngValue]="PetGender.UNKNOWN">Desconocido</option>
                 </select>
               </div>
             </div>
@@ -120,31 +129,47 @@ import { PetGroup } from '../../../core/models/group.model';
                   type="button"
                   (click)="setPhotoSource('FILE')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'FILE', 'text-slate-600 dark:text-slate-400': photoSource() !== 'FILE' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  📁 Dispositivo
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <span>Dispositivo</span>
                 </button>
                 <button
                   type="button"
                   (click)="setPhotoSource('CAMERA')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'CAMERA', 'text-slate-600 dark:text-slate-400': photoSource() !== 'CAMERA' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  📸 Usar Cámara
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
+                  <span>Usar Cámara</span>
                 </button>
                 <button
                   type="button"
                   (click)="setPhotoSource('URL')"
                   [ngClass]="{ 'bg-emerald-500 text-slate-950 shadow': photoSource() === 'URL', 'text-slate-600 dark:text-slate-400': photoSource() !== 'URL' }"
-                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+                  class="flex-1 py-1.5 px-2 rounded-lg transition-all cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  🔗 Enlace URL
+                  <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                  <span>Enlace URL</span>
                 </button>
               </div>
 
               @if (photoSource() === 'FILE') {
                 <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 rounded-2xl p-4 cursor-pointer bg-white/40 dark:bg-slate-900/40 hover:bg-white/60 dark:hover:bg-slate-900/60 transition-all">
-                  <span class="text-2xl mb-1">📷</span>
+                  <svg class="w-7 h-7 text-emerald-500 mb-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                    <circle cx="12" cy="13" r="3" />
+                  </svg>
                   <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Toca para seleccionar foto desde celular o PC</span>
                   <span class="text-[10px] text-slate-500 dark:text-slate-400">JPG, PNG o WEBP</span>
                   <input
@@ -170,16 +195,18 @@ import { PetGroup } from '../../../core/models/group.model';
                       <button
                         type="button"
                         (click)="capturePhotoFromCamera()"
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 text-xs font-black shadow-md cursor-pointer transition-all active:scale-95 inline-flex items-center gap-1.5"
                       >
-                        📸 Capturar Foto
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3" /><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /></svg>
+                        <span>Capturar Foto</span>
                       </button>
                       <button
                         type="button"
                         (click)="toggleCameraFacingMode()"
-                        class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors"
+                        class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-white/10 cursor-pointer transition-colors inline-flex items-center gap-1.5"
                       >
-                        🔄 Girar cámara
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></svg>
+                        <span>Girar cámara</span>
                       </button>
                     </div>
                   } @else {
@@ -192,12 +219,14 @@ import { PetGroup } from '../../../core/models/group.model';
                       <button
                         type="button"
                         (click)="startCameraStream()"
-                        class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all"
+                        class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black cursor-pointer transition-all inline-flex items-center gap-1.5"
                       >
-                        🎥 Encender cámara en vivo
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
+                        <span>Encender cámara en vivo</span>
                       </button>
-                      <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all">
-                        📱 Abrir cámara del teléfono
+                      <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-white/15 cursor-pointer transition-all inline-flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+                        <span>Abrir cámara del teléfono</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -268,10 +297,13 @@ import { PetGroup } from '../../../core/models/group.model';
                         <button
                           type="button"
                           (click)="removeGalleryPhoto($index)"
-                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 text-white text-[10px] font-bold flex items-center justify-center hover:bg-rose-600 cursor-pointer"
+                          class="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-950/80 text-white flex items-center justify-center hover:bg-rose-600 cursor-pointer"
                           title="Quitar foto"
                         >
-                          ✕
+                          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                          </svg>
                         </button>
                       </div>
                     }
@@ -284,7 +316,13 @@ import { PetGroup } from '../../../core/models/group.model';
           <!-- Family / Group Section -->
           <div class="pt-6 border-t border-slate-200/60 dark:border-slate-800">
             <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
-              <span>👨‍👩‍👧‍👦</span> Familia / Grupo Compartido
+              <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Familia / Grupo Compartido</span>
             </h3>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
               Si asignas esta mascota a una familia, todos los miembros podrán verla, subir fotos y compartir recuerdos.
@@ -298,10 +336,10 @@ import { PetGroup } from '../../../core/models/group.model';
                 formControlName="groupId"
                 class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
               >
-                <option [ngValue]="null">🔒 Mascota Individual (Sin grupo compartido)</option>
+                <option [ngValue]="null">Mascota Individual (Sin grupo compartido)</option>
                 @for (group of availableGroups(); track group.id) {
                   <option [ngValue]="group.id">
-                    👨‍👩‍👧‍👦 {{ group.name }} (Código: {{ group.inviteCode }})
+                    {{ group.name }} (Código: {{ group.inviteCode }})
                   </option>
                 }
               </select>
@@ -373,6 +411,7 @@ import { PetGroup } from '../../../core/models/group.model';
                   formControlName="size"
                   class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                 >
+                  <option [ngValue]="null">No especificado</option>
                   <option value="CHICO">Chico</option>
                   <option value="MEDIANO">Mediano</option>
                   <option value="GRANDE">Grande</option>
@@ -456,23 +495,49 @@ import { PetGroup } from '../../../core/models/group.model';
                     </select>
                   </div>
 
-                  <div class="flex flex-wrap items-center gap-4 pt-2 sm:pt-6">
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        formControlName="goodWithKids"
-                        class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
-                      />
-                      <span>Convive con niños</span>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Nivel de Energía
                     </label>
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        formControlName="goodWithOtherPets"
-                        class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-emerald-500 focus:ring-emerald-500"
-                      />
-                      <span>Convive con otras mascotas</span>
+                    <select
+                      formControlName="energyLevel"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option value="BAJO">Bajo (Tranquilo)</option>
+                      <option value="MEDIO">Medio (Equilibrado)</option>
+                      <option value="ALTO">Alto (Activo / Juguetón)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Convivencia con Niños
                     </label>
+                    <select
+                      formControlName="goodWithKids"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option [ngValue]="true">Apto (Bueno con niños)</option>
+                      <option [ngValue]="false">No recomendado</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Convivencia con Otras Mascotas
+                    </label>
+                    <select
+                      formControlName="goodWithOtherPets"
+                      class="w-full px-4 py-2.5 rounded-xl liquid-glass-input text-slate-900 dark:text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    >
+                      <option [ngValue]="null">No especificado</option>
+                      <option [ngValue]="true">Sociable</option>
+                      <option [ngValue]="false">No / Prefiere ser único</option>
+                    </select>
                   </div>
                 </div>
 
@@ -662,23 +727,24 @@ export class PetFormComponent implements OnInit, OnDestroy {
 
   petForm = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(60)]],
-    species: ['Perro', [Validators.required]],
+    species: ['', [Validators.required]],
     breed: [''],
-    gender: [PetGender.MALE],
+    gender: [null as PetGender | null],
     groupId: [null as string | null],
     coloniaId: [''],
     photoUrl: [''],
     birthDate: [''],
     approximateAge: [''],
-    size: ['MEDIANO' as PetSize],
+    size: [null as PetSize | null],
+    energyLevel: [null as EnergyLevel | null],
     weightKg: [null as number | null],
     color: [''],
     specialMarks: [''],
     microchipNumber: [''],
     isSterilized: [false],
     isDewormed: [false],
-    goodWithKids: [true],
-    goodWithOtherPets: [true],
+    goodWithKids: [null as boolean | null],
+    goodWithOtherPets: [null as boolean | null],
     vaccinesText: [''],
     isForAdoption: [false],
     rescueStory: [''],
@@ -730,21 +796,22 @@ export class PetFormComponent implements OnInit, OnDestroy {
           name: pet.name,
           species: pet.species,
           breed: pet.breed || '',
-          gender: pet.gender,
+          gender: (pet.gender as PetGender) ?? null,
           groupId: pet.groupId || null,
           coloniaId: pet.coloniaId || '',
           photoUrl: pet.photoUrl || '',
           birthDate: pet.birthDate ? pet.birthDate.substring(0, 10) : '',
           approximateAge: pet.approximateAge || '',
-          size: pet.size || 'MEDIANO',
+          size: pet.size ?? null,
+          energyLevel: pet.energyLevel ?? null,
           weightKg: pet.weightKg ? Number(pet.weightKg) : null,
           color: pet.color || '',
           specialMarks: pet.specialMarks || '',
           microchipNumber: pet.microchipNumber || '',
           isSterilized: pet.isSterilized,
           isDewormed: !!pet.isDewormed,
-          goodWithKids: pet.goodWithKids !== undefined ? !!pet.goodWithKids : true,
-          goodWithOtherPets: pet.goodWithOtherPets !== undefined ? !!pet.goodWithOtherPets : true,
+          goodWithKids: pet.goodWithKids ?? null,
+          goodWithOtherPets: pet.goodWithOtherPets ?? null,
           vaccinesText: (pet.vaccinesList || []).join(', '),
           isForAdoption: pet.status === 'DISPONIBLE' || pet.status === 'EN_PROCESO',
           rescueStory: pet.rescueStory || '',
@@ -965,8 +1032,9 @@ export class PetFormComponent implements OnInit, OnDestroy {
         name: formVal.name!,
         species: formVal.species!,
         breed: formVal.breed || undefined,
-        gender: formVal.gender || PetGender.MALE,
-        size: formVal.size || 'MEDIANO',
+        gender: formVal.gender ?? null,
+        size: formVal.size ?? null,
+        energyLevel: formVal.energyLevel ?? null,
         groupId: formVal.groupId || null,
         coloniaId: formVal.coloniaId || undefined,
         photoUrl: finalPhotoUrl || combinedPhotos[0] || undefined,
@@ -979,8 +1047,8 @@ export class PetFormComponent implements OnInit, OnDestroy {
         microchipNumber: formVal.microchipNumber || undefined,
         isSterilized: !!formVal.isSterilized,
         isDewormed: !!formVal.isDewormed,
-        goodWithKids: !!formVal.goodWithKids,
-        goodWithOtherPets: !!formVal.goodWithOtherPets,
+        goodWithKids: formVal.goodWithKids ?? null,
+        goodWithOtherPets: formVal.goodWithOtherPets ?? null,
         temperamentTags: this.selectedTemperamentTags(),
         vaccinesList: parsedVaccines.length > 0 ? parsedVaccines : undefined,
         status: resolvedStatus,

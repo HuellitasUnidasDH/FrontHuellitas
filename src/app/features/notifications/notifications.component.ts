@@ -598,7 +598,7 @@ export class NotificationsComponent implements OnInit {
         return `/publicacion/lost-${item.entityId}`;
       }
       if (item.type === SocialNotificationType.COMMENT_ON_PET) {
-        return `/publicacion/pet-${item.entityId}`;
+        return `/adopciones/${item.entityId}`;
       }
     }
     return item.targetUrl || '/';

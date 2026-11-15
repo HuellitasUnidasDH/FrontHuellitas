@@ -46,7 +46,14 @@ export class ConfirmService {
   confirm(options: ConfirmModalOptions): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
       const type = options.type || 'warning';
-      const defaultIcon = type === 'danger' ? '🗑️' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+      const defaultIcon =
+        type === 'danger'
+          ? 'trash'
+          : type === 'warning'
+            ? 'alert'
+            : type === 'success'
+              ? 'check'
+              : 'info';
 
       this.stateSignal.set({
         isOpen: true,
@@ -73,7 +80,7 @@ export class ConfirmService {
   prompt(options: ConfirmModalOptions): Promise<string | null> {
     return new Promise<string | null>((resolvePrompt) => {
       const type = options.type || 'info';
-      const defaultIcon = options.icon || '✏️';
+      const defaultIcon = options.icon || 'edit';
 
       this.stateSignal.set({
         isOpen: true,

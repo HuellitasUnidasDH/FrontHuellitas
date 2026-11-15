@@ -27,6 +27,8 @@ import { BRAND_CONFIG } from '../../core/constants/brand.constants';
 import {
   buildWhatsAppUrl,
   formatActorRoleLabel,
+  formatMessageDateDivider,
+  getMessageDayKey,
 } from '../../core/utils/app-helpers.util';
 
 type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
@@ -501,7 +503,14 @@ type InboxFilter = 'ALL' | 'UNREAD' | 'ADOPTIONS' | 'ALERTS';
                   </div>
                 </div>
               } @else {
-                @for (msg of dmService.activeMessages(); track msg.id) {
+                @for (msg of dmService.activeMessages(); track msg.id; let i = $index) {
+                  @if (shouldShowDateDivider(i)) {
+                    <div class="flex justify-center my-3 select-none">
+                      <span class="px-3 py-1 rounded-full text-[11px] font-bold tracking-wide bg-slate-200/80 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/70 shadow-sm">
+                        {{ getMessageDateLabel(msg.createdAt) }}
+                      </span>
+                    </div>
+                  }
                   <div
                     class="flex flex-col"
                     [ngClass]="msg.senderId === currentUserId() ? 'items-end' : 'items-start'"
@@ -1594,6 +1603,21 @@ export class DirectMessagesComponent implements OnInit, OnDestroy {
 
   getRoleLabel(role?: string): string {
     return formatActorRoleLabel(role, 'Comunidad DH');
+  }
+
+  shouldShowDateDivider(index: number): boolean {
+    const messages = this.dmService.activeMessages();
+    const current = messages[index];
+    if (!current?.createdAt) return false;
+    const currentDay = getMessageDayKey(current.createdAt);
+    if (!currentDay) return false;
+    if (index === 0) return true;
+    const previousDay = getMessageDayKey(messages[index - 1]?.createdAt);
+    return currentDay !== previousDay;
+  }
+
+  getMessageDateLabel(dateStr?: string): string {
+    return formatMessageDateDivider(dateStr);
   }
 
   getTimeAgo(dateStr?: string): string {

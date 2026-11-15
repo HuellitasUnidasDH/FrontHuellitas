@@ -4,6 +4,11 @@ import {
   escapeHtml,
   formatActorRoleLabel,
   formatExactDateTime,
+  formatMessageDateDivider,
+  formatPetEnergyLabel,
+  formatPetGenderLabel,
+  formatPetSizeLabel,
+  getMessageDayKey,
   isApiRequestUrl,
   sanitizeBase64RasterDataUrl,
   sanitizeCsvCell,
@@ -98,6 +103,35 @@ describe('app-helpers.util', () => {
       expect(formatActorRoleLabel('RESCATISTA_VERIFICADO')).toBe('Rescatista Verificado');
       expect(formatActorRoleLabel('UNKNOWN', 'Comunidad DH')).toBe('Comunidad DH');
       expect(formatExactDateTime('2026-11-14T18:00:00Z')).toContain('2026');
+    });
+  });
+
+  describe('chat date dividers & pet label formatters', () => {
+    it('computes calendar day keys and formats Hoy, Ayer and explicit dates', () => {
+      const ref = new Date(2026, 10, 14, 15, 30, 0);
+      const todayIso = new Date(2026, 10, 14, 9, 5, 0).toISOString();
+      const yesterdayIso = new Date(2026, 10, 13, 21, 0, 0).toISOString();
+      const olderSameYearIso = new Date(2026, 9, 2, 12, 0, 0).toISOString();
+      const lastYearIso = new Date(2025, 11, 20, 12, 0, 0).toISOString();
+
+      expect(getMessageDayKey(todayIso)).toBe('2026-11-14');
+      expect(getMessageDayKey('invalid')).toBe('');
+      expect(formatMessageDateDivider(todayIso, ref)).toBe('Hoy');
+      expect(formatMessageDateDivider(yesterdayIso, ref)).toBe('Ayer');
+      expect(formatMessageDateDivider(olderSameYearIso, ref)).toContain('2');
+      expect(formatMessageDateDivider(lastYearIso, ref)).toContain('2025');
+      expect(formatMessageDateDivider(null, ref)).toBe('');
+    });
+
+    it('formats pet gender, size and energy cleanly without fabricating defaults', () => {
+      expect(formatPetGenderLabel('FEMALE')).toBe('Hembra');
+      expect(formatPetGenderLabel('MALE')).toBe('Macho');
+      expect(formatPetGenderLabel('UNKNOWN')).toBe('Desconocido');
+      expect(formatPetGenderLabel(null)).toBe('No especificado');
+      expect(formatPetSizeLabel('CHICO')).toBe('Chico');
+      expect(formatPetSizeLabel(undefined)).toBe('No especificado');
+      expect(formatPetEnergyLabel('ALTO')).toBe('Alto · Activo');
+      expect(formatPetEnergyLabel('')).toBe('No especificado');
     });
   });
 });

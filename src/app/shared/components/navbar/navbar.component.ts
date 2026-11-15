@@ -1558,7 +1558,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       ) {
         targetUrl = `/publicacion/lost-${notif.entityId}`;
       } else if (notif.type === SocialNotificationType.COMMENT_ON_PET) {
-        targetUrl = `/publicacion/pet-${notif.entityId}`;
+        targetUrl = `/adopciones/${notif.entityId}`;
       }
     }
     this.router.navigateByUrl(targetUrl);

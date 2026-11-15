@@ -19,6 +19,8 @@ import { ImageUploadService } from '../../../core/services/image-upload.service'
 import { NotificationService } from '../../../core/services/notification.service';
 import {
   escapeHtml,
+  formatPetGenderLabel,
+  formatPetSizeLabel,
   sanitizeBase64RasterDataUrl,
 } from '../../../core/utils/app-helpers.util';
 
@@ -34,8 +36,14 @@ import {
           <span class="text-[10px] font-black uppercase tracking-widest text-emerald-100 block">
             {{ brand.fullName }} • {{ brand.fullLocation }}
           </span>
-          <h2 class="text-xl sm:text-2xl font-black tracking-tight mt-0.5">
-            📜 Convenio de Adopción Responsable
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight mt-0.5 flex items-center gap-2">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            <span>Convenio de Adopción Responsable</span>
           </h2>
           <p class="text-xs text-emerald-50/90 mt-1">
             Formato oficial para la entrega formal de <strong>{{ request().pet?.name }}</strong>
@@ -48,11 +56,19 @@ import {
             (click)="printConvenio()"
             class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
           >
-            <span>🖨️</span> Imprimir / Guardar PDF
+            <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect width="12" height="8" x="6" y="14" />
+            </svg>
+            <span>Imprimir / Guardar PDF</span>
           </button>
           @if (request().agreementSignedAt) {
-            <span class="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-300/40 text-emerald-100 font-black text-[11px]">
-              ✓ Firmado el {{ request().agreementSignedAt | date:'dd/MM/yyyy HH:mm' }}
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-300/40 text-emerald-100 font-black text-[11px] inline-flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Firmado el {{ request().agreementSignedAt | date:'dd/MM/yyyy HH:mm' }}</span>
             </span>
           }
         </div>
@@ -77,7 +93,7 @@ import {
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Especie / Raza</span>
-              <span class="font-bold">{{ request().pet?.species }} • {{ request().pet?.breed || 'Mestizo' }}</span>
+              <span class="font-bold">{{ request().pet?.species }} • {{ request().pet?.breed || 'No especificada' }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Edad Aproximada</span>
@@ -85,7 +101,7 @@ import {
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Sexo / Tamaño</span>
-              <span class="font-bold">{{ genderLabel(request().pet?.gender) }} • {{ request().pet?.size || 'Mediano' }}</span>
+              <span class="font-bold">{{ genderLabel(request().pet?.gender) }} • {{ sizeLabel(request().pet?.size) }}</span>
             </div>
             <div>
               <span class="text-[10px] font-bold uppercase text-slate-400 block">Color y Señas</span>
@@ -158,7 +174,12 @@ import {
 
             <!-- Aviso Privacidad INE -->
             <div class="p-3.5 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-xs text-sky-900 dark:text-sky-200 flex items-start gap-2.5">
-              <span class="text-lg flex-shrink-0">🔐</span>
+              <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
               <div>
                 <strong>Privacidad Protegida (Sin foto de INE):</strong> Por seguridad legal, <strong>no subas foto de tu INE</strong>. Solo preséntala físicamente al rescatista al momento de recibir a {{ request().pet?.name }}. El comprobante de domicilio es totalmente opcional.
               </div>
@@ -246,7 +267,12 @@ import {
               @if (form.addressProofUrl) {
                 <div class="flex items-center gap-3 pt-1">
                   <img [src]="form.addressProofUrl" alt="Comprobante de domicilio" class="w-16 h-16 rounded-xl object-cover border border-emerald-500/40" />
-                  <span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓ Comprobante adjuntado correctamente</span>
+                  <span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs inline-flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>Comprobante adjuntado correctamente</span>
+                  </span>
                   <button
                     type="button"
                     (click)="form.addressProofUrl = ''"
@@ -392,8 +418,8 @@ import {
               </div>
               <div>
                 <span class="text-[10px] font-bold uppercase text-slate-400 block">Compromiso Esterilización</span>
-                <span class="font-bold">
-                  {{ request().pet?.isSterilized ? 'Ya esterilizada' : request().sterilizationCommitmentAccepted ? '✓ Compromiso firmado (5-6 meses)' : 'Pendiente' }}
+                <span class="font-bold inline-flex items-center gap-1">
+                  {{ request().pet?.isSterilized ? 'Ya esterilizada' : request().sterilizationCommitmentAccepted ? 'Compromiso firmado (5-6 meses)' : 'Pendiente' }}
                 </span>
               </div>
             </div>
@@ -484,10 +510,12 @@ export class AdoptionAgreementDocumentComponent {
     });
   }
 
-  genderLabel(g?: string): string {
-    if (g === 'MALE') return 'Macho';
-    if (g === 'FEMALE') return 'Hembra';
-    return 'No especificado';
+  genderLabel(g?: string | null): string {
+    return formatPetGenderLabel(g, 'No especificado');
+  }
+
+  sizeLabel(s?: string | null): string {
+    return formatPetSizeLabel(s, 'No especificado');
   }
 
   private getCanvasPoint(ev: PointerEvent, canvas: HTMLCanvasElement) {
@@ -656,8 +684,8 @@ export class AdoptionAgreementDocumentComponent {
 
   <h2>Descripción de la Mascota</h2>
   <table>
-    <tr><th>Nombre</th><td>${this.escapeHtml(pet?.name)}</td><th>Especie / Raza</th><td>${this.escapeHtml(pet?.species)} • ${this.escapeHtml(pet?.breed || 'Mestizo')}</td></tr>
-    <tr><th>Edad Aprox.</th><td>${this.escapeHtml(pet?.approximateAge || 'N/D')}</td><th>Sexo / Tamaño</th><td>${this.genderLabel(pet?.gender)} • ${this.escapeHtml(pet?.size || 'Mediano')}</td></tr>
+    <tr><th>Nombre</th><td>${this.escapeHtml(pet?.name)}</td><th>Especie / Raza</th><td>${this.escapeHtml(pet?.species)} • ${this.escapeHtml(pet?.breed || 'No especificada')}</td></tr>
+    <tr><th>Edad Aprox.</th><td>${this.escapeHtml(pet?.approximateAge || 'N/D')}</td><th>Sexo / Tamaño</th><td>${this.genderLabel(pet?.gender)} • ${this.escapeHtml(this.sizeLabel(pet?.size))}</td></tr>
     <tr><th>Color / Señas</th><td>${this.escapeHtml(pet?.color || 'N/D')} ${this.escapeHtml(pet?.specialMarks || '')}</td><th>Esterilizado</th><td>${pet?.isSterilized ? 'Sí' : 'No (Compromiso 5-6 meses)'}</td></tr>
   </table>
 

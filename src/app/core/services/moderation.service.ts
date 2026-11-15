@@ -13,6 +13,37 @@ export type ContentReportReason =
   | 'SPAM'
   | 'OTRO';
 export type ContentReportStatus = 'PENDIENTE' | 'EN_REVISION' | 'SANCIONADO' | 'DESESTIMADO';
+export type ModerationAction =
+  | 'DISMISS'
+  | 'MARK_REVIEWING'
+  | 'WARN_AUTHOR'
+  | 'DELETE_CONTENT'
+  | 'SUSPEND_USER'
+  | 'DELETE_AND_SUSPEND';
+
+export interface ModerationAuthorSummary {
+  id: string;
+  fullName: string;
+  email?: string;
+  role: string;
+  isActive: boolean;
+  isBanned: boolean;
+  priorSanctionsCount: number;
+}
+
+export interface ModerationTargetSummary {
+  exists: boolean;
+  targetType: ReportTargetType;
+  targetId: string;
+  title: string;
+  subtitle?: string;
+  previewText?: string;
+  photoUrl?: string | null;
+  statusLabel: string;
+  isDeleted: boolean;
+  routePath: string | null;
+  author: ModerationAuthorSummary | null;
+}
 
 export interface ContentReport {
   id: string;
@@ -23,9 +54,12 @@ export interface ContentReport {
   reason: ContentReportReason;
   description: string;
   status: ContentReportStatus;
+  actionTaken?: ModerationAction;
   adminResolutionNotes?: string;
   reviewedByAdminId?: string;
   reviewedByAdmin?: User;
+  targetSummary?: ModerationTargetSummary;
+  cascadedReportsCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -60,7 +94,11 @@ export class ModerationService {
 
   resolveReport(
     id: string,
-    payload: { status: ContentReportStatus; adminNotes?: string },
+    payload: {
+      status?: ContentReportStatus;
+      action?: ModerationAction;
+      adminNotes?: string;
+    },
   ): Observable<ContentReport> {
     return this.http
       .patch<ApiResponse<ContentReport>>(`${this.URL}/reports/${id}/resolve`, payload)

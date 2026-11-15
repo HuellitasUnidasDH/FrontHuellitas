@@ -165,7 +165,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
 
       @if (verification()?.reviewNotes && (verification()?.level2Status === 'RECHAZADO' || verification()?.level3Status === 'RECHAZADO')) {
         <div class="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-xs text-slate-800 dark:text-slate-100 flex items-start gap-3 shadow-md">
-          <span class="text-xl flex-shrink-0">💬</span>
+          <div class="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+            </svg>
+          </div>
           <div>
             <strong class="block font-black text-amber-700 dark:text-amber-300 uppercase text-[11px]">
               Observaciones del Rescatista / Administrador para corregir tu solicitud:
@@ -185,7 +189,12 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
         <section class="liquid-glass rounded-3xl p-5 sm:p-6 shadow-xl space-y-3 border border-slate-200/80 dark:border-slate-800">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-3">
-              <span class="text-2xl">📱</span>
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2" />
+                  <path d="M12 18h.01" />
+                </svg>
+              </div>
               <div>
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white">Nivel 1: Teléfono de Contacto</h3>
                 <p class="text-xs text-slate-500">
@@ -194,8 +203,11 @@ import { BRAND_CONFIG } from '../../../core/constants/brand.constants';
               </div>
             </div>
             @if (hasLevel1()) {
-              <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">
-                ✓ Confirmado
+              <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 inline-flex items-center gap-1">
+                <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>Confirmado</span>
               </span>
             } @else {
               <a
